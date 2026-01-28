@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project filever="1.0">
+	<BaseSet URL="China" RemotePswd="888888" UploadTo="0" UpdateTime="2" ServerType="0" DataSaving="1" Use="1" />
+	<MqttSet URL="" PORT="0" ClientID="" ConnTimeout="10" KeepAlive="60" Cleansession="0" Username="" Password="" Qos="0" Retained="0" LastWill="" Testament="" IsCrt="0" CrtName="" />
+	<DataGrpSet Cloud="1" CustomName="" />
+	<PlcSet />
+</project>

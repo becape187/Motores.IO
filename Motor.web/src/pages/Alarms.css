@@ -1,0 +1,367 @@
+.alarms-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.alarm-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.stat-item {
+  background: var(--white-color);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+}
+
+.stat-item:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.stat-item svg {
+  flex-shrink: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.stat-total svg {
+  color: #3498db;
+  background: rgba(52, 152, 219, 0.1);
+}
+
+.stat-pending svg {
+  color: #f39c12;
+  background: rgba(243, 156, 18, 0.1);
+}
+
+.stat-error svg {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.stat-warning svg {
+  color: #f39c12;
+  background: rgba(243, 156, 18, 0.1);
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.alarms-controls {
+  background: var(--white-color);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-item label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.filter-item select {
+  padding: 8px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  color: var(--text-dark);
+  background: var(--white-color);
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 160px;
+}
+
+.filter-item select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.btn-acknowledge-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: var(--white-color);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-acknowledge-all:hover {
+  background: #2d3c3d;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.alarms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.no-alarms {
+  background: var(--white-color);
+  border-radius: 16px;
+  padding: 60px 40px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-light);
+}
+
+.no-alarms h3 {
+  font-size: 20px;
+  color: var(--text-dark);
+  margin: 16px 0 8px;
+}
+
+.alarm-card {
+  background: var(--white-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  gap: 20px;
+  border-left: 4px solid;
+  transition: var(--transition);
+}
+
+.alarm-card.pending {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.alarm-card.acknowledged {
+  opacity: 0.7;
+}
+
+.alarm-card:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.alarm-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white-color);
+  flex-shrink: 0;
+}
+
+.alarm-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alarm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.alarm-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.alarm-type {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.alarm-motor {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.alarm-time {
+  font-size: 13px;
+  color: var(--text-light);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.alarm-message {
+  font-size: 14px;
+  color: var(--text-dark);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.alarm-acknowledged {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--success-color);
+  font-weight: 600;
+}
+
+.alarm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-action {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.btn-action.btn-acknowledge {
+  color: var(--success-color);
+}
+
+.btn-action.btn-acknowledge:hover {
+  background: rgba(39, 174, 96, 0.1);
+}
+
+.btn-action.btn-delete {
+  color: var(--error-color);
+}
+
+.btn-action.btn-delete:hover {
+  background: rgba(231, 76, 60, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .alarm-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .alarms-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filter-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-item select {
+    width: 100%;
+  }
+
+  .btn-acknowledge-all {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .alarm-card {
+    flex-wrap: wrap;
+  }
+
+  .alarm-actions {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .btn-action {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .alarm-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .alarm-card {
+    padding: 12px;
+  }
+
+  .alarm-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .alarm-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .alarm-actions {
+    flex-direction: column;
+  }
+
+  .btn-action {
+    width: 100%;
+  }
+}
