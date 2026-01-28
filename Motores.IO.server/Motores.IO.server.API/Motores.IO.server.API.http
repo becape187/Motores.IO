@@ -1,0 +1,6 @@
+@Motores.IO.server.API_HostAddress = http://localhost:5113
+
+GET {{Motores.IO.server.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,75 @@
+name: Deploy Motor.web
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'Motor.web/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Motor.web/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: ./Motor.web
+        run: npm ci
+
+      - name: Compilar projeto
+        working-directory: ./Motor.web
+        run: npm run build
+
+      - name: Criar arquivo de deploy
+        run: |
+          mkdir -p deploy
+          tar -czf deploy/motor-web.tar.gz -C Motor.web/dist .
+
+      - name: Deploy para servidor via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          password: ${{ secrets.PASSWORD }}
+          port: 22
+          source: "deploy/motor-web.tar.gz"
+          target: "/tmp"
+
+      - name: Extrair e mover arquivos no servidor
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          password: ${{ secrets.PASSWORD }}
+          port: 22
+          script: |
+            # Criar backup do conteúdo atual
+            if [ -d /var/www/html ]; then
+              sudo mkdir -p /var/www/html.backup
+              sudo cp -r /var/www/html/* /var/www/html.backup/ 2>/dev/null || true
+            fi
+            
+            # Extrair novo conteúdo
+            sudo mkdir -p /var/www/html
+            sudo tar -xzf /tmp/motor-web.tar.gz -C /var/www/html
+            
+            # Limpar arquivo temporário
+            sudo rm -f /tmp/motor-web.tar.gz
+            
+            # Ajustar permissões
+            sudo chown -R www-data:www-data /var/www/html
+            sudo chmod -R 755 /var/www/html
+            
+            echo "Deploy concluído com sucesso!"
