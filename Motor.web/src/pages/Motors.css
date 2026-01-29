@@ -257,11 +257,11 @@
 }
 
 .detail-item {
-  /* alinhar rótulo e valor em duas colunas dentro de cada item */
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  column-gap: 12px;
+  /* usar flex para garantir alinhamento vertical preciso entre label e value */
+  display: flex;
+  flex-direction: row;
   align-items: center;
+  gap: 8px;
   margin: 0;
   padding: 0 !important;
   line-height: 1.2;
@@ -291,6 +291,45 @@
   font-weight: 700;
   color: var(--text-dark);
   border: none !important;
+}
+
+/* forçar igualdade de tamanho e line-height dentro dos cards de motor */
+.motor-card .detail-label,
+.motor-card .detail-value {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+
+/* alinhar texto: rótulos alinhados à direita e valores próximos à esquerda */
+.motor-card .detail-label {
+  text-align: right;
+  padding-right: 6px;
+  min-width: 100px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.motor-card .detail-value {
+  text-align: left;
+  padding-left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+/* ajustar verticalmente os rótulos para alinharem exatamente com os valores */
+.motor-card .detail-label {
+  transform: translateY(3px);
+}
+
+@media (max-width: 768px) {
+  /* em telas pequenas, reduzir largura mínima do rótulo */
+  .motor-card .detail-label {
+    min-width: 90px;
+    padding-right: 8px;
+  }
+  .motor-card .detail-label {
+    transform: translateY(2px);
+  }
 }
 
 .no-motors {

@@ -108,7 +108,8 @@
 
 .input-wrapper input {
   width: 100%;
-  padding: 14px 16px 14px 48px;
+  /* deslocar placeholder/texto para a direita para não sobrepor ícones */
+  padding: 14px 56px 14px 64px;
   border: 2px solid #e0e0e0;
   border-radius: var(--border-radius);
   font-size: 15px;
@@ -133,6 +134,8 @@
   display: flex;
   align-items: center;
   transition: var(--transition);
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .password-toggle:hover {
@@ -198,6 +201,37 @@
 
 .login-button:active:not(:disabled) {
   transform: translateY(0);
+}
+
+/* floating label */
+.floating-label {
+  position: absolute;
+  left: 56px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.18s ease;
+  color: var(--text-light);
+  pointer-events: none;
+  background: transparent;
+}
+
+.floating-label.filled,
+.input-wrapper input:focus + .floating-label {
+  top: -8px;
+  transform: translateY(0);
+  font-size: 12px;
+  background: var(--white-color);
+  padding: 0 6px;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+/* quando não há ícone, aproximar o texto e label da borda */
+.input-wrapper.no-icon input {
+  padding-left: 16px !important;
+}
+.input-wrapper.no-icon .floating-label {
+  left: 16px;
 }
 
 .login-button:disabled {

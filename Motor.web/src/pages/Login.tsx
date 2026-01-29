@@ -9,6 +9,8 @@ interface LoginProps {
 function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -42,32 +44,38 @@ function Login({ onLogin }: LoginProps) {
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">E-mail</label>
-            <div className="input-wrapper">
-              <User className="input-icon" size={20} />
+            <div className={`input-wrapper ${email || emailFocused ? 'no-icon' : ''}`}>
+              {!(email || emailFocused) && <User className="input-icon" size={20} />}
               <input
                 id="email"
                 type="email"
-                placeholder="Digite seu e-mail"
+                placeholder=""
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
                 required
+                aria-label="E-mail"
               />
+              <label htmlFor="email" className={`floating-label ${email ? 'filled' : ''}`}>E-mail</label>
             </div>
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Senha</label>
-            <div className="input-wrapper">
-              <Lock className="input-icon" size={20} />
+            <div className={`input-wrapper ${password || passwordFocused ? 'no-icon' : ''}`}>
+              {!(password || passwordFocused) && <Lock className="input-icon" size={20} />}
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Digite sua senha"
+                placeholder=""
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
                 required
+                aria-label="Senha"
               />
+              <label htmlFor="password" className={`floating-label ${password ? 'filled' : ''}`}>Senha</label>
               <button
                 type="button"
                 className="password-toggle"
