@@ -1,0 +1,127 @@
+name: Build and Deploy Motores.IO.server
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'Motores.IO.server/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        working-directory: ./Motores.IO.server/Motores.IO.server.API
+        run: dotnet restore
+
+      - name: Build project
+        working-directory: ./Motores.IO.server/Motores.IO.server.API
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish project
+        working-directory: ./Motores.IO.server/Motores.IO.server.API
+        run: dotnet publish --configuration Release --output ./publish --no-build
+
+      - name: Create tar.gz archive
+        run: |
+          mkdir -p deploy
+          tar -czf deploy/motores-io-server.tar.gz -C Motores.IO.server/Motores.IO.server.API/publish .
+
+      - name: Deploy to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          password: ${{ secrets.PASSWORD }}
+          port: 22
+          source: "deploy/motores-io-server.tar.gz"
+          target: "/tmp"
+
+      - name: Execute deploy script
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          password: ${{ secrets.PASSWORD }}
+          port: 22
+          script: |
+            # Obter usuário atual
+            CURRENT_USER=$(whoami)
+            
+            # Criar backup do conteúdo atual
+            if [ -d /home/Motores.IO ]; then
+              sudo mkdir -p /home/Motores.IO.backup
+              sudo cp -r /home/Motores.IO/* /home/Motores.IO.backup/ 2>/dev/null || true
+            fi
+
+            # Criar diretório de destino
+            sudo mkdir -p /home/Motores.IO
+
+            # Extrair novo conteúdo
+            sudo tar -xzf /tmp/deploy/motores-io-server.tar.gz -C /home/Motores.IO
+
+            # Limpar arquivo temporário
+            sudo rm -rf /tmp/deploy
+
+            # Ajustar permissões
+            sudo chown -R $CURRENT_USER:$CURRENT_USER /home/Motores.IO
+            sudo chmod -R 755 /home/Motores.IO
+
+            # Detectar caminho do dotnet
+            DOTNET_PATH=$(which dotnet || echo "/usr/bin/dotnet")
+            
+            # Verificar se o arquivo de serviço existe
+            SERVICE_FILE="/etc/systemd/system/motores-io.service"
+            if [ ! -f "$SERVICE_FILE" ]; then
+              echo "Criando arquivo de serviço systemd..."
+              sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+            [Unit]
+            Description=Motores.IO.server API
+            After=network.target postgresql.service
+
+            [Service]
+            Type=notify
+            User=$CURRENT_USER
+            WorkingDirectory=/home/Motores.IO
+            ExecStart=$DOTNET_PATH /home/Motores.IO/Motores.IO.server.API.dll
+            Restart=always
+            RestartSec=10
+            SyslogIdentifier=motores-io
+            Environment=ASPNETCORE_ENVIRONMENT=Production
+            Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+              
+              # Recarregar systemd
+              sudo systemctl daemon-reload
+              
+              # Habilitar serviço
+              sudo systemctl enable motores-io.service
+              
+              echo "Serviço criado e habilitado com sucesso!"
+            else
+              echo "Arquivo de serviço já existe. Reiniciando serviço..."
+              sudo systemctl daemon-reload
+            fi
+
+            # Reiniciar serviço
+            sudo systemctl restart motores-io.service
+
+            # Verificar status do serviço
+            sudo systemctl status motores-io.service --no-pager || true
+
+            echo "Deploy concluído com sucesso!"
