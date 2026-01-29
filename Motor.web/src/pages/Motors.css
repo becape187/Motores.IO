@@ -242,10 +242,12 @@
 }
 
 .motor-card-details {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  /* usar grid para alinhar rótulos/valores em colunas */
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  column-gap: 12px;
+  row-gap: 6px;
+  align-items: center;
   margin-top: 2px;
   padding: 0;
   border: none !important;
@@ -257,10 +259,12 @@
 }
 
 .detail-item {
-  display: inline-flex;
+  /* cada item ocupa uma linha da grid; usa flex para alinhamento interno */
+  display: flex;
   flex-direction: row;
-  align-items: baseline;
-  gap: 3px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
   margin: 0;
   padding: 0 !important;
   line-height: 1.2;
@@ -273,20 +277,21 @@
   border-right: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  width: 100%;
 }
 
 .detail-label {
-  font-size: 9px;
-  color: #d0d0d0;
-  font-weight: 300;
+  font-size: 11px;
+  color: #7f8c8d;
+  font-weight: 500;
   text-transform: none;
   border: none !important;
 }
 
 .detail-value {
-  font-size: 7px;
-  font-weight: 400;
-  color: #b0b0b0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
   border: none !important;
 }
 
