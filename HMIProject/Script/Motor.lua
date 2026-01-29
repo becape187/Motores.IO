@@ -79,9 +79,5 @@ function Motor:adicionarHoras(horas)
     end
 end
 
--- Método para resetar o horímetro
-function Motor:resetarHorimetro()
-    self.Horimetro = 0.0
-end
 
 return Motor
