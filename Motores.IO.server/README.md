@@ -4,7 +4,7 @@ API REST desenvolvida em ASP.NET Core 8.0 para gerenciamento de motores industri
 
 ## Estrutura do Projeto
 
-```
+```-
 Motores.IO.server/
 ├── Motores.IO.server.API/          # Projeto principal da API
 │   ├── Controllers/                # Controllers da API
