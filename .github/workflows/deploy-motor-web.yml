@@ -63,10 +63,10 @@ jobs:
 
             # Extrair novo conteúdo
             sudo mkdir -p /var/www/html
-            sudo tar -xzf /tmp/motor-web.tar.gz -C /var/www/html
+            sudo tar -xzf /tmp/deploy/motor-web.tar.gz -C /var/www/html
 
             # Limpar arquivo temporário
-            sudo rm -f /tmp/motor-web.tar.gz
+            sudo rm -rf /tmp/deploy
 
             # Ajustar permissões
             sudo chown -R www-data:www-data /var/www/html
