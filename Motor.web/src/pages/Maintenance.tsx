@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Clock, FileText, Plus, X, Save, AlertCircle, CheckCircle, Clock3, Hourglass, Wrench, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus, X, Save, AlertCircle, CheckCircle, Clock3, Hourglass, ArrowLeft } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { mockMotors, mockOrdensServico } from '../data/mockData';
@@ -7,7 +7,7 @@ import { Motor, OrdemServico, RelatorioOS } from '../types';
 import './Maintenance.css';
 
 function Maintenance() {
-  const [motors, setMotors] = useState<Motor[]>(mockMotors);
+  const [motors] = useState<Motor[]>(mockMotors);
   const [ordensServico, setOrdensServico] = useState<OrdemServico[]>(mockOrdensServico);
   const [selectedMotor, setSelectedMotor] = useState<Motor | null>(null);
   const [selectedOS, setSelectedOS] = useState<OrdemServico | null>(null);

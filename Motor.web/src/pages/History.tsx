@@ -1,10 +1,9 @@
 import { useState, useMemo } from 'react';
 import { Calendar, Download, Filter } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, subWeeks, subMonths, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays, subWeeks, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { mockMotors, mockHistory } from '../data/mockData';
-import { Motor, HistoricoMotor } from '../types';
 import './History.css';
 
 const CHART_COLORS = [
@@ -252,8 +251,8 @@ function History() {
                     const date = new Date(value);
                     return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
                   }}
-                  formatter={(value: any, name: string) => {
-                    const motorId = name.replace('motor_', '');
+                  formatter={(value: any, name?: string) => {
+                    const motorId = (name || '').replace('motor_', '');
                     const motor = mockMotors.find(m => m.id === motorId);
                     return [`${Number(value).toFixed(1)}A`, motor?.nome || motorId];
                   }}

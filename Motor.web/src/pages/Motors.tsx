@@ -103,21 +103,6 @@ function Motors() {
     setFormData({ ...formData, [field]: value });
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      ligado: { label: 'Ligado', color: '#27ae60' },
-      desligado: { label: 'Desligado', color: '#95a5a6' },
-      alerta: { label: 'Alerta', color: '#f39c12' },
-      alarme: { label: 'Alarme', color: '#e74c3c' },
-      pendente: { label: 'Pendente', color: '#9b59b6' },
-    };
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.desligado;
-    return (
-      <span className="status-badge" style={{ background: config.color }}>
-        {config.label}
-      </span>
-    );
-  };
 
   const filteredMotors = motors.filter(motor => {
     const matchesSearch = motor.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
