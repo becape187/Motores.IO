@@ -7,7 +7,7 @@ Sistema web profissional para monitoramento e controle de motores industriais em
 ![Vite](https://img.shields.io/badge/Vite-6.0-purple)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## 📋 Índice
+## 📋 Índice.
 
 - [Visão Geral](#visão-geral)
 - [Funcionalidades](#funcionalidades)
