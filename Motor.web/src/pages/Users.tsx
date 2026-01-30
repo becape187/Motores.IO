@@ -155,7 +155,7 @@ function Users() {
         clienteId = usuarioLogadoCompleto.clienteId;
       }
 
-      if (isAdding) {
+    if (isAdding) {
         // Criar novo usuário
         const newUser = await api.createUsuario({
           nome: formData.nome ?? '',
@@ -174,11 +174,11 @@ function Users() {
           perfil: newUser.perfil as Usuario['perfil'],
           ativo: newUser.ativo,
           ultimoAcesso: newUser.ultimoAcesso ? new Date(newUser.ultimoAcesso) : undefined,
-        };
+      };
 
         setUsers([...users, convertedUser]);
         setSelectedUser(convertedUser);
-      } else if (selectedUser) {
+    } else if (selectedUser) {
         // Atualizar usuário existente
         await api.updateUsuario(selectedUser.id, {
           id: selectedUser.id,
@@ -204,10 +204,10 @@ function Users() {
 
         setUsers(users.map(u => u.id === selectedUser.id ? convertedUser : u));
         setSelectedUser(convertedUser);
-      }
+    }
 
-      setIsEditing(false);
-      setIsAdding(false);
+    setIsEditing(false);
+    setIsAdding(false);
       setSenha('');
       setConfirmarSenha('');
     } catch (err: any) {
