@@ -68,14 +68,23 @@ function Layout({ children, onLogout }: LayoutProps) {
 
   // Carregar plantas do cliente selecionado quando trocar de cliente
   useEffect(() => {
-    if (user?.perfil === 'global' && clienteSelecionado) {
-      api.getPlantasPorCliente(clienteSelecionado.id).then(plantas => {
-        setPlantasDoCliente(plantas);
-        // Selecionar primeira planta automaticamente
-        if (plantas.length > 0) {
-          setPlantaSelecionada(plantas[0]);
-        }
-      }).catch(console.error);
+    if (user?.perfil === 'global') {
+      if (clienteSelecionado) {
+        api.getPlantasPorCliente(clienteSelecionado.id).then(plantas => {
+          setPlantasDoCliente(plantas);
+          // Selecionar primeira planta automaticamente
+          if (plantas.length > 0) {
+            setPlantaSelecionada(plantas[0]);
+          } else {
+            // Limpar planta selecionada se não houver plantas
+            setPlantaSelecionada(null);
+          }
+        }).catch(console.error);
+      } else {
+        // Se não houver cliente selecionado, limpar plantas
+        setPlantasDoCliente([]);
+        setPlantaSelecionada(null);
+      }
     } else if (user?.perfil !== 'global') {
       // Se não for global, usar plantas do usuário
       setPlantasDoCliente(user?.plantas || []);
@@ -267,9 +276,6 @@ function Layout({ children, onLogout }: LayoutProps) {
 
             {/* Dropdown de Plantas */}
             {user && (
-              (user.perfil === 'global' && plantasDoCliente.length > 0) ||
-              (user.perfil !== 'global' && user.plantas && user.plantas.length > 0)
-            ) && (
               <div className="planta-selector" style={{ position: 'relative', marginRight: '1rem' }}>
                 <button
                   className="planta-selector-btn"
@@ -319,38 +325,51 @@ function Layout({ children, onLogout }: LayoutProps) {
                         overflow: 'hidden'
                       }}
                     >
-                      {(user.perfil === 'global' ? plantasDoCliente : user.plantas || []).map((planta) => (
-                        <button
-                          key={planta.id}
-                          onClick={() => {
-                            setPlantaSelecionada(planta);
-                            setIsPlantaDropdownOpen(false);
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            textAlign: 'left',
-                            border: 'none',
-                            background: plantaSelecionada?.id === planta.id ? 'var(--secondary-color, #347e26)' : 'transparent',
-                            color: plantaSelecionada?.id === planta.id ? 'white' : 'var(--text-color, #333)',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            if (plantaSelecionada?.id !== planta.id) {
-                              e.currentTarget.style.background = '#f5f5f5';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (plantaSelecionada?.id !== planta.id) {
-                              e.currentTarget.style.background = 'transparent';
-                            }
-                          }}
-                        >
-                          {planta.nome}
-                        </button>
-                      ))}
+                      {(user.perfil === 'global' ? plantasDoCliente : user.plantas || []).length > 0 ? (
+                        (user.perfil === 'global' ? plantasDoCliente : user.plantas || []).map((planta) => (
+                          <button
+                            key={planta.id}
+                            onClick={() => {
+                              setPlantaSelecionada(planta);
+                              setIsPlantaDropdownOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.75rem 1rem',
+                              textAlign: 'left',
+                              border: 'none',
+                              background: plantaSelecionada?.id === planta.id ? 'var(--secondary-color, #347e26)' : 'transparent',
+                              color: plantaSelecionada?.id === planta.id ? 'white' : 'var(--text-color, #333)',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (plantaSelecionada?.id !== planta.id) {
+                                e.currentTarget.style.background = '#f5f5f5';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (plantaSelecionada?.id !== planta.id) {
+                                e.currentTarget.style.background = 'transparent';
+                              }
+                            }}
+                          >
+                            {planta.nome}
+                          </button>
+                        ))
+                      ) : (
+                        <div style={{
+                          padding: '1rem',
+                          textAlign: 'center',
+                          color: '#666',
+                          fontSize: '0.9rem'
+                        }}>
+                          {user.perfil === 'global' 
+                            ? (clienteSelecionado ? 'Nenhuma planta disponível para este cliente' : 'Selecione um cliente primeiro')
+                            : 'Nenhuma planta disponível'}
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
