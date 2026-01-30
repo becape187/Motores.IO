@@ -1,11 +1,16 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Search, Filter, ArrowLeft, Cog } from 'lucide-react';
-import { mockMotors } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Save, X, Search, Filter, ArrowLeft, Cog, Loader } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
 import { Motor } from '../types';
 import './Motors.css';
 
 function Motors() {
-  const [motors, setMotors] = useState<Motor[]>(mockMotors);
+  const { plantaSelecionada } = useAuth();
+  const [motors, setMotors] = useState<Motor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [selectedMotor, setSelectedMotor] = useState<Motor | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -72,30 +77,156 @@ function Motors() {
     }
   };
 
-  const handleSave = () => {
-    if (isAdding) {
-      const newMotor: Motor = {
-        ...formData as Motor,
-        id: String(motors.length + 1),
-      };
-      setMotors([...motors, newMotor]);
-      setSelectedMotor(newMotor);
-    } else if (selectedMotor) {
-      setMotors(motors.map(m => 
-        m.id === selectedMotor.id ? { ...formData as Motor, id: selectedMotor.id } : m
-      ));
-      setSelectedMotor({ ...formData as Motor, id: selectedMotor.id });
+  // Buscar motores da API
+  useEffect(() => {
+    const loadMotors = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await api.getMotores(plantaSelecionada?.id);
+        
+        // Converter dados da API para o formato esperado
+        const motorsData: Motor[] = data.map((m: any) => ({
+          id: m.id,
+          nome: m.nome,
+          potencia: Number(m.potencia),
+          tensao: Number(m.tensao),
+          correnteNominal: Number(m.correnteNominal),
+          percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
+          histerese: Number(m.histerese),
+          correnteInicial: Number(m.correnteInicial),
+          status: m.status as Motor['status'],
+          horimetro: Number(m.horimetro),
+          correnteAtual: Number(m.correnteAtual),
+          posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
+          posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
+          horimetroProximaManutencao: m.horimetroProximaManutencao ? Number(m.horimetroProximaManutencao) : undefined,
+          dataEstimadaProximaManutencao: m.dataEstimadaProximaManutencao ? new Date(m.dataEstimadaProximaManutencao) : undefined,
+          totalOS: m.totalOS,
+          mediaHorasDia: m.mediaHorasDia ? Number(m.mediaHorasDia) : undefined,
+          mediaHorasSemana: m.mediaHorasSemana ? Number(m.mediaHorasSemana) : undefined,
+          mediaHorasMes: m.mediaHorasMes ? Number(m.mediaHorasMes) : undefined,
+        }));
+        
+        setMotors(motorsData);
+      } catch (err: any) {
+        setError(err.message || 'Erro ao carregar motores');
+        console.error('Erro ao carregar motores:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (plantaSelecionada) {
+      loadMotors();
+    } else {
+      // Limpar motores quando não há planta selecionada
+      setMotors([]);
+      setSelectedMotor(null);
+      setShowDetails(false);
     }
-    setIsEditing(false);
-    setIsAdding(false);
+  }, [plantaSelecionada]);
+
+  const handleSave = async () => {
+    if (!plantaSelecionada) {
+      alert('Selecione uma planta primeiro');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      // Preparar dados para enviar à API (apenas campos do formulário)
+      const motorData = {
+        nome: formData.nome,
+        potencia: formData.potencia,
+        tensao: formData.tensao,
+        correnteNominal: formData.correnteNominal,
+        percentualCorrenteMaxima: formData.percentualCorrenteMaxima,
+        histerese: formData.histerese,
+        correnteInicial: formData.correnteInicial,
+        status: formData.status || 'desligado',
+        horimetro: formData.horimetro || 0,
+        correnteAtual: formData.correnteAtual || 0,
+        plantaId: plantaSelecionada.id,
+      };
+
+      if (isAdding) {
+        // Criar novo motor
+        const newMotor = await api.createMotor(motorData);
+        const convertedMotor: Motor = {
+          id: newMotor.id,
+          nome: newMotor.nome,
+          potencia: Number(newMotor.potencia),
+          tensao: Number(newMotor.tensao),
+          correnteNominal: Number(newMotor.correnteNominal),
+          percentualCorrenteMaxima: Number(newMotor.percentualCorrenteMaxima),
+          histerese: Number(newMotor.histerese),
+          correnteInicial: Number(newMotor.correnteInicial),
+          status: newMotor.status as Motor['status'],
+          horimetro: Number(newMotor.horimetro),
+          correnteAtual: Number(newMotor.correnteAtual),
+          posicaoX: newMotor.posicaoX ? Number(newMotor.posicaoX) : undefined,
+          posicaoY: newMotor.posicaoY ? Number(newMotor.posicaoY) : undefined,
+        };
+        setMotors([...motors, convertedMotor]);
+        setSelectedMotor(convertedMotor);
+      } else if (selectedMotor) {
+        // Atualizar motor existente (preservar posição se existir)
+        const updatedMotor = await api.updateMotor(selectedMotor.id, {
+          ...motorData,
+          id: selectedMotor.id,
+          // Preservar posição existente (definida no Dashboard)
+          posicaoX: selectedMotor.posicaoX,
+          posicaoY: selectedMotor.posicaoY,
+        });
+        const convertedMotor: Motor = {
+          id: updatedMotor.id || selectedMotor.id,
+          nome: updatedMotor.nome,
+          potencia: Number(updatedMotor.potencia),
+          tensao: Number(updatedMotor.tensao),
+          correnteNominal: Number(updatedMotor.correnteNominal),
+          percentualCorrenteMaxima: Number(updatedMotor.percentualCorrenteMaxima),
+          histerese: Number(updatedMotor.histerese),
+          correnteInicial: Number(updatedMotor.correnteInicial),
+          status: updatedMotor.status as Motor['status'],
+          horimetro: Number(updatedMotor.horimetro),
+          correnteAtual: Number(updatedMotor.correnteAtual),
+          posicaoX: updatedMotor.posicaoX ? Number(updatedMotor.posicaoX) : undefined,
+          posicaoY: updatedMotor.posicaoY ? Number(updatedMotor.posicaoY) : undefined,
+        };
+        setMotors(motors.map(m => m.id === selectedMotor.id ? convertedMotor : m));
+        setSelectedMotor(convertedMotor);
+      }
+      setIsEditing(false);
+      setIsAdding(false);
+    } catch (err: any) {
+      setError(err.message || 'Erro ao salvar motor');
+      console.error('Erro ao salvar motor:', err);
+      alert('Erro ao salvar motor: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = (motorId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este motor?')) {
+  const handleDelete = async (motorId: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir este motor?')) {
+      return;
+    }
+
+    try {
+      setError(null);
+      await api.deleteMotor(motorId);
       setMotors(motors.filter(m => m.id !== motorId));
       if (selectedMotor?.id === motorId) {
         setSelectedMotor(null);
+        setShowDetails(false);
       }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao excluir motor');
+      console.error('Erro ao excluir motor:', err);
+      alert('Erro ao excluir motor: ' + (err.message || 'Erro desconhecido'));
     }
   };
 
@@ -111,8 +242,40 @@ function Motors() {
     return matchesSearch && matchesFilter;
   });
 
+  if (loading) {
+    return (
+      <div className="motors-page fade-in">
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <Loader className="spin" size={32} />
+          <p style={{ marginTop: '1rem' }}>Carregando motores...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!plantaSelecionada) {
+    return (
+      <div className="motors-page fade-in">
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Selecione uma planta para visualizar os motores</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="motors-page fade-in">
+      {error && (
+        <div style={{ 
+          background: '#fee', 
+          color: '#c33', 
+          padding: '1rem', 
+          marginBottom: '1rem', 
+          borderRadius: '8px' 
+        }}>
+          {error}
+        </div>
+      )}
       <div className="motors-header">
         <div className="header-actions">
           <div className="search-box">
@@ -177,7 +340,7 @@ function Motors() {
                       <div className="motor-card-content">
                         <div className="motor-card-header">
                           <div className="motor-card-info">
-                            <span className="motor-id">M{motor.id}</span>
+                            <span className="motor-id">#{motor.id.substring(0, 8)}</span>
                             <h4 className="motor-name">{motor.nome}</h4>
                           </div>
                           <span className="motor-status-badge" style={{ background: config.color }}>
@@ -234,9 +397,22 @@ function Motors() {
                       <X size={18} />
                       Cancelar
                     </button>
-                    <button className="btn-primary" onClick={handleSave}>
-                      <Save size={18} />
-                      Salvar
+                    <button 
+                      className="btn-primary" 
+                      onClick={handleSave}
+                      disabled={saving}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader className="spin" size={18} />
+                          Salvando...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={18} />
+                          Salvar
+                        </>
+                      )}
                     </button>
                   </div>
                 )}

@@ -220,12 +220,7 @@ function Layout({ children, onLogout }: LayoutProps) {
                             }
                           }}
                         >
-                          <div style={{ fontWeight: '500' }}>{planta.nome}</div>
-                          {planta.codigo && (
-                            <div style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '0.25rem' }}>
-                              {planta.codigo}
-                            </div>
-                          )}
+                          {planta.nome}
                         </button>
                       ))}
                     </div>

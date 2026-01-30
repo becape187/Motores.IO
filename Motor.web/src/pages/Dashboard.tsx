@@ -1,11 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Activity, TrendingUp, AlertCircle, Power } from 'lucide-react';
-import { mockMotors } from '../data/mockData';
+import { useState, useEffect, useRef } from 'react';
+import { Activity, TrendingUp, AlertCircle, Power, Edit2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
 import { Motor } from '../types';
 import './Dashboard.css';
 
 function Dashboard() {
-  const [motors, setMotors] = useState<Motor[]>(mockMotors);
+  const { plantaSelecionada } = useAuth();
+  const [motors, setMotors] = useState<Motor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [draggedMotor, setDraggedMotor] = useState<string | null>(null);
+  const [savingPosition, setSavingPosition] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const stats = {
     total: motors.length,
@@ -26,32 +34,190 @@ function Dashboard() {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'ligado': return 'Ligado';
-      case 'desligado': return 'Desligado';
-      case 'alerta': return 'Alerta';
-      case 'alarme': return 'Alarme';
-      case 'pendente': return 'Pendente';
-      default: return 'Desconhecido';
+
+  // Buscar motores da API
+  useEffect(() => {
+    const loadMotors = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await api.getMotores(plantaSelecionada?.id);
+        
+        // Converter dados da API para o formato esperado
+        const motorsData: Motor[] = data.map((m: any) => ({
+          id: m.id,
+          nome: m.nome,
+          potencia: Number(m.potencia),
+          tensao: Number(m.tensao),
+          correnteNominal: Number(m.correnteNominal),
+          percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
+          histerese: Number(m.histerese),
+          correnteInicial: Number(m.correnteInicial),
+          status: m.status as Motor['status'],
+          horimetro: Number(m.horimetro),
+          correnteAtual: Number(m.correnteAtual),
+          posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
+          posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
+          horimetroProximaManutencao: m.horimetroProximaManutencao ? Number(m.horimetroProximaManutencao) : undefined,
+          dataEstimadaProximaManutencao: m.dataEstimadaProximaManutencao ? new Date(m.dataEstimadaProximaManutencao) : undefined,
+          totalOS: m.totalOS,
+          mediaHorasDia: m.mediaHorasDia ? Number(m.mediaHorasDia) : undefined,
+          mediaHorasSemana: m.mediaHorasSemana ? Number(m.mediaHorasSemana) : undefined,
+          mediaHorasMes: m.mediaHorasMes ? Number(m.mediaHorasMes) : undefined,
+        }));
+        
+        setMotors(motorsData);
+      } catch (err: any) {
+        setError(err.message || 'Erro ao carregar motores');
+        console.error('Erro ao carregar motores:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (plantaSelecionada) {
+      loadMotors();
+      
+      // Atualizar a cada 5 segundos apenas se não estiver em modo de edição
+      if (!isEditMode) {
+        const interval = setInterval(loadMotors, 5000);
+        return () => clearInterval(interval);
+      }
+    } else {
+      // Limpar motores quando não há planta selecionada
+      setMotors([]);
     }
+  }, [plantaSelecionada, isEditMode]);
+
+  if (loading) {
+    return (
+      <div className="dashboard fade-in">
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Carregando motores...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard fade-in">
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#e74c3c' }}>
+          <p>Erro: {error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!plantaSelecionada) {
+    return (
+      <div className="dashboard fade-in">
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Selecione uma planta para visualizar os motores</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Função para obter coordenadas do SVG a partir do evento do mouse
+  const getSVGCoordinates = (e: React.MouseEvent<SVGSVGElement> | MouseEvent): { x: number; y: number } | null => {
+    if (!svgRef.current) return null;
+    const svg = svgRef.current;
+    const point = svg.createSVGPoint();
+    point.x = e.clientX;
+    point.y = e.clientY;
+    const svgPoint = point.matrixTransform(svg.getScreenCTM()?.inverse());
+    return { x: svgPoint.x, y: svgPoint.y };
   };
 
-  // Simular atualização em tempo real
-  useEffect(() => {
-    const interval = setInterval(() => {
-        setMotors(prevMotors =>
-        prevMotors.map(motor => ({
-          ...motor,
-          correnteAtual: motor.status === 'ligado' 
-            ? motor.correnteNominal + (Math.random() * 20 - 10)
-            : 0,
-        }))
-      );
-    }, 3000);
+  // Handlers para drag and drop
+  const handleMotorMouseDown = (e: React.MouseEvent, motorId: string) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    setDraggedMotor(motorId);
+  };
 
-    return () => clearInterval(interval);
-  }, []);
+  const handleSVGMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!isEditMode || !draggedMotor) return;
+    
+    const coords = getSVGCoordinates(e);
+    if (!coords) return;
+
+    // Atualizar posição do motor sendo arrastado
+    setMotors(prevMotors =>
+      prevMotors.map(motor =>
+        motor.id === draggedMotor
+          ? { ...motor, posicaoX: coords.x, posicaoY: coords.y }
+          : motor
+      )
+    );
+  };
+
+  const handleSVGMouseUp = async () => {
+    if (!draggedMotor) return;
+    
+    const motor = motors.find(m => m.id === draggedMotor);
+    if (motor && motor.posicaoX !== undefined && motor.posicaoY !== undefined) {
+      // Salvar posição no banco
+      try {
+        setSavingPosition(draggedMotor);
+        await api.updateMotor(draggedMotor, {
+          ...motor,
+          posicaoX: motor.posicaoX,
+          posicaoY: motor.posicaoY,
+        });
+      } catch (err: any) {
+        console.error('Erro ao salvar posição:', err);
+        alert('Erro ao salvar posição do motor');
+      } finally {
+        setSavingPosition(null);
+      }
+    }
+    
+    setDraggedMotor(null);
+  };
+
+  // Adicionar motor à planta (clicar no SVG em modo de edição)
+  const handleSVGClick = async (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!isEditMode || draggedMotor) return; // Não adicionar se estiver arrastando
+    
+    // Verificar se o clique foi em um motor existente (não adicionar nesse caso)
+    const target = e.target as SVGElement;
+    if (target.closest('g[key]')) return;
+    
+    const coords = getSVGCoordinates(e);
+    if (!coords) return;
+
+    // Mostrar lista de motores sem posição para adicionar
+    const motoresSemPosicao = motors.filter(m => !m.posicaoX || !m.posicaoY);
+    
+    if (motoresSemPosicao.length > 0) {
+      // Adiciona o primeiro motor sem posição
+      // TODO: Futuramente mostrar um modal para selecionar qual motor adicionar
+      const motorParaAdicionar = motoresSemPosicao[0];
+      
+      try {
+        setSavingPosition(motorParaAdicionar.id);
+        await api.updateMotor(motorParaAdicionar.id, {
+          ...motorParaAdicionar,
+          posicaoX: coords.x,
+          posicaoY: coords.y,
+        });
+        setMotors(prevMotors =>
+          prevMotors.map(m => 
+            m.id === motorParaAdicionar.id 
+              ? { ...m, posicaoX: coords.x, posicaoY: coords.y }
+              : m
+          )
+        );
+      } catch (err: any) {
+        console.error('Erro ao adicionar motor à planta:', err);
+        alert('Erro ao adicionar motor à planta');
+      } finally {
+        setSavingPosition(null);
+      }
+    }
+  };
 
   return (
     <div className="dashboard fade-in">
@@ -106,32 +272,78 @@ function Dashboard() {
       <div className="plant-section">
         <div className="section-header">
           <h2>Planta Baixa da Pedreira</h2>
-          <div className="legend">
-            <div className="legend-item">
-              <span className="legend-dot" style={{ background: '#27ae60' }}></span>
-              <span>Ligado</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot" style={{ background: '#95a5a6' }}></span>
-              <span>Desligado</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot" style={{ background: '#f39c12' }}></span>
-              <span>Alerta</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot" style={{ background: '#e74c3c' }}></span>
-              <span>Alarme</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot" style={{ background: '#9b59b6' }}></span>
-              <span>Pendente</span>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={isEditMode}
+                onChange={(e) => setIsEditMode(e.target.checked)}
+              />
+              <Edit2 size={18} />
+              <span>Editar</span>
+            </label>
+            {isEditMode && (
+              <>
+                <div style={{ 
+                  padding: '4px 12px', 
+                  background: '#f39c12', 
+                  color: 'white', 
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: '600'
+                }}>
+                  Modo de Edição Ativo
+                </div>
+                {motors.filter(m => !m.posicaoX || !m.posicaoY).length > 0 && (
+                  <div style={{ 
+                    padding: '4px 12px', 
+                    background: '#3498db', 
+                    color: 'white', 
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    {motors.filter(m => !m.posicaoX || !m.posicaoY).length} motor(es) sem posição - Clique no mapa para adicionar
+                  </div>
+                )}
+              </>
+            )}
+            <div className="legend">
+              <div className="legend-item">
+                <span className="legend-dot" style={{ background: '#27ae60' }}></span>
+                <span>Ligado</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{ background: '#95a5a6' }}></span>
+                <span>Desligado</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{ background: '#f39c12' }}></span>
+                <span>Alerta</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{ background: '#e74c3c' }}></span>
+                <span>Alarme</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{ background: '#9b59b6' }}></span>
+                <span>Pendente</span>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="plant-container">
-          <svg className="plant-svg" viewBox="0 0 900 600">
+          <svg 
+            ref={svgRef}
+            className="plant-svg" 
+            viewBox="0 0 900 600"
+            onMouseMove={handleSVGMouseMove}
+            onMouseUp={handleSVGMouseUp}
+            onMouseLeave={handleSVGMouseUp}
+            onClick={handleSVGClick}
+            style={{ cursor: isEditMode ? 'crosshair' : 'default' }}
+          >
             {/* Background */}
             <rect x="0" y="0" width="900" height="600" fill="#f8f9fa" />
             
@@ -167,63 +379,66 @@ function Dashboard() {
             <circle cx="170" cy="450" r="40" fill="#3498db" opacity="0.2" stroke="#3498db" strokeWidth="2"/>
             <text x="170" y="455" textAnchor="middle" fill="#3498db" fontSize="11">BOMBA</text>
 
+            {/* Instrução em modo de edição */}
+            {isEditMode && (
+              <text 
+                x="450" 
+                y="30" 
+                textAnchor="middle" 
+                fill="#f39c12" 
+                fontSize="14" 
+                fontWeight="600"
+                style={{ pointerEvents: 'none' }}
+              >
+                {draggedMotor ? 'Arraste para posicionar' : 'Clique para adicionar motor | Arraste para mover'}
+              </text>
+            )}
+
             {/* Motores */}
-            {motors.map((motor) => (
+            {motors
+              .filter(m => m.posicaoX !== undefined && m.posicaoY !== undefined)
+              .map((motor) => (
               <g key={motor.id}>
-                {/* Motor Indicator */}
+                {/* Motor Indicator - 50% menor */}
                 <circle
                   cx={motor.posicaoX}
                   cy={motor.posicaoY}
-                  r="20"
+                  r="10"
                   fill={getStatusColor(motor.status)}
-                  opacity="0.9"
-                  stroke="#fff"
-                  strokeWidth="3"
-                  className="motor-indicator"
+                  opacity={savingPosition === motor.id ? 0.5 : 1}
+                  stroke={isEditMode ? "#3498db" : "#fff"}
+                  strokeWidth={isEditMode ? 2 : 1.5}
+                  strokeDasharray={isEditMode ? "3,3" : "none"}
+                  onMouseDown={(e) => {
+                    if (isEditMode) {
+                      handleMotorMouseDown(e, motor.id);
+                    }
+                  }}
+                  style={{ cursor: isEditMode ? 'move' : 'default' }}
                 />
-                
-                {/* Pulse Animation for Ligado Motors */}
-                {motor.status === 'ligado' && (
-                  <circle
-                    cx={motor.posicaoX}
-                    cy={motor.posicaoY}
-                    r="20"
-                    fill={getStatusColor(motor.status)}
-                    opacity="0.5"
-                    className="motor-pulse"
-                  />
-                )}
 
-                {/* Motor Info Card */}
-                <foreignObject
-                  x={motor.posicaoX! - 70}
-                  y={motor.posicaoY! + 30}
-                  width="140"
-                  height="80"
+                {/* Nome e Corrente - Texto simples sem cards */}
+                <text
+                  x={motor.posicaoX}
+                  y={motor.posicaoY! + 25}
+                  textAnchor="middle"
+                  fill="#333"
+                  fontSize="11"
+                  fontWeight="500"
+                  style={{ pointerEvents: 'none' }}
                 >
-                  <div className="motor-label">
-                    <div className="motor-label-header">
-                      <span className="motor-label-id">M{motor.id}</span>
-                      <span 
-                        className="motor-label-status"
-                        style={{ background: getStatusColor(motor.status) }}
-                      >
-                        {getStatusLabel(motor.status)}
-                      </span>
-                    </div>
-                    <div className="motor-label-name">{motor.nome}</div>
-                    <div className="motor-label-data">
-                      <div className="motor-label-item">
-                        <span className="label">Corrente:</span>
-                        <span className="value">{motor.correnteAtual.toFixed(1)}A</span>
-                      </div>
-                      <div className="motor-label-item">
-                        <span className="label">Potência:</span>
-                        <span className="value">{motor.potencia}kW</span>
-                      </div>
-                    </div>
-                  </div>
-                </foreignObject>
+                  {motor.nome}
+                </text>
+                <text
+                  x={motor.posicaoX}
+                  y={motor.posicaoY! + 38}
+                  textAnchor="middle"
+                  fill="#666"
+                  fontSize="10"
+                  style={{ pointerEvents: 'none' }}
+                >
+                  {motor.correnteAtual.toFixed(1)}A
+                </text>
               </g>
             ))}
           </svg>
