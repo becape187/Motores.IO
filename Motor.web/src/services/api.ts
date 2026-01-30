@@ -10,13 +10,12 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const token = this.getToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    };
-
+    const headers: HeadersInit = new Headers(options.headers);
+    
+    headers.set('Content-Type', 'application/json');
+    
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers.set('Authorization', `Bearer ${token}`);
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
