@@ -337,7 +337,6 @@ function Motors() {
                       <div className="motor-card-content">
                         <div className="motor-card-header">
                           <div className="motor-card-info">
-                            <span className="motor-id">#{motor.id.substring(0, 8)}</span>
                             <h4 className="motor-name">{motor.nome}</h4>
                           </div>
                           <span className="motor-status-badge" style={{ background: config.color }}>
@@ -352,7 +351,7 @@ function Motors() {
                           <div className="detail-item">
                             <span className="detail-label">Corrente:</span>
                             <span className="detail-value">
-                              {motor.correnteAtual.toFixed(1)}A / {motor.correnteNominal}A
+                              {motor.correnteAtual.toFixed(1)}A
                             </span>
                           </div>
                         </div>
