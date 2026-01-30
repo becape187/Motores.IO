@@ -35,13 +35,19 @@ function Dashboard() {
   };
 
 
-  // Buscar motores da API
+  // Buscar motores da API - carregamento inicial
   useEffect(() => {
     const loadMotors = async () => {
+      if (!plantaSelecionada) {
+        setMotors([]);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
-        const data = await api.getMotores(plantaSelecionada?.id);
+        const data = await api.getMotores(plantaSelecionada.id);
         
         // Converter dados da API para o formato esperado
         const motorsData: Motor[] = data.map((m: any) => ({
@@ -52,18 +58,12 @@ function Dashboard() {
           correnteNominal: Number(m.correnteNominal),
           percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
           histerese: Number(m.histerese),
-          correnteInicial: Number(m.correnteInicial),
           status: m.status as Motor['status'],
           horimetro: Number(m.horimetro),
-          correnteAtual: Number(m.correnteAtual),
+          correnteAtual: Number(m.correnteAtual || 0),
           posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
           posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
-          horimetroProximaManutencao: m.horimetroProximaManutencao ? Number(m.horimetroProximaManutencao) : undefined,
-          dataEstimadaProximaManutencao: m.dataEstimadaProximaManutencao ? new Date(m.dataEstimadaProximaManutencao) : undefined,
-          totalOS: m.totalOS,
-          mediaHorasDia: m.mediaHorasDia ? Number(m.mediaHorasDia) : undefined,
-          mediaHorasSemana: m.mediaHorasSemana ? Number(m.mediaHorasSemana) : undefined,
-          mediaHorasMes: m.mediaHorasMes ? Number(m.mediaHorasMes) : undefined,
+          habilitado: m.habilitado !== undefined ? m.habilitado : true,
         }));
         
         setMotors(motorsData);
@@ -75,18 +75,58 @@ function Dashboard() {
       }
     };
 
-    if (plantaSelecionada) {
-      loadMotors();
-      
-      // Atualizar a cada 5 segundos apenas se não estiver em modo de edição
-      if (!isEditMode) {
-        const interval = setInterval(loadMotors, 5000);
-        return () => clearInterval(interval);
+    loadMotors();
+  }, [plantaSelecionada]);
+
+  // Atualização assíncrona sem flick - apenas atualiza dados dinâmicos
+  useEffect(() => {
+    if (!plantaSelecionada || isEditMode) return;
+
+    const updateMotorsData = async () => {
+      try {
+        const data = await api.getMotores(plantaSelecionada.id);
+        
+        // Atualizar apenas dados dinâmicos sem recriar o array completo
+        setMotors(prevMotors => {
+          const motorsMap = new Map(prevMotors.map(m => [m.id, m]));
+          
+          return data.map((m: any) => {
+            const existing = motorsMap.get(m.id);
+            if (existing) {
+              // Atualizar apenas campos dinâmicos, mantendo o resto
+              return {
+                ...existing,
+                status: m.status as Motor['status'],
+                correnteAtual: Number(m.correnteAtual || 0),
+                horimetro: Number(m.horimetro),
+              };
+            } else {
+              // Novo motor - adicionar
+              return {
+                id: m.id,
+                nome: m.nome,
+                potencia: Number(m.potencia),
+                tensao: Number(m.tensao),
+                correnteNominal: Number(m.correnteNominal),
+                percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
+                histerese: Number(m.histerese),
+                status: m.status as Motor['status'],
+                horimetro: Number(m.horimetro),
+                correnteAtual: Number(m.correnteAtual || 0),
+                posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
+                posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
+                habilitado: m.habilitado !== undefined ? m.habilitado : true,
+              };
+            }
+          });
+        });
+      } catch (err: any) {
+        console.error('Erro ao atualizar motores:', err);
       }
-    } else {
-      // Limpar motores quando não há planta selecionada
-      setMotors([]);
-    }
+    };
+
+    const interval = setInterval(updateMotorsData, 5000);
+    return () => clearInterval(interval);
   }, [plantaSelecionada, isEditMode]);
 
   if (loading) {
@@ -355,30 +395,6 @@ function Dashboard() {
             </defs>
             <rect width="900" height="600" fill="url(#grid)" />
 
-            {/* Estruturas da Pedreira */}
-            {/* Britador */}
-            <rect x="200" y="150" width="120" height="80" fill="#496263" opacity="0.3" stroke="#496263" strokeWidth="2"/>
-            <text x="260" y="195" textAnchor="middle" fill="#496263" fontSize="12" fontWeight="600">BRITADOR</text>
-
-            {/* Esteiras */}
-            <rect x="350" y="175" width="180" height="40" fill="#496263" opacity="0.2" stroke="#496263" strokeWidth="2"/>
-            <text x="440" y="200" textAnchor="middle" fill="#496263" fontSize="11">ESTEIRA 01</text>
-            
-            <rect x="560" y="195" width="180" height="40" fill="#496263" opacity="0.2" stroke="#496263" strokeWidth="2"/>
-            <text x="650" y="220" textAnchor="middle" fill="#496263" fontSize="11">ESTEIRA 02</text>
-
-            {/* Peneira */}
-            <rect x="330" y="320" width="140" height="80" fill="#496263" opacity="0.3" stroke="#496263" strokeWidth="2"/>
-            <text x="400" y="365" textAnchor="middle" fill="#496263" fontSize="12" fontWeight="600">PENEIRA</text>
-
-            {/* Elevador */}
-            <rect x="670" y="250" width="80" height="100" fill="#496263" opacity="0.3" stroke="#496263" strokeWidth="2"/>
-            <text x="710" y="305" textAnchor="middle" fill="#496263" fontSize="11">ELEVADOR</text>
-
-            {/* Sistema de Água */}
-            <circle cx="170" cy="450" r="40" fill="#3498db" opacity="0.2" stroke="#3498db" strokeWidth="2"/>
-            <text x="170" y="455" textAnchor="middle" fill="#3498db" fontSize="11">BOMBA</text>
-
             {/* Instrução em modo de edição */}
             {isEditMode && (
               <text 
@@ -394,9 +410,9 @@ function Dashboard() {
               </text>
             )}
 
-            {/* Motores */}
+            {/* Motores - apenas habilitados e com posição */}
             {motors
-              .filter(m => m.posicaoX !== undefined && m.posicaoY !== undefined)
+              .filter(m => m.habilitado && m.posicaoX !== undefined && m.posicaoY !== undefined)
               .map((motor) => (
               <g key={motor.id}>
                 {/* Motor Indicator - 50% menor */}

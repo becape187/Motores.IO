@@ -25,10 +25,9 @@ function Motors() {
     correnteNominal: 0,
     percentualCorrenteMaxima: 110,
     histerese: 5,
-    correnteInicial: 0,
     status: 'desligado',
     horimetro: 0,
-    correnteAtual: 0,
+    habilitado: true,
   });
 
   const handleSelectMotor = (motor: Motor) => {
@@ -58,10 +57,9 @@ function Motors() {
       correnteNominal: 0,
       percentualCorrenteMaxima: 110,
       histerese: 5,
-      correnteInicial: 0,
       status: 'desligado',
       horimetro: 0,
-      correnteAtual: 0,
+      habilitado: true,
     });
   };
 
@@ -94,18 +92,14 @@ function Motors() {
           correnteNominal: Number(m.correnteNominal),
           percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
           histerese: Number(m.histerese),
-          correnteInicial: Number(m.correnteInicial),
           status: m.status as Motor['status'],
           horimetro: Number(m.horimetro),
-          correnteAtual: Number(m.correnteAtual),
+          correnteAtual: Number(m.correnteAtual || 0),
           posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
           posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
+          habilitado: m.habilitado !== undefined ? m.habilitado : true,
           horimetroProximaManutencao: m.horimetroProximaManutencao ? Number(m.horimetroProximaManutencao) : undefined,
           dataEstimadaProximaManutencao: m.dataEstimadaProximaManutencao ? new Date(m.dataEstimadaProximaManutencao) : undefined,
-          totalOS: m.totalOS,
-          mediaHorasDia: m.mediaHorasDia ? Number(m.mediaHorasDia) : undefined,
-          mediaHorasSemana: m.mediaHorasSemana ? Number(m.mediaHorasSemana) : undefined,
-          mediaHorasMes: m.mediaHorasMes ? Number(m.mediaHorasMes) : undefined,
         }));
         
         setMotors(motorsData);
@@ -145,10 +139,8 @@ function Motors() {
         correnteNominal: formData.correnteNominal,
         percentualCorrenteMaxima: formData.percentualCorrenteMaxima,
         histerese: formData.histerese,
-        correnteInicial: formData.correnteInicial,
-        status: formData.status || 'desligado',
         horimetro: formData.horimetro || 0,
-        correnteAtual: formData.correnteAtual || 0,
+        habilitado: formData.habilitado !== undefined ? formData.habilitado : true,
         plantaId: plantaSelecionada.id,
       };
 
@@ -163,12 +155,12 @@ function Motors() {
           correnteNominal: Number(newMotor.correnteNominal),
           percentualCorrenteMaxima: Number(newMotor.percentualCorrenteMaxima),
           histerese: Number(newMotor.histerese),
-          correnteInicial: Number(newMotor.correnteInicial),
           status: newMotor.status as Motor['status'],
           horimetro: Number(newMotor.horimetro),
-          correnteAtual: Number(newMotor.correnteAtual),
+          correnteAtual: Number(newMotor.correnteAtual || 0),
           posicaoX: newMotor.posicaoX ? Number(newMotor.posicaoX) : undefined,
           posicaoY: newMotor.posicaoY ? Number(newMotor.posicaoY) : undefined,
+          habilitado: newMotor.habilitado !== undefined ? newMotor.habilitado : true,
         };
         setMotors([...motors, convertedMotor]);
         setSelectedMotor(convertedMotor);
@@ -189,12 +181,12 @@ function Motors() {
           correnteNominal: Number(updatedMotor.correnteNominal),
           percentualCorrenteMaxima: Number(updatedMotor.percentualCorrenteMaxima),
           histerese: Number(updatedMotor.histerese),
-          correnteInicial: Number(updatedMotor.correnteInicial),
           status: updatedMotor.status as Motor['status'],
           horimetro: Number(updatedMotor.horimetro),
-          correnteAtual: Number(updatedMotor.correnteAtual),
+          correnteAtual: Number(updatedMotor.correnteAtual || 0),
           posicaoX: updatedMotor.posicaoX ? Number(updatedMotor.posicaoX) : undefined,
           posicaoY: updatedMotor.posicaoY ? Number(updatedMotor.posicaoY) : undefined,
+          habilitado: updatedMotor.habilitado !== undefined ? updatedMotor.habilitado : true,
         };
         setMotors(motors.map(m => m.id === selectedMotor.id ? convertedMotor : m));
         setSelectedMotor(convertedMotor);
@@ -434,21 +426,6 @@ function Motors() {
                     </div>
 
                     <div className="form-field">
-                      <label>Status</label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) => handleInputChange('status', e.target.value)}
-                        disabled={!isEditing && !isAdding}
-                      >
-                        <option value="ligado">Ligado</option>
-                        <option value="desligado">Desligado</option>
-                        <option value="alerta">Alerta</option>
-                        <option value="alarme">Alarme</option>
-                        <option value="pendente">Pendente</option>
-                      </select>
-                    </div>
-
-                    <div className="form-field">
                       <label>Horímetro (horas)</label>
                       <input
                         type="number"
@@ -456,6 +433,21 @@ function Motors() {
                         onChange={(e) => handleInputChange('horimetro', Number(e.target.value))}
                         disabled={!isEditing && !isAdding}
                       />
+                    </div>
+
+                    <div className="form-field">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={formData.habilitado !== undefined ? formData.habilitado : true}
+                          onChange={(e) => handleInputChange('habilitado', e.target.checked)}
+                          disabled={!isEditing && !isAdding}
+                        />
+                        <span style={{ marginLeft: '8px' }}>Habilitado</span>
+                      </label>
+                      <span className="field-hint">
+                        Motor habilitado aparece no mapa e recebe alarmes
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -495,17 +487,6 @@ function Motors() {
                         placeholder="380"
                       />
                     </div>
-
-                    <div className="form-field">
-                      <label>Corrente Atual (A)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={formData.correnteAtual}
-                        onChange={(e) => handleInputChange('correnteAtual', Number(e.target.value))}
-                        disabled={!isEditing && !isAdding}
-                      />
-                    </div>
                   </div>
                 </div>
 
@@ -537,20 +518,6 @@ function Motors() {
                       />
                       <span className="field-hint">
                         Margem de erro para alarmes
-                      </span>
-                    </div>
-
-                    <div className="form-field">
-                      <label>Corrente Inicial (A) *</label>
-                      <input
-                        type="number"
-                        value={formData.correnteInicial}
-                        onChange={(e) => handleInputChange('correnteInicial', Number(e.target.value))}
-                        disabled={!isEditing && !isAdding}
-                        placeholder="50"
-                      />
-                      <span className="field-hint">
-                        Corrente de partida mínima
                       </span>
                     </div>
                   </div>

@@ -209,25 +209,6 @@ function Maintenance() {
                           </span>
                         </div>
                       )}
-                      <div className="info-row">
-                        <span className="label">Total de OS:</span>
-                        <span className="value">{motor.totalOS || 0}</span>
-                      </div>
-                    </div>
-
-                    <div className="motor-card-stats">
-                      <div className="stat-item">
-                        <span className="stat-label">Média/Dia</span>
-                        <span className="stat-value">{motor.mediaHorasDia?.toFixed(1) || 0}h</span>
-                      </div>
-                      <div className="stat-item">
-                        <span className="stat-label">Média/Semana</span>
-                        <span className="stat-value">{motor.mediaHorasSemana?.toFixed(1) || 0}h</span>
-                      </div>
-                      <div className="stat-item">
-                        <span className="stat-label">Média/Mês</span>
-                        <span className="stat-value">{motor.mediaHorasMes?.toFixed(1) || 0}h</span>
-                      </div>
                     </div>
                   </div>
                 );
@@ -264,10 +245,6 @@ function Maintenance() {
                         ? format(selectedMotor.dataEstimadaProximaManutencao, 'dd/MM/yyyy', { locale: ptBR })
                         : 'N/A'}
                     </span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Total de OS</span>
-                    <span className="detail-value">{selectedMotor.totalOS || 0}</span>
                   </div>
                 </div>
               </div>

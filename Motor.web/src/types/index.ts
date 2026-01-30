@@ -6,19 +6,15 @@ export type Motor = {
   correnteNominal: number;
   percentualCorrenteMaxima: number;
   histerese: number;
-  correnteInicial: number;
   status: 'ligado' | 'desligado' | 'alerta' | 'alarme' | 'pendente';
   horimetro: number;
-  correnteAtual: number;
+  correnteAtual: number; // Dinâmico, recebido via socket futuramente
   posicaoX?: number;
   posicaoY?: number;
+  habilitado: boolean; // Para esconder do mapa, alarmes, etc
   // Dados de manutenção
   horimetroProximaManutencao?: number;
   dataEstimadaProximaManutencao?: Date;
-  totalOS?: number;
-  mediaHorasDia?: number;
-  mediaHorasSemana?: number;
-  mediaHorasMes?: number;
 };
 
 export type HistoricoMotor = {
