@@ -37,19 +37,46 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
 
         // Buscar plantas do usuário
-        var plantas = await _context.UsuariosPlantas
-            .Where(up => up.UsuarioId == usuario.Id)
-            .Include(up => up.Planta)
-                .ThenInclude(p => p.Cliente)
-            .Select(up => new PlantaDto
+        List<PlantaDto> plantas;
+        
+        // Se for perfil global, retornar todas as plantas ativas
+        if (usuario.Perfil == "global")
+        {
+            plantas = await _context.Plantas
+                .Where(p => p.Ativo)
+                .Include(p => p.Cliente)
+                .Select(p => new PlantaDto
+                {
+                    Id = p.Id,
+                    Nome = p.Nome,
+                    Codigo = p.Codigo,
+                    ClienteId = p.ClienteId,
+                    ClienteNome = p.Cliente.Nome
+                })
+                .ToListAsync();
+        }
+        else
+        {
+            plantas = await _context.UsuariosPlantas
+                .Where(up => up.UsuarioId == usuario.Id)
+                .Include(up => up.Planta)
+                    .ThenInclude(p => p.Cliente)
+                .Select(up => new PlantaDto
+                {
+                    Id = up.Planta.Id,
+                    Nome = up.Planta.Nome,
+                    Codigo = up.Planta.Codigo,
+                    ClienteId = up.Planta.ClienteId,
+                    ClienteNome = up.Planta.Cliente.Nome
+                })
+                .ToListAsync();
+
+            // Se não for global e não tiver plantas associadas, retornar null para indicar erro
+            if (!plantas.Any())
             {
-                Id = up.Planta.Id,
-                Nome = up.Planta.Nome,
-                Codigo = up.Planta.Codigo,
-                ClienteId = up.Planta.ClienteId,
-                ClienteNome = up.Planta.Cliente.Nome
-            })
-            .ToListAsync();
+                return null; // Será tratado no controller para retornar erro específico
+            }
+        }
 
         // Buscar tema do cliente (primeira planta do usuário)
         TemaConfiguracaoDto? temaCliente = null;

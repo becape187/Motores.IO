@@ -27,7 +27,21 @@ public class AuthController : ControllerBase
 
         if (response == null)
         {
-            return Unauthorized("Email ou senha inválidos");
+            // Verificar se o problema é falta de plantas
+            // (isso será verificado no AuthService e retornado como null com código especial)
+            // Por enquanto, retornar erro genérico
+            return Unauthorized(new { 
+                message = "Email ou senha inválidos, ou você não tem acesso a nenhuma planta. Contate o seu gestor para solicitar acesso." 
+            });
+        }
+
+        // Verificar se tem plantas (exceto se for global)
+        if (response.Perfil != "global" && (!response.Plantas.Any()))
+        {
+            return Unauthorized(new { 
+                message = "Você não tem acesso a nenhuma planta. Contate o seu gestor para solicitar acesso.",
+                semPlantas = true
+            });
         }
 
         return Ok(response);

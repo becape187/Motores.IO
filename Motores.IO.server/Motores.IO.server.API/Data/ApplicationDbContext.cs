@@ -186,19 +186,28 @@ public class ApplicationDbContext : DbContext
             
             entity.Property(e => e.SenhaHash)
                 .IsRequired()
-                .HasMaxLength(200);
+                .HasMaxLength(500);
             
             entity.Property(e => e.Perfil)
                 .IsRequired()
-                .HasMaxLength(50);
+                .HasMaxLength(50)
+                .HasDefaultValue("visualizador");
             
             entity.Property(e => e.Ativo)
                 .IsRequired()
                 .HasDefaultValue(true);
             
+            entity.Property(e => e.ClienteId)
+                .IsRequired();
+            
             entity.Property(e => e.DataCriacao)
                 .IsRequired()
                 .HasDefaultValueSql("NOW()");
+            
+            entity.HasOne(e => e.Cliente)
+                .WithMany()
+                .HasForeignKey(e => e.ClienteId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Configuração da OrdemServico

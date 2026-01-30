@@ -7,4 +7,6 @@ public class UsuarioCreateDto
     public string Senha { get; set; } = string.Empty;
     public string Perfil { get; set; } = "visualizador";
     public bool Ativo { get; set; } = true;
+    public Guid ClienteId { get; set; }
+    public List<Guid>? PlantaIds { get; set; } // Lista de IDs das plantas para associar
 }
