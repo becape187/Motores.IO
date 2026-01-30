@@ -84,22 +84,38 @@ jobs:
             
             # Verificar se o arquivo de serviço existe
             SERVICE_FILE="/etc/systemd/system/motores-io.service"
+            NEEDS_UPDATE=false
+            
             if [ ! -f "$SERVICE_FILE" ]; then
               echo "Criando arquivo de serviço systemd..."
+              NEEDS_UPDATE=true
+            else
+              # Verificar se precisa atualizar o Type ou outras configurações
+              if grep -q "Type=notify" "$SERVICE_FILE" || ! grep -q "TimeoutStartSec" "$SERVICE_FILE"; then
+                echo "Atualizando configuração do serviço..."
+                NEEDS_UPDATE=true
+              fi
+            fi
+            
+            if [ "$NEEDS_UPDATE" = true ]; then
               sudo tee "$SERVICE_FILE" > /dev/null <<EOF
             [Unit]
             Description=Motores.IO.server API
             After=network.target postgresql.service
+            Requires=postgresql.service
 
             [Service]
-            Type=notify
+            Type=simple
             User=$CURRENT_USER
             WorkingDirectory=/home/Motores.IO
             ExecStart=$DOTNET_PATH /home/Motores.IO/Motores.IO.server.API.dll
             Restart=always
             RestartSec=10
+            TimeoutStartSec=30
+            TimeoutStopSec=30
             SyslogIdentifier=motores-io
             Environment=ASPNETCORE_ENVIRONMENT=Production
+            Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
             Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
 
             [Install]
@@ -109,12 +125,15 @@ jobs:
               # Recarregar systemd
               sudo systemctl daemon-reload
               
-              # Habilitar serviço
-              sudo systemctl enable motores-io.service
-              
-              echo "Serviço criado e habilitado com sucesso!"
+              # Habilitar serviço se ainda não estiver habilitado
+              if ! systemctl is-enabled motores-io.service > /dev/null 2>&1; then
+                sudo systemctl enable motores-io.service
+                echo "Serviço criado e habilitado com sucesso!"
+              else
+                echo "Serviço atualizado com sucesso!"
+              fi
             else
-              echo "Arquivo de serviço já existe. Reiniciando serviço..."
+              echo "Arquivo de serviço já está atualizado."
               sudo systemctl daemon-reload
             fi
 
