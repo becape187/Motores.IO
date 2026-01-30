@@ -295,13 +295,14 @@ class ApiService {
   }
 
   // Plantas disponíveis para admin associar a usuários
-  async getPlantasDisponiveis() {
+  async getPlantasDisponiveis(clienteId?: string) {
+    const query = clienteId ? `?clienteId=${clienteId}` : '';
     return this.request<Array<{
       id: string;
       nome: string;
       codigo?: string;
       clienteId: string;
-    }>>(`/users/plantas-disponiveis`);
+    }>>(`/users/plantas-disponiveis${query}`);
   }
 }
 

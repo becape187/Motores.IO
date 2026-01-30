@@ -82,12 +82,21 @@ function Users() {
     loadUsers();
   }, []);
 
-  // Carregar plantas disponíveis quando entrar em modo de edição/criação
+  // Carregar plantas disponíveis quando entrar em modo de edição/criação ou quando mudar o cliente selecionado
   useEffect(() => {
-    if ((isEditing || isAdding) && userLogado?.perfil === 'admin') {
-      api.getPlantasDisponiveis().then(setPlantasDisponiveis).catch(console.error);
+    if ((isEditing || isAdding) && (userLogado?.perfil === 'admin' || userLogado?.perfil === 'global')) {
+      // Se for global e tiver cliente selecionado, buscar plantas do cliente
+      if (userLogado.perfil === 'global' && clienteSelecionado) {
+        api.getPlantasDisponiveis(clienteSelecionado.id).then(setPlantasDisponiveis).catch(console.error);
+      } else if (userLogado.perfil !== 'global') {
+        // Se não for global, buscar plantas disponíveis normalmente
+        api.getPlantasDisponiveis().then(setPlantasDisponiveis).catch(console.error);
+      } else {
+        // Se for global mas não tiver cliente selecionado, limpar plantas
+        setPlantasDisponiveis([]);
+      }
     }
-  }, [isEditing, isAdding, userLogado]);
+  }, [isEditing, isAdding, userLogado, clienteSelecionado]);
 
   const handleAddNew = () => {
     setIsAdding(true);
@@ -570,7 +579,11 @@ function Users() {
                       <p>Carregando plantas...</p>
                     ) : plantasDisponiveis.length === 0 ? (
                       <p style={{ color: '#e74c3c' }}>
-                        Nenhuma planta disponível. Você precisa ter acesso a pelo menos uma planta para associar usuários.
+                        {userLogado?.perfil === 'global' 
+                          ? (clienteSelecionado 
+                              ? 'Nenhuma planta disponível para este cliente.' 
+                              : 'Selecione um cliente primeiro para ver as plantas disponíveis.')
+                          : 'Nenhuma planta disponível. Você precisa ter acesso a pelo menos uma planta para associar usuários.'}
                       </p>
                     ) : (
                       <div style={{ 
