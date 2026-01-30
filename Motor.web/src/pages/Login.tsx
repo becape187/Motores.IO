@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
@@ -14,6 +14,7 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showModalSemPlantas, setShowModalSemPlantas] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +25,11 @@ function Login() {
       await login(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
+      if (err.message === 'SEM_PLANTAS') {
+        setShowModalSemPlantas(true);
+      } else {
+        setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -119,6 +124,74 @@ function Login() {
           <p className="demo-credentials">Demo: admin@pedreira.com / admin123</p>
         </div>
       </div>
+
+      {/* Modal de aviso quando usuário não tem plantas */}
+      {showModalSemPlantas && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+          onClick={() => setShowModalSemPlantas(false)}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '2rem',
+              maxWidth: '500px',
+              width: '90%',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  background: '#f39c12',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                }}
+              >
+                <AlertCircle size={24} />
+              </div>
+              <h2 style={{ margin: 0, color: '#333' }}>Acesso não disponível</h2>
+            </div>
+            <p style={{ color: '#666', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+              Você não tem acesso a nenhuma planta. Contate o seu gestor para solicitar acesso.
+            </p>
+            <button
+              onClick={() => setShowModalSemPlantas(false)}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                background: 'var(--primary-color, #3498db)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

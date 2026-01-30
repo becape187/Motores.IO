@@ -1,6 +1,15 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '../services/api';
 
+interface Cliente {
+  id: string;
+  nome: string;
+  cnpj?: string;
+  email?: string;
+  telefone?: string;
+  ativo: boolean;
+}
+
 interface Planta {
   id: string;
   nome: string;
@@ -33,10 +42,12 @@ interface User {
 interface AuthContextType {
   user: User | null;
   plantaSelecionada: Planta | null;
+  clienteSelecionado: Cliente | null;
   isAuthenticated: boolean;
   login: (email: string, senha: string) => Promise<void>;
   logout: () => void;
   setPlantaSelecionada: (planta: Planta | null) => void;
+  setClienteSelecionado: (cliente: Cliente | null) => void;
   aplicarTemas: () => void;
 }
 
@@ -45,17 +56,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [plantaSelecionada, setPlantaSelecionada] = useState<Planta | null>(null);
+  const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
 
   useEffect(() => {
     // Carregar dados do localStorage ao iniciar
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
     const plantaStr = localStorage.getItem('plantaSelecionada');
+    const clienteStr = localStorage.getItem('clienteSelecionado');
 
     if (token && userStr) {
       try {
         const userData = JSON.parse(userStr);
         setUser(userData);
+        
+        if (clienteStr) {
+          const cliente = JSON.parse(clienteStr);
+          setClienteSelecionado(cliente);
+        }
         
         if (plantaStr) {
           const planta = JSON.parse(plantaStr);
@@ -136,6 +154,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, senha: string) => {
     const response = await api.login(email, senha);
     
+    // Verificar se o usuário tem plantas (exceto se for global)
+    if (response.perfil !== 'global' && (!response.plantas || response.plantas.length === 0)) {
+      throw new Error('SEM_PLANTAS');
+    }
+    
     const userData: User = {
       id: response.usuarioId,
       nome: response.nome,
@@ -162,8 +185,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('plantaSelecionada');
+    localStorage.removeItem('clienteSelecionado');
     setUser(null);
     setPlantaSelecionada(null);
+    setClienteSelecionado(null);
     
     // Resetar estilos CSS customizados
     const root = document.documentElement;
@@ -183,15 +208,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const handleSetClienteSelecionado = (cliente: Cliente | null) => {
+    setClienteSelecionado(cliente);
+    if (cliente) {
+      localStorage.setItem('clienteSelecionado', JSON.stringify(cliente));
+      // Limpar planta selecionada quando trocar de cliente
+      setPlantaSelecionada(null);
+      localStorage.removeItem('plantaSelecionada');
+    } else {
+      localStorage.removeItem('clienteSelecionado');
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
         plantaSelecionada,
+        clienteSelecionado,
         isAuthenticated: !!user,
         login,
         logout,
         setPlantaSelecionada: handleSetPlantaSelecionada,
+        setClienteSelecionado: handleSetClienteSelecionado,
         aplicarTemas,
       }}
     >

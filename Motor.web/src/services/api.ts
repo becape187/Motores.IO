@@ -216,6 +216,93 @@ class ApiService {
     const query = ativo !== undefined ? `?ativo=${ativo}` : '';
     return this.request<Array<any>>(`/users${query}`);
   }
+
+  async getUsuario(id: string) {
+    return this.request<any>(`/users/${id}`);
+  }
+
+  async createUsuario(usuario: {
+    nome: string;
+    email: string;
+    senha: string;
+    perfil: string;
+    ativo: boolean;
+    clienteId: string;
+    plantaIds?: string[];
+  }) {
+    return this.request<any>('/users', {
+      method: 'POST',
+      body: JSON.stringify(usuario),
+    });
+  }
+
+  async updateUsuario(id: string, usuario: {
+    id: string;
+    nome: string;
+    email: string;
+    senha?: string;
+    perfil: string;
+    ativo: boolean;
+    clienteId: string;
+    plantaIds?: string[];
+  }) {
+    return this.request<void>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(usuario),
+    });
+  }
+
+  async deleteUsuario(id: string) {
+    return this.request<void>(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Clientes
+  async getClientes(ativo?: boolean) {
+    const query = ativo !== undefined ? `?ativo=${ativo}` : '';
+    return this.request<Array<{
+      id: string;
+      nome: string;
+      cnpj?: string;
+      email?: string;
+      telefone?: string;
+      ativo: boolean;
+    }>>(`/clientes${query}`);
+  }
+
+  // Plantas por cliente
+  async getPlantasPorCliente(clienteId: string) {
+    const plantas = await this.request<Array<{
+      id: string;
+      nome: string;
+      codigo?: string;
+      clienteId: string;
+      cliente?: {
+        id: string;
+        nome: string;
+      };
+    }>>(`/plantas?clienteId=${clienteId}&ativo=true`);
+    
+    // Converter para o formato esperado pelo frontend
+    return plantas?.map(p => ({
+      id: p.id,
+      nome: p.nome,
+      codigo: p.codigo,
+      clienteId: p.clienteId,
+      clienteNome: p.cliente?.nome || '',
+    })) || [];
+  }
+
+  // Plantas disponíveis para admin associar a usuários
+  async getPlantasDisponiveis() {
+    return this.request<Array<{
+      id: string;
+      nome: string;
+      codigo?: string;
+      clienteId: string;
+    }>>(`/users/plantas-disponiveis`);
+  }
 }
 
 export const api = new ApiService();

@@ -41,7 +41,7 @@ export type Usuario = {
   id: string;
   nome: string;
   email: string;
-  perfil: 'admin' | 'operador' | 'visualizador';
+  perfil: 'admin' | 'operador' | 'visualizador' | 'global';
   ativo: boolean;
   ultimoAcesso?: Date;
 };

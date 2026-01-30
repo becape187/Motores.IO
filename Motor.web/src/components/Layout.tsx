@@ -16,6 +16,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
 import './Layout.css';
 
 interface LayoutProps {
@@ -25,9 +26,12 @@ interface LayoutProps {
 
 function Layout({ children, onLogout }: LayoutProps) {
   const location = useLocation();
-  const { user, plantaSelecionada, setPlantaSelecionada } = useAuth();
+  const { user, plantaSelecionada, clienteSelecionado, setPlantaSelecionada, setClienteSelecionado } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isPlantaDropdownOpen, setIsPlantaDropdownOpen] = useState(false);
+  const [isClienteDropdownOpen, setIsClienteDropdownOpen] = useState(false);
+  const [clientes, setClientes] = useState<Array<{id: string; nome: string; ativo: boolean}>>([]);
+  const [plantasDoCliente, setPlantasDoCliente] = useState<Array<{id: string; nome: string; codigo?: string; clienteId: string; clienteNome: string}>>([]);
 
   // Fechar sidebar ao clicar em um item no mobile
   const handleNavClick = () => {
@@ -54,6 +58,36 @@ function Layout({ children, onLogout }: LayoutProps) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Carregar clientes se perfil for global
+  useEffect(() => {
+    if (user?.perfil === 'global') {
+      api.getClientes(true).then(setClientes).catch(console.error);
+    }
+  }, [user]);
+
+  // Carregar plantas do cliente selecionado quando trocar de cliente
+  useEffect(() => {
+    if (user?.perfil === 'global' && clienteSelecionado) {
+      api.getPlantasPorCliente(clienteSelecionado.id).then(plantas => {
+        setPlantasDoCliente(plantas);
+        // Selecionar primeira planta automaticamente
+        if (plantas.length > 0) {
+          setPlantaSelecionada(plantas[0]);
+        }
+      }).catch(console.error);
+    } else if (user?.perfil !== 'global') {
+      // Se não for global, usar plantas do usuário
+      setPlantasDoCliente(user?.plantas || []);
+    }
+  }, [clienteSelecionado, user]);
+
+  // Se não for global e não tiver cliente selecionado, usar primeira planta do usuário
+  useEffect(() => {
+    if (user?.perfil !== 'global' && user?.plantas && user.plantas.length > 0 && !plantaSelecionada) {
+      setPlantaSelecionada(user.plantas[0]);
+    }
+  }, [user, plantaSelecionada]);
 
   const menuItems = [
     { path: '/', icon: LayoutDashboard, label: 'Principal' },
@@ -140,8 +174,102 @@ function Layout({ children, onLogout }: LayoutProps) {
           </div>
 
           <div className="header-right">
+            {/* Dropdown de Cliente (apenas para perfil global) */}
+            {user?.perfil === 'global' && (
+              <div className="cliente-selector" style={{ position: 'relative', marginRight: '1rem' }}>
+                <button
+                  className="cliente-selector-btn"
+                  onClick={() => setIsClienteDropdownOpen(!isClienteDropdownOpen)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    background: 'var(--primary-color, #3498db)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  <Building2 size={18} />
+                  <span>{clienteSelecionado?.nome || 'Selecione um cliente'}</span>
+                  <ChevronDown size={16} />
+                </button>
+                {isClienteDropdownOpen && (
+                  <>
+                    <div
+                      style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 998
+                      }}
+                      onClick={() => setIsClienteDropdownOpen(false)}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '0.5rem',
+                        background: 'white',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        minWidth: '250px',
+                        zIndex: 999,
+                        overflow: 'hidden',
+                        maxHeight: '300px',
+                        overflowY: 'auto'
+                      }}
+                    >
+                      {clientes.map((cliente) => (
+                        <button
+                          key={cliente.id}
+                          onClick={() => {
+                            setClienteSelecionado(cliente);
+                            setIsClienteDropdownOpen(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            textAlign: 'left',
+                            border: 'none',
+                            background: clienteSelecionado?.id === cliente.id ? 'var(--primary-color, #3498db)' : 'transparent',
+                            color: clienteSelecionado?.id === cliente.id ? 'white' : 'var(--text-color, #333)',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (clienteSelecionado?.id !== cliente.id) {
+                              e.currentTarget.style.background = '#f5f5f5';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (clienteSelecionado?.id !== cliente.id) {
+                              e.currentTarget.style.background = 'transparent';
+                            }
+                          }}
+                        >
+                          {cliente.nome}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Dropdown de Plantas */}
-            {user && user.plantas && user.plantas.length > 0 && (
+            {user && (
+              (user.perfil === 'global' && plantasDoCliente.length > 0) ||
+              (user.perfil !== 'global' && user.plantas && user.plantas.length > 0)
+            ) && (
               <div className="planta-selector" style={{ position: 'relative', marginRight: '1rem' }}>
                 <button
                   className="planta-selector-btn"
@@ -191,7 +319,7 @@ function Layout({ children, onLogout }: LayoutProps) {
                         overflow: 'hidden'
                       }}
                     >
-                      {user.plantas.map((planta) => (
+                      {(user.perfil === 'global' ? plantasDoCliente : user.plantas || []).map((planta) => (
                         <button
                           key={planta.id}
                           onClick={() => {
