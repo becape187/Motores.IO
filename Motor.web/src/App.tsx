@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -10,47 +10,47 @@ import Alarms from './pages/Alarms';
 import Users from './pages/Users';
 import './App.css';
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-  };
+function AppRoutes() {
+  const { isAuthenticated, logout } = useAuth();
 
   return (
-    <Router>
-      <Routes>
-        <Route 
-          path="/login" 
-          element={
-            isAuthenticated ? <Navigate to="/" /> : <Login onLogin={handleLogin} />
-          } 
-        />
-        <Route
-          path="/*"
-          element={
-            isAuthenticated ? (
-              <Layout onLogout={handleLogout}>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/motors" element={<Motors />} />
-                  <Route path="/history" element={<History />} />
-                  <Route path="/maintenance" element={<Maintenance />} />
-                  <Route path="/alarms" element={<Alarms />} />
-                  <Route path="/users" element={<Users />} />
-                </Routes>
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-      </Routes>
-    </Router>
+    <Routes>
+      <Route 
+        path="/login" 
+        element={
+          isAuthenticated ? <Navigate to="/" /> : <Login />
+        } 
+      />
+      <Route
+        path="/*"
+        element={
+          isAuthenticated ? (
+            <Layout onLogout={logout}>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/motors" element={<Motors />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/maintenance" element={<Maintenance />} />
+                <Route path="/alarms" element={<Alarms />} />
+                <Route path="/users" element={<Users />} />
+              </Routes>
+            </Layout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AuthProvider>
   );
 }
 

@@ -1,28 +1,33 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
-interface LoginProps {
-  onLogin: () => void;
-}
-
-function Login({ onLogin }: LoginProps) {
+function Login() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
     
-    // Simular autenticação
-    setTimeout(() => {
+    try {
+      await login(email, password);
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
+    } finally {
       setIsLoading(false);
-      onLogin();
-    }, 1000);
+    }
   };
 
   return (
@@ -93,6 +98,12 @@ function Login({ onLogin }: LoginProps) {
             </label>
             <a href="#" className="forgot-password">Esqueceu a senha?</a>
           </div>
+
+          {error && (
+            <div className="error-message" style={{ color: '#e74c3c', marginBottom: '1rem', textAlign: 'center' }}>
+              {error}
+            </div>
+          )}
 
           <button type="submit" className="login-button" disabled={isLoading}>
             {isLoading ? (
