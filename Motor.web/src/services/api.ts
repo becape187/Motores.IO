@@ -10,17 +10,27 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const token = this.getToken();
-    const headers: HeadersInit = new Headers(options.headers);
     
-    headers.set('Content-Type', 'application/json');
+    // Criar headers de forma type-safe usando Record
+    const headersObj: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
     
     if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
+      headersObj['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Mesclar headers existentes se houver
+    if (options.headers) {
+      const existingHeaders = options.headers as Record<string, string>;
+      Object.keys(existingHeaders).forEach((key) => {
+        headersObj[key] = existingHeaders[key];
+      });
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
-      headers,
+      headers: headersObj,
     });
 
     if (!response.ok) {
