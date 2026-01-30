@@ -113,29 +113,45 @@ public class UsersController : ControllerBase
 
     // POST: api/users
     [HttpPost]
+    [AllowAnonymous]
     public async Task<ActionResult<object>> PostUsuario(DTOs.UsuarioCreateDto usuarioDto)
     {
-        // Obter cliente do usuário logado
-        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(usuarioIdClaim) || !Guid.TryParse(usuarioIdClaim, out var usuarioIdLogado))
-        {
-            return Unauthorized();
-        }
-
-        var usuarioLogado = await _context.Usuarios.FindAsync(usuarioIdLogado);
-        if (usuarioLogado == null)
-        {
-            return Unauthorized();
-        }
-
         // Verificar se o email já existe
         if (await _context.Usuarios.AnyAsync(u => u.Email == usuarioDto.Email))
         {
             return BadRequest("Email já cadastrado");
         }
 
-        // Se não for global, usar o cliente do usuário logado
-        var clienteId = usuarioLogado.Perfil == "global" ? usuarioDto.ClienteId : usuarioLogado.ClienteId;
+        // Determinar ClienteId: usar o do DTO se fornecido, senão tentar obter do usuário logado (se autenticado)
+        Guid clienteId;
+        
+        // Se o DTO tem ClienteId, usar ele
+        if (usuarioDto.ClienteId != Guid.Empty)
+        {
+            clienteId = usuarioDto.ClienteId;
+        }
+        else
+        {
+            // Tentar obter do usuário logado (se autenticado)
+            var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(usuarioIdClaim) && Guid.TryParse(usuarioIdClaim, out var usuarioIdLogado))
+            {
+                var usuarioLogado = await _context.Usuarios.FindAsync(usuarioIdLogado);
+                if (usuarioLogado != null)
+                {
+                    // Se não for global, usar o cliente do usuário logado
+                    clienteId = usuarioLogado.Perfil == "global" ? usuarioDto.ClienteId : usuarioLogado.ClienteId;
+                }
+                else
+                {
+                    return BadRequest("ClienteId é obrigatório");
+                }
+            }
+            else
+            {
+                return BadRequest("ClienteId é obrigatório");
+            }
+        }
 
         // Verificar se o cliente existe
         if (!await _context.Clientes.AnyAsync(c => c.Id == clienteId))
@@ -161,9 +177,22 @@ public class UsersController : ControllerBase
         // Associar plantas se fornecido e se não for perfil global
         if (usuarioDto.PlantaIds != null && usuarioDto.PlantaIds.Any() && usuarioDto.Perfil != "global")
         {
-            // Verificar se o admin tem acesso a essas plantas
-            var plantasDisponiveis = await ObterPlantasDisponiveisParaAdmin(usuarioIdLogado);
-            var plantasIdsDisponiveis = plantasDisponiveis.Select(p => p.Id).ToList();
+            // Verificar se o admin tem acesso a essas plantas (se autenticado)
+            var plantasIdsDisponiveis = new List<Guid>();
+            var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(usuarioIdClaim) && Guid.TryParse(usuarioIdClaim, out var usuarioIdLogado))
+            {
+                var plantasDisponiveis = await ObterPlantasDisponiveisParaAdmin(usuarioIdLogado);
+                plantasIdsDisponiveis = plantasDisponiveis.Select(p => p.Id).ToList();
+            }
+            else
+            {
+                // Se não autenticado, permitir associar qualquer planta do cliente
+                plantasIdsDisponiveis = await _context.Plantas
+                    .Where(p => p.ClienteId == clienteId && p.Ativo)
+                    .Select(p => p.Id)
+                    .ToListAsync();
+            }
 
             foreach (var plantaId in usuarioDto.PlantaIds)
             {
