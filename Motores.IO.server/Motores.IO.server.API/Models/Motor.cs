@@ -16,13 +16,11 @@ public class Motor
 
     public decimal Histerese { get; set; }
 
-    public decimal CorrenteInicial { get; set; }
-
-    public string Status { get; set; } = "desligado"; // ligado, desligado, alerta, alarme, pendente
+    public string Status { get; set; } = "desligado"; // ligado, desligado, alerta, alarme, pendente (dinâmico, recebido via socket)
 
     public decimal Horimetro { get; set; }
 
-    public decimal CorrenteAtual { get; set; }
+    public bool Habilitado { get; set; } = true; // Para esconder do mapa, alarmes, etc
 
     public decimal? PosicaoX { get; set; }
 
@@ -32,14 +30,6 @@ public class Motor
     public decimal? HorimetroProximaManutencao { get; set; }
 
     public DateTime? DataEstimadaProximaManutencao { get; set; }
-
-    public int TotalOS { get; set; } = 0;
-
-    public decimal? MediaHorasDia { get; set; }
-
-    public decimal? MediaHorasSemana { get; set; }
-
-    public decimal? MediaHorasMes { get; set; }
 
     public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
     public DateTime? DataAtualizacao { get; set; }

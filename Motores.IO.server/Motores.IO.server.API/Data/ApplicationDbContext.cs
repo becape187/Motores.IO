@@ -60,10 +60,6 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasColumnType("decimal(5,2)");
             
-            entity.Property(e => e.CorrenteInicial)
-                .IsRequired()
-                .HasColumnType("decimal(10,2)");
-            
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50)
@@ -73,9 +69,9 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasColumnType("decimal(10,2)");
             
-            entity.Property(e => e.CorrenteAtual)
+            entity.Property(e => e.Habilitado)
                 .IsRequired()
-                .HasColumnType("decimal(10,2)");
+                .HasDefaultValue(true);
             
             entity.Property(e => e.PosicaoX)
                 .HasColumnType("decimal(10,2)");
@@ -84,15 +80,6 @@ public class ApplicationDbContext : DbContext
                 .HasColumnType("decimal(10,2)");
             
             entity.Property(e => e.HorimetroProximaManutencao)
-                .HasColumnType("decimal(10,2)");
-            
-            entity.Property(e => e.MediaHorasDia)
-                .HasColumnType("decimal(10,2)");
-            
-            entity.Property(e => e.MediaHorasSemana)
-                .HasColumnType("decimal(10,2)");
-            
-            entity.Property(e => e.MediaHorasMes)
                 .HasColumnType("decimal(10,2)");
             
             entity.Property(e => e.DataCriacao)
