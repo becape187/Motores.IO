@@ -348,7 +348,7 @@ public class UsersController : ControllerBase
 
     // GET: api/users/plantas-disponiveis - Retorna plantas disponíveis para o admin logado associar a usuários
     [HttpGet("plantas-disponiveis")]
-    public async Task<ActionResult<IEnumerable<object>>> GetPlantasDisponiveis()
+    public async Task<ActionResult<IEnumerable<object>>> GetPlantasDisponiveis([FromQuery] Guid? clienteId = null)
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(usuarioIdClaim) || !Guid.TryParse(usuarioIdClaim, out var usuarioId))
@@ -356,7 +356,27 @@ public class UsersController : ControllerBase
             return Unauthorized();
         }
 
-        var plantas = await ObterPlantasDisponiveisParaAdmin(usuarioId);
+        var admin = await _context.Usuarios.FindAsync(usuarioId);
+        if (admin == null)
+        {
+            return Unauthorized();
+        }
+
+        List<Models.Planta> plantas;
+
+        // Se for perfil global e forneceu clienteId, filtrar por cliente
+        if (admin.Perfil == "global" && clienteId.HasValue)
+        {
+            plantas = await _context.Plantas
+                .Where(p => p.ClienteId == clienteId.Value && p.Ativo)
+                .Include(p => p.Cliente)
+                .ToListAsync();
+        }
+        else
+        {
+            // Usar a lógica existente
+            plantas = await ObterPlantasDisponiveisParaAdmin(usuarioId);
+        }
         
         return Ok(plantas.Select(p => new
         {
