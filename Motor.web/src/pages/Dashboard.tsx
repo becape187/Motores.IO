@@ -240,23 +240,58 @@ function Dashboard() {
       
       try {
         setSavingPosition(motorParaAdicionar.id);
+        
+        // Primeiro, garantir que o motor tem o plantaid definido
+        // Se o motor não tem plantaid, atualizar a configuração primeiro
+        // (isso pode acontecer se o motor foi criado sem plantaid ou de outra planta)
+        const motorAtual = await api.getMotor(motorParaAdicionar.id);
+        if (!motorAtual.plantaId || motorAtual.plantaId !== plantaSelecionada.id) {
+          // Atualizar configuração para definir o plantaid
+          await api.updateMotorConfiguracao(motorParaAdicionar.id, {
+            nome: motorParaAdicionar.nome ?? '',
+            potencia: motorParaAdicionar.potencia ?? 0,
+            tensao: motorParaAdicionar.tensao ?? 380,
+            correnteNominal: motorParaAdicionar.correnteNominal ?? 0,
+            percentualCorrenteMaxima: motorParaAdicionar.percentualCorrenteMaxima ?? 110,
+            histerese: motorParaAdicionar.histerese ?? 5,
+            habilitado: motorParaAdicionar.habilitado ?? true,
+            plantaId: plantaSelecionada.id,
+          });
+        }
+        
+        // Agora atualizar a posição
         await api.updateMotorPosicao(motorParaAdicionar.id, {
           posicaoX: coords.x,
           posicaoY: coords.y,
         });
-        setMotors(prevMotors =>
-          prevMotors.map(m => 
-            m.id === motorParaAdicionar.id 
-              ? { ...m, posicaoX: coords.x, posicaoY: coords.y }
-              : m
-          )
-        );
+        
+        // Recarregar motores para garantir que o motor atualizado apareça no mapa
+        const data = await api.getMotores(plantaSelecionada.id);
+        const motorsData: Motor[] = data.map((m: any) => ({
+          id: m.id,
+          nome: m.nome,
+          potencia: Number(m.potencia),
+          tensao: Number(m.tensao),
+          correnteNominal: Number(m.correnteNominal),
+          percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
+          histerese: Number(m.histerese),
+          status: m.status as Motor['status'],
+          horimetro: Number(m.horimetro),
+          correnteAtual: Number(m.correnteAtual || 0),
+          posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
+          posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
+          habilitado: m.habilitado !== undefined ? m.habilitado : true,
+        }));
+        setMotors(motorsData);
       } catch (err: any) {
         console.error('Erro ao adicionar motor à planta:', err);
-        alert('Erro ao adicionar motor à planta');
+        console.error('Detalhes do erro:', err.message);
+        alert('Erro ao adicionar motor à planta: ' + (err.message || 'Erro desconhecido'));
       } finally {
         setSavingPosition(null);
       }
+    } else {
+      alert('Não há motores sem posição para adicionar ao mapa');
     }
   };
 
