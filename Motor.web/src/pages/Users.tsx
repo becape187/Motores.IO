@@ -344,7 +344,7 @@ function Users() {
 
       <div className="users-container">
         {/* Users List */}
-        {!showDetails && !loading && !error && (
+        {!showDetails && !loading && !error ? (
           <div className="users-list visible">
             {filteredUsers.length === 0 ? (
               <div className="no-users">
@@ -410,34 +410,34 @@ function Users() {
                 </button>
                 <div className="details-header">
                   <h3>{isAdding ? 'Novo Usuário' : isEditing ? 'Editar Usuário' : 'Detalhes do Usuário'}</h3>
-                {!isAdding && !isEditing && (
-                  <div className="header-actions">
-                    <button className="btn-secondary" onClick={handleEdit}>
-                      <Edit2 size={18} />
-                      Editar
-                    </button>
-                    <button
-                      className="btn-danger"
-                      onClick={() => selectedUser && handleDelete(selectedUser.id)}
-                    >
-                      <Trash2 size={18} />
-                      Excluir
-                    </button>
-                  </div>
-                )}
-                {(isEditing || isAdding) && (
-                  <div className="header-actions">
-                    <button className="btn-secondary" onClick={handleCancel}>
-                      <X size={18} />
-                      Cancelar
-                    </button>
-                    <button className="btn-primary" onClick={handleSave} disabled={saving}>
-                      <Save size={18} />
-                      {saving ? 'Salvando...' : 'Salvar'}
-                    </button>
-                  </div>
-                )}
-              </div>
+                  {!isAdding && !isEditing && (
+                    <div className="header-actions">
+                      <button className="btn-secondary" onClick={handleEdit}>
+                        <Edit2 size={18} />
+                        Editar
+                      </button>
+                      <button
+                        className="btn-danger"
+                        onClick={() => selectedUser && handleDelete(selectedUser.id)}
+                      >
+                        <Trash2 size={18} />
+                        Excluir
+                      </button>
+                    </div>
+                  )}
+                  {(isEditing || isAdding) && (
+                    <div className="header-actions">
+                      <button className="btn-secondary" onClick={handleCancel}>
+                        <X size={18} />
+                        Cancelar
+                      </button>
+                      <button className="btn-primary" onClick={handleSave} disabled={saving}>
+                        <Save size={18} />
+                        {saving ? 'Salvando...' : 'Salvar'}
+                      </button>
+                    </div>
+                  )}
+                </div>
 
               <div className="details-form">
                 {!isEditing && !isAdding && selectedUser && (
