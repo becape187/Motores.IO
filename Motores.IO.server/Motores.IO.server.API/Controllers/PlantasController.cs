@@ -20,7 +20,7 @@ public class PlantasController : ControllerBase
 
     // GET: api/plantas
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Models.Planta>>> GetPlantas(
+    public async Task<ActionResult<IEnumerable<object>>> GetPlantas(
         [FromQuery] Guid? clienteId = null,
         [FromQuery] bool? ativo = null)
     {
@@ -36,7 +36,29 @@ public class PlantasController : ControllerBase
             query = query.Where(p => p.Ativo == ativo.Value);
         }
 
-        return await query.Include(p => p.Cliente).ToListAsync();
+        var plantas = await query
+            .Include(p => p.Cliente)
+            .Select(p => new
+            {
+                p.Id,
+                p.Nome,
+                p.Codigo,
+                p.Endereco,
+                p.Cidade,
+                p.Estado,
+                p.Ativo,
+                p.ClienteId,
+                Cliente = new
+                {
+                    p.Cliente.Id,
+                    p.Cliente.Nome
+                },
+                p.DataCriacao,
+                p.DataAtualizacao
+            })
+            .ToListAsync();
+
+        return Ok(plantas);
     }
 
     // GET: api/plantas/por-usuario - Retorna plantas disponíveis para o usuário logado
