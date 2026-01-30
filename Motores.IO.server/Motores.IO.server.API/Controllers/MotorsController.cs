@@ -19,9 +19,16 @@ public class MotorsController : ControllerBase
 
     // GET: api/motors
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Models.Motor>>> GetMotores()
+    public async Task<ActionResult<IEnumerable<Models.Motor>>> GetMotores([FromQuery] Guid? plantaId = null)
     {
-        return await _context.Motores.ToListAsync();
+        var query = _context.Motores.AsQueryable();
+        
+        if (plantaId.HasValue)
+        {
+            query = query.Where(m => m.PlantaId == plantaId.Value);
+        }
+        
+        return await query.ToListAsync();
     }
 
     // GET: api/motors/5
