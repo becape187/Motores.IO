@@ -41,10 +41,16 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
+// Swagger disponível em todos os ambientes
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Motores.IO API V1");
+    c.RoutePrefix = "swagger";
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
     app.UseHttpsRedirection();
 }
 
