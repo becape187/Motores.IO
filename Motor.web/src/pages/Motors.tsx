@@ -166,13 +166,13 @@ function Motors() {
       } else if (selectedMotor) {
         // Atualizar apenas configuração do motor (preserva posição, status, horimetro, etc)
         await api.updateMotorConfiguracao(selectedMotor.id, {
-          nome: formData.nome,
-          potencia: formData.potencia,
-          tensao: formData.tensao,
-          correnteNominal: formData.correnteNominal,
-          percentualCorrenteMaxima: formData.percentualCorrenteMaxima,
-          histerese: formData.histerese,
-          habilitado: formData.habilitado !== undefined ? formData.habilitado : true,
+          nome: formData.nome ?? '',
+          potencia: formData.potencia ?? 0,
+          tensao: formData.tensao ?? 380,
+          correnteNominal: formData.correnteNominal ?? 0,
+          percentualCorrenteMaxima: formData.percentualCorrenteMaxima ?? 110,
+          histerese: formData.histerese ?? 5,
+          habilitado: formData.habilitado ?? true,
           plantaId: plantaSelecionada.id,
         });
         
