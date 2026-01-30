@@ -46,7 +46,19 @@ class ApiService {
       throw new Error(error.message || `Erro: ${response.status}`);
     }
 
-    return response.json();
+    // Se a resposta for 204 No Content ou não tiver conteúdo, retornar void
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return undefined as T;
+    }
+
+    // Verificar se há conteúdo antes de fazer parse
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const text = await response.text();
+      return text ? JSON.parse(text) : undefined as T;
+    }
+
+    return undefined as T;
   }
 
   // Auth
