@@ -44,7 +44,11 @@ public class Motor
     public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
     public DateTime? DataAtualizacao { get; set; }
 
+    // Relacionamento com Planta
+    public Guid? PlantaId { get; set; }
+
     // Relacionamentos
+    public virtual Planta? Planta { get; set; }
     public virtual ICollection<HistoricoMotor> Historicos { get; set; } = new List<HistoricoMotor>();
     public virtual ICollection<Alarme> Alarmes { get; set; } = new List<Alarme>();
     public virtual ICollection<OrdemServico> OrdensServico { get; set; } = new List<OrdemServico>();

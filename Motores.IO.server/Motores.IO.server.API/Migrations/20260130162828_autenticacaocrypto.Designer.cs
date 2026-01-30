@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Motores.IO.server.API.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Motores.IO.server.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260130162828_autenticacaocrypto")]
+    partial class autenticacaocrypto
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -69,7 +72,7 @@ namespace Motores.IO.server.API.Migrations
 
                     b.HasIndex("Timestamp");
 
-                    b.ToTable("Alarmes", (string)null);
+                    b.ToTable("Alarmes");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.Cliente", b =>
@@ -92,9 +95,7 @@ namespace Motores.IO.server.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("DataCriacao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .HasMaxLength(200)
@@ -114,7 +115,7 @@ namespace Motores.IO.server.API.Migrations
                     b.HasIndex("Cnpj")
                         .IsUnique();
 
-                    b.ToTable("Clientes", (string)null);
+                    b.ToTable("Clientes");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.HistoricoMotor", b =>
@@ -150,7 +151,7 @@ namespace Motores.IO.server.API.Migrations
 
                     b.HasIndex("Timestamp");
 
-                    b.ToTable("HistoricosMotores", (string)null);
+                    b.ToTable("HistoricosMotores");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.Motor", b =>
@@ -173,9 +174,7 @@ namespace Motores.IO.server.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("DataCriacao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("DataEstimadaProximaManutencao")
                         .HasColumnType("timestamp with time zone");
@@ -238,7 +237,7 @@ namespace Motores.IO.server.API.Migrations
 
                     b.HasIndex("PlantaId");
 
-                    b.ToTable("Motores", (string)null);
+                    b.ToTable("Motores");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.OrdemServico", b =>
@@ -289,7 +288,7 @@ namespace Motores.IO.server.API.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("OrdensServico", (string)null);
+                    b.ToTable("OrdensServico");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.Planta", b =>
@@ -319,9 +318,7 @@ namespace Motores.IO.server.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("DataCriacao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Endereco")
                         .HasMaxLength(500)
@@ -341,7 +338,7 @@ namespace Motores.IO.server.API.Migrations
                     b.HasIndex("ClienteId", "Codigo")
                         .IsUnique();
 
-                    b.ToTable("Plantas", (string)null);
+                    b.ToTable("Plantas");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.RelatorioOS", b =>
@@ -378,7 +375,7 @@ namespace Motores.IO.server.API.Migrations
 
                     b.HasIndex("OSId");
 
-                    b.ToTable("RelatoriosOS", (string)null);
+                    b.ToTable("RelatoriosOS");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.TemaCliente", b =>
@@ -399,16 +396,14 @@ namespace Motores.IO.server.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("DataCriacao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId")
                         .IsUnique();
 
-                    b.ToTable("TemasCliente", (string)null);
+                    b.ToTable("TemasCliente");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.TemaUsuario", b =>
@@ -426,9 +421,7 @@ namespace Motores.IO.server.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("DataCriacao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uuid");
@@ -438,7 +431,7 @@ namespace Motores.IO.server.API.Migrations
                     b.HasIndex("UsuarioId")
                         .IsUnique();
 
-                    b.ToTable("TemasUsuario", (string)null);
+                    b.ToTable("TemasUsuario");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.Usuario", b =>
@@ -457,9 +450,7 @@ namespace Motores.IO.server.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("DataCriacao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -489,7 +480,7 @@ namespace Motores.IO.server.API.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Usuarios", (string)null);
+                    b.ToTable("Usuarios");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.UsuarioPlanta", b =>
@@ -500,9 +491,7 @@ namespace Motores.IO.server.API.Migrations
                         .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime>("DataCriacao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("PlantaId")
                         .HasColumnType("uuid");
@@ -517,7 +506,7 @@ namespace Motores.IO.server.API.Migrations
                     b.HasIndex("UsuarioId", "PlantaId")
                         .IsUnique();
 
-                    b.ToTable("UsuariosPlantas", (string)null);
+                    b.ToTable("UsuariosPlantas");
                 });
 
             modelBuilder.Entity("Motores.IO.server.API.Models.Alarme", b =>

@@ -16,6 +16,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<OrdemServico> OrdensServico { get; set; }
     public DbSet<RelatorioOS> RelatoriosOS { get; set; }
+    public DbSet<Cliente> Clientes { get; set; }
+    public DbSet<Planta> Plantas { get; set; }
+    public DbSet<UsuarioPlanta> UsuariosPlantas { get; set; }
+    public DbSet<TemaCliente> TemasCliente { get; set; }
+    public DbSet<TemaUsuario> TemasUsuario { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +30,9 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Motor>(entity =>
         {
             entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
             
             entity.HasIndex(e => e.Nome).IsUnique();
             
@@ -88,13 +96,17 @@ public class ApplicationDbContext : DbContext
                 .HasColumnType("decimal(10,2)");
             
             entity.Property(e => e.DataCriacao)
-                .IsRequired();
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
         });
 
         // Configuração do HistoricoMotor
         modelBuilder.Entity<HistoricoMotor>(entity =>
         {
             entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
             
             entity.HasIndex(e => e.MotorId);
             entity.HasIndex(e => e.Timestamp);
@@ -131,6 +143,9 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Alarme>(entity =>
         {
             entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
             
             entity.HasIndex(e => e.MotorId);
             entity.HasIndex(e => e.Timestamp);
@@ -169,6 +184,9 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
+            
             entity.HasIndex(e => e.Email).IsUnique();
             
             entity.Property(e => e.Nome)
@@ -192,13 +210,17 @@ public class ApplicationDbContext : DbContext
                 .HasDefaultValue(true);
             
             entity.Property(e => e.DataCriacao)
-                .IsRequired();
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
         });
 
         // Configuração da OrdemServico
         modelBuilder.Entity<OrdemServico>(entity =>
         {
             entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
             
             entity.HasIndex(e => e.MotorId);
             entity.HasIndex(e => e.NumeroOS).IsUnique();
@@ -237,6 +259,9 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
+            
             entity.HasIndex(e => e.OSId);
             
             entity.Property(e => e.OSId)
@@ -263,6 +288,175 @@ public class ApplicationDbContext : DbContext
                 .WithMany(os => os.Relatorios)
                 .HasForeignKey(e => e.OSId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configuração do Cliente
+        modelBuilder.Entity<Cliente>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
+            
+            entity.HasIndex(e => e.Cnpj).IsUnique();
+            
+            entity.Property(e => e.Nome)
+                .IsRequired()
+                .HasMaxLength(200);
+            
+            entity.Property(e => e.Cnpj)
+                .HasMaxLength(18);
+            
+            entity.Property(e => e.Email)
+                .HasMaxLength(200);
+            
+            entity.Property(e => e.Telefone)
+                .HasMaxLength(20);
+            
+            entity.Property(e => e.Ativo)
+                .IsRequired()
+                .HasDefaultValue(true);
+            
+            entity.Property(e => e.DataCriacao)
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+            
+            entity.HasOne(e => e.Tema)
+                .WithOne(t => t.Cliente)
+                .HasForeignKey<TemaCliente>(t => t.ClienteId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configuração da Planta
+        modelBuilder.Entity<Planta>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
+            
+            entity.HasIndex(e => new { e.ClienteId, e.Codigo }).IsUnique();
+            
+            entity.Property(e => e.Nome)
+                .IsRequired()
+                .HasMaxLength(200);
+            
+            entity.Property(e => e.Codigo)
+                .HasMaxLength(50);
+            
+            entity.Property(e => e.Endereco)
+                .HasMaxLength(500);
+            
+            entity.Property(e => e.Cidade)
+                .HasMaxLength(100);
+            
+            entity.Property(e => e.Estado)
+                .HasMaxLength(2);
+            
+            entity.Property(e => e.Ativo)
+                .IsRequired()
+                .HasDefaultValue(true);
+            
+            entity.Property(e => e.DataCriacao)
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+            
+            entity.Property(e => e.ClienteId)
+                .IsRequired();
+            
+            entity.HasOne(e => e.Cliente)
+                .WithMany(c => c.Plantas)
+                .HasForeignKey(e => e.ClienteId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configuração do UsuarioPlanta (tabela de junção)
+        modelBuilder.Entity<UsuarioPlanta>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
+            
+            entity.HasIndex(e => new { e.UsuarioId, e.PlantaId }).IsUnique();
+            
+            entity.Property(e => e.UsuarioId)
+                .IsRequired();
+            
+            entity.Property(e => e.PlantaId)
+                .IsRequired();
+            
+            entity.Property(e => e.DataCriacao)
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+            
+            entity.HasOne(e => e.Usuario)
+                .WithMany(u => u.UsuariosPlantas)
+                .HasForeignKey(e => e.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.Planta)
+                .WithMany(p => p.UsuariosPlantas)
+                .HasForeignKey(e => e.PlantaId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configuração do TemaCliente
+        modelBuilder.Entity<TemaCliente>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
+            
+            entity.HasIndex(e => e.ClienteId).IsUnique();
+            
+            entity.Property(e => e.ClienteId)
+                .IsRequired();
+            
+            entity.Property(e => e.ConfiguracaoJson)
+                .IsRequired()
+                .HasColumnType("text");
+            
+            entity.Property(e => e.DataCriacao)
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+        });
+
+        // Configuração do TemaUsuario
+        modelBuilder.Entity<TemaUsuario>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()");
+            
+            entity.HasIndex(e => e.UsuarioId).IsUnique();
+            
+            entity.Property(e => e.UsuarioId)
+                .IsRequired();
+            
+            entity.Property(e => e.ConfiguracaoJson)
+                .IsRequired()
+                .HasColumnType("text");
+            
+            entity.Property(e => e.DataCriacao)
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+            
+            entity.HasOne(e => e.Usuario)
+                .WithOne(u => u.Tema)
+                .HasForeignKey<TemaUsuario>(t => t.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Atualizar configuração do Motor para incluir PlantaId
+        modelBuilder.Entity<Motor>(entity =>
+        {
+            entity.HasOne(e => e.Planta)
+                .WithMany(p => p.Motores)
+                .HasForeignKey(e => e.PlantaId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

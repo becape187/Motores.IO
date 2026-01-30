@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Motores.IO.server.API.Data;
@@ -6,6 +7,7 @@ namespace Motores.IO.server.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -47,17 +49,28 @@ public class UsersController : ControllerBase
     }
 
     // POST: api/users
+    // Permitir criação sem autenticação (para criar primeiro usuário)
     [HttpPost]
-    public async Task<ActionResult<Models.Usuario>> PostUsuario(Models.Usuario usuario)
+    [AllowAnonymous]
+    public async Task<ActionResult<Models.Usuario>> PostUsuario(DTOs.UsuarioCreateDto usuarioDto)
     {
         // Verificar se o email já existe
-        if (await _context.Usuarios.AnyAsync(u => u.Email == usuario.Email))
+        if (await _context.Usuarios.AnyAsync(u => u.Email == usuarioDto.Email))
         {
             return BadRequest("Email já cadastrado");
         }
 
-        usuario.Id = Guid.NewGuid();
-        usuario.DataCriacao = DateTime.UtcNow;
+        var usuario = new Models.Usuario
+        {
+            Id = Guid.NewGuid(),
+            Nome = usuarioDto.Nome,
+            Email = usuarioDto.Email,
+            SenhaHash = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha),
+            Perfil = usuarioDto.Perfil,
+            Ativo = usuarioDto.Ativo,
+            DataCriacao = DateTime.UtcNow
+        };
+
         _context.Usuarios.Add(usuario);
         await _context.SaveChangesAsync();
 
@@ -69,21 +82,36 @@ public class UsersController : ControllerBase
 
     // PUT: api/users/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutUsuario(Guid id, Models.Usuario usuario)
+    public async Task<IActionResult> PutUsuario(Guid id, DTOs.UsuarioUpdateDto usuarioDto)
     {
-        if (id != usuario.Id)
+        if (id != usuarioDto.Id)
         {
             return BadRequest();
         }
 
+        var usuario = await _context.Usuarios.FindAsync(id);
+        if (usuario == null)
+        {
+            return NotFound();
+        }
+
         // Verificar se o email já existe em outro usuário
-        if (await _context.Usuarios.AnyAsync(u => u.Email == usuario.Email && u.Id != id))
+        if (await _context.Usuarios.AnyAsync(u => u.Email == usuarioDto.Email && u.Id != id))
         {
             return BadRequest("Email já cadastrado");
         }
 
+        usuario.Nome = usuarioDto.Nome;
+        usuario.Email = usuarioDto.Email;
+        usuario.Perfil = usuarioDto.Perfil;
+        usuario.Ativo = usuarioDto.Ativo;
         usuario.DataAtualizacao = DateTime.UtcNow;
-        _context.Entry(usuario).State = EntityState.Modified;
+
+        // Atualizar senha apenas se fornecida
+        if (!string.IsNullOrWhiteSpace(usuarioDto.Senha))
+        {
+            usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha);
+        }
 
         try
         {

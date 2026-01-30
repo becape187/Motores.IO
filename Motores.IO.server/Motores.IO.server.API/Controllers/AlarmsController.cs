@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Motores.IO.server.API.Data;
@@ -6,6 +7,7 @@ namespace Motores.IO.server.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class AlarmsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
