@@ -131,21 +131,20 @@ function Motors() {
       setSaving(true);
       setError(null);
 
-      // Preparar dados para enviar à API (apenas campos do formulário)
-      const motorData = {
-        nome: formData.nome,
-        potencia: formData.potencia,
-        tensao: formData.tensao,
-        correnteNominal: formData.correnteNominal,
-        percentualCorrenteMaxima: formData.percentualCorrenteMaxima,
-        histerese: formData.histerese,
-        horimetro: formData.horimetro || 0,
-        habilitado: formData.habilitado !== undefined ? formData.habilitado : true,
-        plantaId: plantaSelecionada.id,
-      };
-
       if (isAdding) {
         // Criar novo motor
+        const motorData = {
+          nome: formData.nome,
+          potencia: formData.potencia,
+          tensao: formData.tensao,
+          correnteNominal: formData.correnteNominal,
+          percentualCorrenteMaxima: formData.percentualCorrenteMaxima,
+          histerese: formData.histerese,
+          horimetro: formData.horimetro || 0,
+          habilitado: formData.habilitado !== undefined ? formData.habilitado : true,
+          plantaId: plantaSelecionada.id,
+        };
+        
         const newMotor = await api.createMotor(motorData);
         const convertedMotor: Motor = {
           id: newMotor.id,
@@ -165,14 +164,20 @@ function Motors() {
         setMotors([...motors, convertedMotor]);
         setSelectedMotor(convertedMotor);
       } else if (selectedMotor) {
-        // Atualizar motor existente (preservar posição se existir)
-        const updatedMotor = await api.updateMotor(selectedMotor.id, {
-          ...motorData,
-          id: selectedMotor.id,
-          // Preservar posição existente (definida no Dashboard)
-          posicaoX: selectedMotor.posicaoX,
-          posicaoY: selectedMotor.posicaoY,
+        // Atualizar apenas configuração do motor (preserva posição, status, horimetro, etc)
+        await api.updateMotorConfiguracao(selectedMotor.id, {
+          nome: formData.nome,
+          potencia: formData.potencia,
+          tensao: formData.tensao,
+          correnteNominal: formData.correnteNominal,
+          percentualCorrenteMaxima: formData.percentualCorrenteMaxima,
+          histerese: formData.histerese,
+          habilitado: formData.habilitado !== undefined ? formData.habilitado : true,
+          plantaId: plantaSelecionada.id,
         });
+        
+        // Buscar motor atualizado para atualizar o estado local
+        const updatedMotor = await api.getMotor(selectedMotor.id);
         const convertedMotor: Motor = {
           id: updatedMotor.id || selectedMotor.id,
           nome: updatedMotor.nome,

@@ -93,12 +93,15 @@ function Dashboard() {
           return data.map((m: any) => {
             const existing = motorsMap.get(m.id);
             if (existing) {
-              // Atualizar apenas campos dinâmicos, mantendo o resto
+              // Atualizar apenas campos dinâmicos, mantendo o resto (incluindo posição)
               return {
                 ...existing,
                 status: m.status as Motor['status'],
                 correnteAtual: Number(m.correnteAtual || 0),
                 horimetro: Number(m.horimetro),
+                // Preservar posição existente se não vier do servidor
+                posicaoX: m.posicaoX ? Number(m.posicaoX) : existing.posicaoX,
+                posicaoY: m.posicaoY ? Number(m.posicaoY) : existing.posicaoY,
               };
             } else {
               // Novo motor - adicionar
@@ -194,15 +197,14 @@ function Dashboard() {
   };
 
   const handleSVGMouseUp = async () => {
-    if (!draggedMotor) return;
+    if (!draggedMotor || !plantaSelecionada) return;
     
     const motor = motors.find(m => m.id === draggedMotor);
     if (motor && motor.posicaoX !== undefined && motor.posicaoY !== undefined) {
-      // Salvar posição no banco
+      // Salvar posição no banco usando endpoint específico
       try {
         setSavingPosition(draggedMotor);
-        await api.updateMotor(draggedMotor, {
-          ...motor,
+        await api.updateMotorPosicao(draggedMotor, {
           posicaoX: motor.posicaoX,
           posicaoY: motor.posicaoY,
         });
@@ -219,7 +221,7 @@ function Dashboard() {
 
   // Adicionar motor à planta (clicar no SVG em modo de edição)
   const handleSVGClick = async (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!isEditMode || draggedMotor) return; // Não adicionar se estiver arrastando
+    if (!isEditMode || draggedMotor || !plantaSelecionada) return; // Não adicionar se estiver arrastando
     
     // Verificar se o clique foi em um motor existente (não adicionar nesse caso)
     const target = e.target as SVGElement;
@@ -238,8 +240,7 @@ function Dashboard() {
       
       try {
         setSavingPosition(motorParaAdicionar.id);
-        await api.updateMotor(motorParaAdicionar.id, {
-          ...motorParaAdicionar,
+        await api.updateMotorPosicao(motorParaAdicionar.id, {
           posicaoX: coords.x,
           posicaoY: coords.y,
         });

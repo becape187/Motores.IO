@@ -107,10 +107,50 @@ class ApiService {
     });
   }
 
+  // Atualizar motor completo (DEPRECATED - usar endpoints específicos)
   async updateMotor(id: string, motor: any) {
     return this.request<any>(`/motors/${id}`, {
       method: 'PUT',
       body: JSON.stringify(motor),
+    });
+  }
+
+  // Atualizar apenas configuração do motor
+  async updateMotorConfiguracao(id: string, configuracao: {
+    nome: string;
+    potencia: number;
+    tensao: number;
+    correnteNominal: number;
+    percentualCorrenteMaxima: number;
+    histerese: number;
+    habilitado: boolean;
+    plantaId?: string;
+  }) {
+    return this.request<void>(`/motors/${id}/configuracao`, {
+      method: 'PATCH',
+      body: JSON.stringify(configuracao),
+    });
+  }
+
+  // Atualizar apenas posição do motor
+  async updateMotorPosicao(id: string, posicao: {
+    posicaoX?: number;
+    posicaoY?: number;
+  }) {
+    return this.request<void>(`/motors/${id}/posicao`, {
+      method: 'PATCH',
+      body: JSON.stringify(posicao),
+    });
+  }
+
+  // Atualizar apenas dados de manutenção
+  async updateMotorManutencao(id: string, manutencao: {
+    horimetroProximaManutencao?: number;
+    dataEstimadaProximaManutencao?: Date;
+  }) {
+    return this.request<void>(`/motors/${id}/manutencao`, {
+      method: 'PATCH',
+      body: JSON.stringify(manutencao),
     });
   }
 
