@@ -14,7 +14,6 @@ import {
   Wrench,
   Building2,
   ChevronDown,
-  Settings2,
   Key
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';

@@ -11,7 +11,7 @@ interface TokenInfo {
 }
 
 function PlantaTokens() {
-  const { user, plantaSelecionada } = useAuth();
+  const { plantaSelecionada } = useAuth();
   const [tokenInfo, setTokenInfo] = useState<TokenInfo | null>(null);
   const [novoToken, setNovoToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

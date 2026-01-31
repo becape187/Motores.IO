@@ -135,6 +135,8 @@ class ApiService {
     correnteNominal: number;
     percentualCorrenteMaxima: number;
     histerese: number;
+    registroModBus?: string;
+    registroLocal?: string;
     habilitado: boolean;
     plantaId?: string;
   }) {
