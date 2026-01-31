@@ -269,32 +269,66 @@ public class PlantasController : ControllerBase
     [HttpGet("{id}/motores")]
     public async Task<ActionResult<IEnumerable<Models.Motor>>> GetMotoresPlanta(Guid id)
     {
-        // Verificar se a planta existe e está ativa
-        var planta = await _context.Plantas
-            .FirstOrDefaultAsync(p => p.Id == id && p.Ativo);
-
-        if (planta == null)
+        try
         {
-            return NotFound("Planta não encontrada ou inativa");
-        }
+            // Verificar se a planta existe e está ativa
+            var planta = await _context.Plantas
+                .FirstOrDefaultAsync(p => p.Id == id && p.Ativo);
 
-        // Se autenticado com token de planta, verificar se o token pertence a esta planta
-        var authType = User.FindFirst("AuthType")?.Value;
-        if (authType == "PlantaToken")
-        {
-            var plantaIdClaim = User.FindFirst("PlantaId")?.Value;
-            if (plantaIdClaim != id.ToString())
+            if (planta == null)
             {
-                return Forbid("Token de planta não autorizado para esta planta");
+                return NotFound("Planta não encontrada ou inativa");
             }
+
+            // Se autenticado com token de planta, verificar se o token pertence a esta planta
+            var authType = User.FindFirst("AuthType")?.Value;
+            if (authType == "PlantaToken")
+            {
+                var plantaIdClaim = User.FindFirst("PlantaId")?.Value;
+                if (plantaIdClaim != id.ToString())
+                {
+                    return Forbid("Token de planta não autorizado para esta planta");
+                }
+            }
+
+            // Buscar motores da planta (sem incluir relacionamentos para evitar referências circulares)
+            var motores = await _context.Motores
+                .Where(m => m.PlantaId == id)
+                .Select(m => new Models.Motor
+                {
+                    Id = m.Id,
+                    Nome = m.Nome,
+                    Potencia = m.Potencia,
+                    Tensao = m.Tensao,
+                    CorrenteNominal = m.CorrenteNominal,
+                    PercentualCorrenteMaxima = m.PercentualCorrenteMaxima,
+                    Histerese = m.Histerese,
+                    RegistroModBus = m.RegistroModBus,
+                    RegistroLocal = m.RegistroLocal,
+                    Status = m.Status,
+                    Horimetro = m.Horimetro,
+                    Habilitado = m.Habilitado,
+                    PosicaoX = m.PosicaoX,
+                    PosicaoY = m.PosicaoY,
+                    HorimetroProximaManutencao = m.HorimetroProximaManutencao,
+                    DataEstimadaProximaManutencao = m.DataEstimadaProximaManutencao,
+                    DataCriacao = m.DataCriacao,
+                    DataAtualizacao = m.DataAtualizacao,
+                    PlantaId = m.PlantaId
+                })
+                .ToListAsync();
+
+            return Ok(motores);
         }
-
-        // Buscar motores da planta
-        var motores = await _context.Motores
-            .Where(m => m.PlantaId == id)
-            .ToListAsync();
-
-        return Ok(motores);
+        catch (Exception ex)
+        {
+            // Log do erro para debug
+            return StatusCode(500, new { 
+                error = "Erro interno do servidor", 
+                message = ex.Message,
+                stackTrace = ex.StackTrace
+            });
+        }
     }
 
     // PUT: api/plantas/{plantaId}/motores/{motorId} - Atualizar motor da planta (aceita JWT ou PlantaToken)
