@@ -22,6 +22,10 @@ public class Planta
 
     public DateTime? DataAtualizacao { get; set; }
 
+    public string? ApiToken { get; set; }
+
+    public DateTime? ApiTokenGeradoEm { get; set; }
+
     // Relacionamentos
     public virtual Cliente Cliente { get; set; } = null!;
     public virtual ICollection<UsuarioPlanta> UsuariosPlantas { get; set; } = new List<UsuarioPlanta>();

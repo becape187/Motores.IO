@@ -366,6 +366,13 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.ClienteId)
                 .IsRequired();
             
+            entity.Property(e => e.ApiToken)
+                .HasMaxLength(500);
+            
+            entity.HasIndex(e => e.ApiToken)
+                .IsUnique()
+                .HasFilter("\"ApiToken\" IS NOT NULL");
+            
             entity.HasOne(e => e.Cliente)
                 .WithMany(c => c.Plantas)
                 .HasForeignKey(e => e.ClienteId)

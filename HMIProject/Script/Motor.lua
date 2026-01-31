@@ -3,48 +3,44 @@ Motor = {}
 Motor.__index = Motor
 
 -- Construtor
-function Motor:new(id, nome, registroModBus, registroLocal, correnteMinima, correnteMaxima, correnteInicial)
+function Motor:new(id, nome, registroModBus, registroLocal, correnteNominal)
     local obj = {}
     setmetatable(obj, Motor)
     
-    obj.ID = id or 0
+    obj.ID = id or ""
     obj.Nome = nome or ""
     obj.RegistroModBus = registroModBus or ""
     obj.RegistroLocal = registroLocal or ""
     obj.CorrenteAtual = 0.0
-    obj.CorrenteMinima = correnteMinima or 0.0
-    obj.CorrenteMaxima = correnteMaxima or 0.0
-    obj.CorrenteInicial = correnteInicial or 0.0
+    obj.CorrenteNominal = correnteNominal or 0.0
     obj.PercentCorrenteMaximaErro = 0.0
     obj.PercentHistereseErro = 0.0
     obj.Status = false
-    obj.Horimetro = 0.0
+    obj.Horimetro = 0
     
     return obj
 end
 
 -- Método para definir a corrente atual
 function Motor:setCorrenteAtual(valor)
-    if valor >= self.CorrenteMinima and valor <= self.CorrenteMaxima then
+    if valor and valor >= 0 then
         self.CorrenteAtual = valor
         return true
     else
-        return false, "Corrente fora dos limites permitidos"
+        return false, "Corrente inválida"
     end
 end
 
 -- Método para obter informações do motor
 function Motor:getInfo()
     return string.format(
-        "Motor [ID: %d, Nome: %s, ModBus: %d, Local: %d, Corrente: %.2fA (Min: %.2fA, Max: %.2fA, Inicial: %.2fA), PercentErro: %.2f%%, Histerese: %.2f%%, Status: %s, Horimetro: %.2fh]",
+        "Motor [ID: %d, Nome: %s, ModBus: %d, Local: %d, Corrente: %.2fA (Nominal: %.2fA), PercentErro: %.2f%%, Histerese: %.2f%%, Status: %s, Horimetro: %.2fh]",
         self.ID,
         self.Nome,
         self.RegistroModBus,
         self.RegistroLocal,
         self.CorrenteAtual,
-        self.CorrenteMinima,
-        self.CorrenteMaxima,
-        self.CorrenteInicial,
+        self.CorrenteNominal,
         self.PercentCorrenteMaximaErro,
         self.PercentHistereseErro,
         self.Status and "Ligado" or "Desligado",
@@ -52,9 +48,14 @@ function Motor:getInfo()
     )
 end
 
--- Método para verificar se a corrente está dentro dos limites
+-- Método para verificar se a corrente está dentro dos limites (baseado na corrente nominal e percentual de erro)
 function Motor:correnteValida()
-    return self.CorrenteAtual >= self.CorrenteMinima and self.CorrenteAtual <= self.CorrenteMaxima
+    if self.CorrenteNominal <= 0 then
+        return true -- Se não há corrente nominal definida, considera válido
+    end
+    
+    local limiteMaximo = self.CorrenteNominal * (1 + (self.PercentCorrenteMaximaErro / 100))
+    return self.CorrenteAtual <= limiteMaximo
 end
 
 -- Método para definir o percentual de corrente máxima de erro

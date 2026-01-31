@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Motores.IO.server.API.Authentication;
 using Motores.IO.server.API.Data;
 using Motores.IO.server.API.Services;
 
@@ -80,10 +81,10 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "MotoresIO";
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = "JWT_OR_PLANTA_TOKEN";
+    options.DefaultChallengeScheme = "JWT_OR_PLANTA_TOKEN";
 })
-.AddJwtBearer(options =>
+.AddJwtBearer("JWT", options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -95,6 +96,26 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
         ClockSkew = TimeSpan.Zero
+    };
+})
+.AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, PlantaTokenAuthenticationHandler>("PlantaToken", null)
+.AddPolicyScheme("JWT_OR_PLANTA_TOKEN", "JWT_OR_PLANTA_TOKEN", options =>
+{
+    options.ForwardDefaultSelector = context =>
+    {
+        string? authorization = context.Request.Headers.Authorization;
+        if (!string.IsNullOrEmpty(authorization) && authorization.StartsWith("Bearer "))
+        {
+            var token = authorization.Substring("Bearer ".Length).Trim();
+            // Se o token parece ser um JWT (contém pontos), tenta JWT primeiro
+            // Caso contrário, tenta PlantaToken
+            if (token.Contains('.'))
+            {
+                return "JWT";
+            }
+            return "PlantaToken";
+        }
+        return "JWT";
     };
 });
 
