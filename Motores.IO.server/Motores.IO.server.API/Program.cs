@@ -74,6 +74,14 @@ builder.Services.AddCors(options =>
 // Registrar serviços
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// Registrar Socket Server Service
+// Registra como Singleton para ISocketServerService e como HostedService para BackgroundService
+builder.Services.AddSingleton<SocketServerService>();
+builder.Services.AddSingleton<ISocketServerService>(provider => 
+    provider.GetRequiredService<SocketServerService>());
+builder.Services.AddHostedService(provider => 
+    provider.GetRequiredService<SocketServerService>());
+
 // Configurar JWT Authentication
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? "MinhaChaveSecretaSuperSeguraParaJWT2024!@#$%";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "MotoresIO";
