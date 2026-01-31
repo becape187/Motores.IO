@@ -304,6 +304,25 @@ class ApiService {
       clienteId: string;
     }>>(`/users/plantas-disponiveis${query}`);
   }
+
+  // Tokens de Planta
+  async gerarTokenPlanta(plantaId: string) {
+    return this.request<{
+      token: string;
+      geradoEm: string;
+      mensagem: string;
+    }>(`/plantas/${plantaId}/gerar-token`, {
+      method: 'POST',
+    });
+  }
+
+  async verificarTokenPlanta(plantaId: string) {
+    return this.request<{
+      possuiToken: boolean;
+      tokenOculto?: string;
+      geradoEm?: string;
+    }>(`/plantas/${plantaId}/token`);
+  }
 }
 
 export const api = new ApiService();

@@ -9,6 +9,7 @@ import History from './pages/History';
 import Maintenance from './pages/Maintenance';
 import Alarms from './pages/Alarms';
 import Users from './pages/Users';
+import PlantaTokens from './pages/PlantaTokens';
 import './App.css';
 
 function AppRoutes() {
@@ -34,6 +35,7 @@ function AppRoutes() {
                 <Route path="/maintenance" element={<Maintenance />} />
                 <Route path="/alarms" element={<Alarms />} />
                 <Route path="/users" element={<Users />} />
+                <Route path="/tokens" element={<PlantaTokens />} />
               </Routes>
             </Layout>
           ) : (

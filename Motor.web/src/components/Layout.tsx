@@ -13,7 +13,9 @@ import {
   Settings,
   Wrench,
   Building2,
-  ChevronDown
+  ChevronDown,
+  Settings2,
+  Key
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
@@ -107,6 +109,11 @@ function Layout({ children, onLogout }: LayoutProps) {
     { path: '/users', icon: Users, label: 'Usuários' },
   ];
 
+  // Menu Avançado (apenas para usuários global)
+  const advancedMenuItems = user?.perfil === 'global' ? [
+    { path: '/tokens', icon: Key, label: 'Tokens de API' },
+  ] : [];
+
   return (
     <div className="layout">
       {/* Overlay para mobile */}
@@ -152,6 +159,35 @@ function Layout({ children, onLogout }: LayoutProps) {
               </Link>
             );
           })}
+
+          {/* Menu Avançado (apenas para usuários global) */}
+          {advancedMenuItems.length > 0 && (
+            <>
+              {isSidebarOpen && (
+                <div className="menu-divider">
+                  <span>Avançado</span>
+                </div>
+              )}
+              {advancedMenuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    title={!isSidebarOpen ? item.label : undefined}
+                    onClick={handleNavClick}
+                  >
+                    <Icon size={22} />
+                    {isSidebarOpen && <span>{item.label}</span>}
+                    {isActive && <div className="active-indicator"></div>}
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -178,7 +214,7 @@ function Layout({ children, onLogout }: LayoutProps) {
               {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
             <h1 className="page-title">
-              {menuItems.find(item => item.path === location.pathname)?.label || 'Dashboard'}
+              {[...menuItems, ...advancedMenuItems].find(item => item.path === location.pathname)?.label || 'Dashboard'}
             </h1>
           </div>
 
