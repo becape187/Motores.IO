@@ -20,7 +20,17 @@ function PlantaTokens() {
 
   useEffect(() => {
     if (plantaSelecionada) {
+      // Limpar token exibido e estados relacionados quando trocar de planta
+      setNovoToken(null);
+      setCopied(false);
+      setShowConfirmDialog(false);
       carregarTokenInfo();
+    } else {
+      // Se não houver planta selecionada, limpar tudo
+      setTokenInfo(null);
+      setNovoToken(null);
+      setCopied(false);
+      setShowConfirmDialog(false);
     }
   }, [plantaSelecionada]);
 
@@ -32,6 +42,7 @@ function PlantaTokens() {
       setTokenInfo(info);
     } catch (error) {
       console.error('Erro ao carregar informações do token:', error);
+      setTokenInfo(null);
     }
   };
 
