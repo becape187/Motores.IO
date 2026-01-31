@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { Activity, TrendingUp, AlertCircle, Power, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor } from '../types';
 import './Dashboard.css';
 
 function Dashboard() {
   const { plantaSelecionada } = useAuth();
+  const { getMotors, invalidateCache } = useMotorsCache();
   const [motors, setMotors] = useState<Motor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [draggedMotor, setDraggedMotor] = useState<string | null>(null);
@@ -35,7 +37,7 @@ function Dashboard() {
   };
 
 
-  // Buscar motores da API - carregamento inicial
+  // Buscar motores usando cache
   useEffect(() => {
     const loadMotors = async () => {
       if (!plantaSelecionada) {
@@ -45,81 +47,50 @@ function Dashboard() {
       }
 
       try {
-        setLoading(true);
         setError(null);
-        const data = await api.getMotores(plantaSelecionada.id);
-        
-        // Converter dados da API para o formato esperado
-        const motorsData: Motor[] = data.map((m: any) => ({
-          id: m.id,
-          nome: m.nome,
-          potencia: Number(m.potencia),
-          tensao: Number(m.tensao),
-          correnteNominal: Number(m.correnteNominal),
-          percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
-          histerese: Number(m.histerese),
-          status: m.status as Motor['status'],
-          horimetro: Number(m.horimetro),
-          correnteAtual: Number(m.correnteAtual || 0),
-          posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
-          posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
-          habilitado: m.habilitado !== undefined ? m.habilitado : true,
-        }));
-        
+        // Tentar carregar do cache primeiro (retorna imediatamente se tiver cache)
+        const motorsData = await getMotors(plantaSelecionada.id, { useCache: true });
         setMotors(motorsData);
+        setLoading(false);
       } catch (err: any) {
         setError(err.message || 'Erro ao carregar motores');
         console.error('Erro ao carregar motores:', err);
-      } finally {
         setLoading(false);
       }
     };
 
     loadMotors();
-  }, [plantaSelecionada]);
+  }, [plantaSelecionada, getMotors]);
 
-  // Atualização assíncrona sem flick - apenas atualiza dados dinâmicos
+  // Atualização em background - atualiza dados dinâmicos periodicamente
   useEffect(() => {
     if (!plantaSelecionada || isEditMode) return;
 
     const updateMotorsData = async () => {
       try {
-        const data = await api.getMotores(plantaSelecionada.id);
+        // Atualizar cache em background
+        const updatedMotors = await getMotors(plantaSelecionada.id, { useCache: false });
         
         // Atualizar apenas dados dinâmicos sem recriar o array completo
         setMotors(prevMotors => {
           const motorsMap = new Map(prevMotors.map(m => [m.id, m]));
           
-          return data.map((m: any) => {
+          return updatedMotors.map(m => {
             const existing = motorsMap.get(m.id);
             if (existing) {
               // Atualizar apenas campos dinâmicos, mantendo o resto (incluindo posição)
               return {
                 ...existing,
-                status: m.status as Motor['status'],
-                correnteAtual: Number(m.correnteAtual || 0),
-                horimetro: Number(m.horimetro),
+                status: m.status,
+                correnteAtual: m.correnteAtual,
+                horimetro: m.horimetro,
                 // Preservar posição existente se não vier do servidor
-                posicaoX: m.posicaoX ? Number(m.posicaoX) : existing.posicaoX,
-                posicaoY: m.posicaoY ? Number(m.posicaoY) : existing.posicaoY,
+                posicaoX: m.posicaoX ?? existing.posicaoX,
+                posicaoY: m.posicaoY ?? existing.posicaoY,
               };
             } else {
               // Novo motor - adicionar
-              return {
-                id: m.id,
-                nome: m.nome,
-                potencia: Number(m.potencia),
-                tensao: Number(m.tensao),
-                correnteNominal: Number(m.correnteNominal),
-                percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
-                histerese: Number(m.histerese),
-                status: m.status as Motor['status'],
-                horimetro: Number(m.horimetro),
-                correnteAtual: Number(m.correnteAtual || 0),
-                posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
-                posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
-                habilitado: m.habilitado !== undefined ? m.habilitado : true,
-              };
+              return m;
             }
           });
         });
@@ -128,9 +99,9 @@ function Dashboard() {
       }
     };
 
-    const interval = setInterval(updateMotorsData, 5000);
+    const interval = setInterval(updateMotorsData, 10000); // Atualizar a cada 10 segundos
     return () => clearInterval(interval);
-  }, [plantaSelecionada, isEditMode]);
+  }, [plantaSelecionada, isEditMode, getMotors]);
 
   if (loading) {
     return (
@@ -265,24 +236,10 @@ function Dashboard() {
           posicaoY: coords.y,
         });
         
-        // Recarregar motores para garantir que o motor atualizado apareça no mapa
-        const data = await api.getMotores(plantaSelecionada.id);
-        const motorsData: Motor[] = data.map((m: any) => ({
-          id: m.id,
-          nome: m.nome,
-          potencia: Number(m.potencia),
-          tensao: Number(m.tensao),
-          correnteNominal: Number(m.correnteNominal),
-          percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
-          histerese: Number(m.histerese),
-          status: m.status as Motor['status'],
-          horimetro: Number(m.horimetro),
-          correnteAtual: Number(m.correnteAtual || 0),
-          posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
-          posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
-          habilitado: m.habilitado !== undefined ? m.habilitado : true,
-        }));
-        setMotors(motorsData);
+        // Invalidar cache e recarregar motores
+        invalidateCache(plantaSelecionada.id);
+        const updatedMotors = await getMotors(plantaSelecionada.id, { useCache: false });
+        setMotors(updatedMotors);
       } catch (err: any) {
         console.error('Erro ao adicionar motor à planta:', err);
         console.error('Detalhes do erro:', err.message);

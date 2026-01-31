@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { MotorsCacheProvider } from './contexts/MotorsCacheContext';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -47,9 +48,11 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <MotorsCacheProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </MotorsCacheProvider>
     </AuthProvider>
   );
 }

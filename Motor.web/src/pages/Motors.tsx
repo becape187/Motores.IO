@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Save, X, Search, Filter, ArrowLeft, Cog, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor } from '../types';
 import './Motors.css';
 
 function Motors() {
   const { plantaSelecionada } = useAuth();
+  const { getMotors, invalidateCache } = useMotorsCache();
   const [motors, setMotors] = useState<Motor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedMotor, setSelectedMotor] = useState<Motor | null>(null);
@@ -79,53 +81,31 @@ function Motors() {
     }
   };
 
-  // Buscar motores da API
+  // Buscar motores usando cache
   useEffect(() => {
     const loadMotors = async () => {
+      if (!plantaSelecionada) {
+        setMotors([]);
+        setSelectedMotor(null);
+        setShowDetails(false);
+        return;
+      }
+
       try {
-        setLoading(true);
         setError(null);
-        const data = await api.getMotores(plantaSelecionada?.id);
-        
-        // Converter dados da API para o formato esperado
-        const motorsData: Motor[] = data.map((m: any) => ({
-          id: m.id,
-          nome: m.nome,
-          potencia: Number(m.potencia),
-          tensao: Number(m.tensao),
-          correnteNominal: Number(m.correnteNominal),
-          percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
-          histerese: Number(m.histerese),
-          registroModBus: m.registroModBus,
-          registroLocal: m.registroLocal,
-          status: m.status as Motor['status'],
-          horimetro: Number(m.horimetro),
-          correnteAtual: Number(m.correnteAtual || 0),
-          posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
-          posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
-          habilitado: m.habilitado !== undefined ? m.habilitado : true,
-          horimetroProximaManutencao: m.horimetroProximaManutencao ? Number(m.horimetroProximaManutencao) : undefined,
-          dataEstimadaProximaManutencao: m.dataEstimadaProximaManutencao ? new Date(m.dataEstimadaProximaManutencao) : undefined,
-        }));
-        
+        // Carregar do cache (retorna imediatamente se tiver cache)
+        const motorsData = await getMotors(plantaSelecionada.id, { useCache: true });
         setMotors(motorsData);
+        setLoading(false);
       } catch (err: any) {
         setError(err.message || 'Erro ao carregar motores');
         console.error('Erro ao carregar motores:', err);
-      } finally {
         setLoading(false);
       }
     };
 
-    if (plantaSelecionada) {
-      loadMotors();
-    } else {
-      // Limpar motores quando não há planta selecionada
-      setMotors([]);
-      setSelectedMotor(null);
-      setShowDetails(false);
-    }
-  }, [plantaSelecionada]);
+    loadMotors();
+  }, [plantaSelecionada, getMotors]);
 
   const handleSave = async () => {
     if (!plantaSelecionada) {
@@ -173,6 +153,10 @@ function Motors() {
         };
         setMotors([...motors, convertedMotor]);
         setSelectedMotor(convertedMotor);
+        // Invalidar cache para forçar atualização
+        if (plantaSelecionada) {
+          invalidateCache(plantaSelecionada.id);
+        }
       } else if (selectedMotor) {
         // Atualizar apenas configuração do motor (preserva posição, status, horimetro, etc)
         await api.updateMotorConfiguracao(selectedMotor.id, {
@@ -209,6 +193,10 @@ function Motors() {
         };
         setMotors(motors.map(m => m.id === selectedMotor.id ? convertedMotor : m));
         setSelectedMotor(convertedMotor);
+        // Invalidar cache para forçar atualização
+        if (plantaSelecionada) {
+          invalidateCache(plantaSelecionada.id);
+        }
       }
       setIsEditing(false);
       setIsAdding(false);
@@ -230,6 +218,10 @@ function Motors() {
       setError(null);
       await api.deleteMotor(motorId);
       setMotors(motors.filter(m => m.id !== motorId));
+      // Invalidar cache para forçar atualização
+      if (plantaSelecionada) {
+        invalidateCache(plantaSelecionada.id);
+      }
       if (selectedMotor?.id === motorId) {
         setSelectedMotor(null);
         setShowDetails(false);
