@@ -11,6 +11,8 @@ public class UpdateMotorConfiguracaoDto
     public decimal CorrenteNominal { get; set; }
     public decimal PercentualCorrenteMaxima { get; set; }
     public decimal Histerese { get; set; }
+    public string? RegistroModBus { get; set; }
+    public string? RegistroLocal { get; set; }
     public bool Habilitado { get; set; } = true;
     public Guid? PlantaId { get; set; }
 }

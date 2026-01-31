@@ -135,6 +135,8 @@ public class MotorsController : ControllerBase
         motor.CorrenteNominal = dto.CorrenteNominal;
         motor.PercentualCorrenteMaxima = dto.PercentualCorrenteMaxima;
         motor.Histerese = dto.Histerese;
+        motor.RegistroModBus = dto.RegistroModBus;
+        motor.RegistroLocal = dto.RegistroLocal;
         motor.Habilitado = dto.Habilitado;
         
         // Preservar PlantaId se não foi enviado

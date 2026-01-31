@@ -60,6 +60,12 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasColumnType("decimal(5,2)");
             
+            entity.Property(e => e.RegistroModBus)
+                .HasMaxLength(100);
+            
+            entity.Property(e => e.RegistroLocal)
+                .HasMaxLength(100);
+            
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50)

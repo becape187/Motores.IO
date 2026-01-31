@@ -16,6 +16,10 @@ public class Motor
 
     public decimal Histerese { get; set; }
 
+    public string? RegistroModBus { get; set; }
+
+    public string? RegistroLocal { get; set; }
+
     public string Status { get; set; } = "desligado"; // ligado, desligado, alerta, alarme, pendente (dinâmico, recebido via socket)
 
     public decimal Horimetro { get; set; }
