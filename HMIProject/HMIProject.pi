@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project filever="1.0" SoftLang="English" ProjectVer="9.4.13.25053001">
+<project filever="1.0" SoftLang="English" OldVersion="9.4.13.25053001" ProjectVer="9.4.13.25053001">
 	<HmiSet Type="PI8151ig" RotateAngle="0" Width="1024" Height="768" HmiTypeIndex="122" HmiCpuType="RK128" PIEx="0" GUID="ea589b58-bae4-4801-ae88-400f75cb98a5" Language="0" StartScrNo="0" Style="Rurality" SaveAsJpg="0" JpgBkColor="0" />
 	<AddressLib />
 	<StringLib Language="0" />
