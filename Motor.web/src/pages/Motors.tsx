@@ -25,6 +25,8 @@ function Motors() {
     correnteNominal: 0,
     percentualCorrenteMaxima: 110,
     histerese: 5,
+    registroModBus: '',
+    registroLocal: '',
     status: 'desligado',
     horimetro: 0,
     habilitado: true,
@@ -57,6 +59,8 @@ function Motors() {
       correnteNominal: 0,
       percentualCorrenteMaxima: 110,
       histerese: 5,
+      registroModBus: '',
+      registroLocal: '',
       status: 'desligado',
       horimetro: 0,
       habilitado: true,
@@ -92,6 +96,8 @@ function Motors() {
           correnteNominal: Number(m.correnteNominal),
           percentualCorrenteMaxima: Number(m.percentualCorrenteMaxima),
           histerese: Number(m.histerese),
+          registroModBus: m.registroModBus,
+          registroLocal: m.registroLocal,
           status: m.status as Motor['status'],
           horimetro: Number(m.horimetro),
           correnteAtual: Number(m.correnteAtual || 0),
@@ -140,6 +146,8 @@ function Motors() {
           correnteNominal: formData.correnteNominal,
           percentualCorrenteMaxima: formData.percentualCorrenteMaxima,
           histerese: formData.histerese,
+          registroModBus: formData.registroModBus,
+          registroLocal: formData.registroLocal,
           horimetro: formData.horimetro || 0,
           habilitado: formData.habilitado !== undefined ? formData.habilitado : true,
           plantaId: plantaSelecionada.id,
@@ -154,6 +162,8 @@ function Motors() {
           correnteNominal: Number(newMotor.correnteNominal),
           percentualCorrenteMaxima: Number(newMotor.percentualCorrenteMaxima),
           histerese: Number(newMotor.histerese),
+          registroModBus: newMotor.registroModBus,
+          registroLocal: newMotor.registroLocal,
           status: newMotor.status as Motor['status'],
           horimetro: Number(newMotor.horimetro),
           correnteAtual: Number(newMotor.correnteAtual || 0),
@@ -172,6 +182,8 @@ function Motors() {
           correnteNominal: formData.correnteNominal ?? 0,
           percentualCorrenteMaxima: formData.percentualCorrenteMaxima ?? 110,
           histerese: formData.histerese ?? 5,
+          registroModBus: formData.registroModBus ?? undefined,
+          registroLocal: formData.registroLocal ?? undefined,
           habilitado: formData.habilitado ?? true,
           plantaId: plantaSelecionada.id,
         });
@@ -186,6 +198,8 @@ function Motors() {
           correnteNominal: Number(updatedMotor.correnteNominal),
           percentualCorrenteMaxima: Number(updatedMotor.percentualCorrenteMaxima),
           histerese: Number(updatedMotor.histerese),
+          registroModBus: updatedMotor.registroModBus,
+          registroLocal: updatedMotor.registroLocal,
           status: updatedMotor.status as Motor['status'],
           horimetro: Number(updatedMotor.horimetro),
           correnteAtual: Number(updatedMotor.correnteAtual || 0),
@@ -522,6 +536,34 @@ function Motors() {
                       />
                       <span className="field-hint">
                         Margem de erro para alarmes
+                      </span>
+                    </div>
+
+                    <div className="form-field">
+                      <label>Registro ModBus</label>
+                      <input
+                        type="text"
+                        value={formData.registroModBus || ''}
+                        onChange={(e) => handleInputChange('registroModBus', e.target.value)}
+                        disabled={!isEditing && !isAdding}
+                        placeholder="Ex: 40001"
+                      />
+                      <span className="field-hint">
+                        Endereço do registro ModBus
+                      </span>
+                    </div>
+
+                    <div className="form-field">
+                      <label>Registro Local</label>
+                      <input
+                        type="text"
+                        value={formData.registroLocal || ''}
+                        onChange={(e) => handleInputChange('registroLocal', e.target.value)}
+                        disabled={!isEditing && !isAdding}
+                        placeholder="Ex: R001"
+                      />
+                      <span className="field-hint">
+                        Identificação local do registro
                       </span>
                     </div>
                   </div>

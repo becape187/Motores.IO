@@ -6,6 +6,8 @@ export type Motor = {
   correnteNominal: number;
   percentualCorrenteMaxima: number;
   histerese: number;
+  registroModBus?: string;
+  registroLocal?: string;
   status: 'ligado' | 'desligado' | 'alerta' | 'alarme' | 'pendente';
   horimetro: number;
   correnteAtual: number; // Dinâmico, recebido via socket futuramente
