@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+	version="1.1"
+	id="svg2"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:cc="http://creativecommons.org/ns#"
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:svg="http://www.w3.org/2000/svg"
+	xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+	xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+	inkscape:version="0.48.3.1 r9886"
+	sodipodi:docname="16.svg"
+	xmlns="http://www.w3.org/2000/svg"
+	xmlns:xlink="http://www.w3.org/1999/xlink"
+	x="0px"
+	y="0px"
+	width="101.726px"
+	height="41.242px"
+	viewBox="0 0 101.726 41.242"
+	enable-background="new 0 0 101.726 41.242"
+	xml:space="preserve">
+	<sodipodi:namedview
+		id="namedview19"
+		borderopacity="1"
+		bordercolor="#666666"
+		showgrid="false"
+		pagecolor="#ffffff"
+		inkscape:cy="4.9351123"
+		guidetolerance="10"
+		gridtolerance="10"
+		inkscape:cx="245.74686"
+		inkscape:zoom="1.7065627"
+		objecttolerance="10"
+		inkscape:current-layer="svg2"
+		inkscape:window-y="-4"
+		inkscape:window-x="-4"
+		inkscape:window-height="844"
+		inkscape:window-width="1440"
+		inkscape:pageshadow="2"
+		inkscape:pageopacity="0"
+		inkscape:window-maximized="1" />
+	<g
+		id="hmigradengt"
+		inkscape:label="#g2998">
+		<g
+			id="图层_x0020_1">
+			<linearGradient
+				id="rect17_1_"
+				gradientUnits="userSpaceOnUse"
+				x1="-228.4336"
+				y1="414.9951"
+				x2="-228.4336"
+				y2="416.1923"
+				gradientTransform="matrix(16.2233 0 0 -16.2233 3756.8022 6763.3755)">
+				<stop
+					offset="0"
+					style="stop-color:#333333" />
+				<stop
+					offset="1"
+					style="stop-color:#999999" />
+			</linearGradient>
+			<rect
+				id="rect17"
+				fill="url(#rect17_1_)"
+				width="101.726"
+				height="41.242" />
+		</g>
+	</g>
+</svg>
