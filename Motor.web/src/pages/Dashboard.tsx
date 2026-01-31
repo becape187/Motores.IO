@@ -4,10 +4,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor } from '../types';
+import WelcomeModal from '../components/WelcomeModal';
 import './Dashboard.css';
 
 function Dashboard() {
-  const { plantaSelecionada } = useAuth();
+  const { plantaSelecionada, user } = useAuth();
   const { getMotors, invalidateCache } = useMotorsCache();
   const [motors, setMotors] = useState<Motor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -15,6 +16,7 @@ function Dashboard() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [draggedMotor, setDraggedMotor] = useState<string | null>(null);
   const [savingPosition, setSavingPosition] = useState<string | null>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const stats = {
@@ -36,6 +38,16 @@ function Dashboard() {
     }
   };
 
+
+  // Verificar se deve mostrar o modal de boas-vindas
+  useEffect(() => {
+    const shouldShowWelcome = localStorage.getItem('showWelcomeModal');
+    if (shouldShowWelcome === 'true' && user) {
+      setShowWelcomeModal(true);
+      // Remover o flag para não mostrar novamente
+      localStorage.removeItem('showWelcomeModal');
+    }
+  }, [user]);
 
   // Buscar motores usando cache
   useEffect(() => {
@@ -454,6 +466,13 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Modal de boas-vindas */}
+      {showWelcomeModal && user && (
+        <WelcomeModal 
+          userName={user.nome || 'Usuário'} 
+          onClose={() => setShowWelcomeModal(false)} 
+        />
+      )}
     </div>
   );
 }
