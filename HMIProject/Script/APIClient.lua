@@ -5,6 +5,8 @@ APIClient.__index = APIClient
 -- Carregar módulos conforme documentação do PIStudio
 -- Usando apenas HTTP (HTTPS não é suportado)
 local http = require("socket.http") -- Para requisições HTTP
+local json = require("json")
+local ltn12 = require("ltn12") -- Para sink.table (receber dados)
 
 -- UUID da planta (hardcoded)
 local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874" -- TODO: Definir UUID real da planta
@@ -14,7 +16,7 @@ local PLANTA_API_TOKEN = "T7pcp1FXmE65nBM35fQgRQ-zZu1-6ndwUeS5g1Ijx7opQ" -- TODO
 
 -- Construtor
 function APIClient:new(baseURL, apiToken)
-    print("[DEBUG] === INÍCIO DA CRIACAO API ===")
+    print("[DEBUG] === INÍCIO DA CRIACAO API ==")
     local obj = {}
     setmetatable(obj, APIClient)
     
@@ -42,7 +44,7 @@ end
 -- Função para fazer requisição HTTP (usando API do PIStudio)
 -- Conforme documentação oficial: https://docs.we-con.com.cn/bin/view/PIStudio/09%20Lua%20Editor/Lua%20Script/#Hhttpmodule-1
 function APIClient:httpRequest(method, endpoint, data)
-    print("[DEBUG] === INÍCIO DA REQUISIÇÃO HTTP ===")
+    print("[DEBUG] === INÍCIO DA REQUISIÇÃO HTTP ==")
     print("[DEBUG] Método: " .. method)
     print("[DEBUG] Endpoint: " .. endpoint)
     
@@ -75,7 +77,7 @@ function APIClient:httpRequest(method, endpoint, data)
         print("[DEBUG] AVISO: Token não configurado!")
     end
     
-    -- Para GET: usar sintaxe completa com headers (sem source/sink = sem ltn12)
+    -- Para GET: usar sintaxe simples sem sink (mais confiável)
     if method == "GET" then
         print("[DEBUG] Preparando requisição GET...")
         print("[DEBUG] Headers:")
@@ -87,8 +89,9 @@ function APIClient:httpRequest(method, endpoint, data)
             end
         end
         
-        print("[DEBUG] Fazendo chamada http.request...")
-        -- Sintaxe completa conforme documentação: http.request{url=..., method=..., headers=...}
+        print("[DEBUG] Fazendo chamada http.request (sintaxe simples)...")
+        
+        -- Sintaxe simples: http.request{url=..., headers=...}
         -- Retorno: body, code, headers, status
         local response_body, status_code, response_headers, status = http.request{
             url = url,
@@ -96,10 +99,28 @@ function APIClient:httpRequest(method, endpoint, data)
             headers = headers
         }
         
-        print("[DEBUG] Resposta recebida:")
+        print("[DEBUG] http.request retornou:")
+        print("[DEBUG]   status_code: " .. tostring(status_code))
+        print("[DEBUG]   status: " .. tostring(status))
+        print("[DEBUG]   response_body tipo: " .. type(response_body))
+        if response_body then
+            print("[DEBUG]   response_body tamanho: " .. tostring(string.len(tostring(response_body))))
+            print("[DEBUG]   response_body (primeiros 500 chars): " .. string.sub(tostring(response_body), 1, 500))
+        end
+        
+        print("[DEBUG] Resposta final:")
         print("[DEBUG]   Status Code: " .. tostring(status_code))
-        print("[DEBUG]   Status: " .. tostring(status))
-        print("[DEBUG]   Response Body (primeiros 200 chars): " .. string.sub(tostring(response_body or ""), 1, 200))
+        print("[DEBUG]   Response Body COMPLETO:")
+        print("========================================")
+        print(tostring(response_body or ""))
+        print("========================================")
+        
+        -- Se status_code for nil, pode ser erro de conexão
+        if not status_code then
+            print("[DEBUG] ERRO: status_code é nil - conexão recusada ou timeout")
+            print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO DE CONEXÃO) ===")
+            return false, "Erro de conexão: connection refused ou timeout", nil
+        end
         
         if status_code == 200 or status_code == 201 then
             print("[DEBUG] Status OK, tentando decodificar JSON...")
@@ -161,20 +182,46 @@ function APIClient:httpRequest(method, endpoint, data)
             headers = headers
         }
         
-        print("[DEBUG] Resposta recebida:")
+        print("[DEBUG] Resposta recebida (POST/PUT):")
         print("[DEBUG]   Status Code: " .. tostring(status_code))
         print("[DEBUG]   Status: " .. tostring(status))
-        print("[DEBUG]   Response Body (primeiros 200 chars): " .. string.sub(tostring(response_body or ""), 1, 200))
+        print("[DEBUG]   Response Body COMPLETO (literal):")
+        print("========================================")
+        print(tostring(response_body or ""))
+        print("========================================")
+        print("[DEBUG]   Response Body tipo: " .. type(response_body))
+        print("[DEBUG]   Response Body tamanho: " .. tostring(string.len(tostring(response_body or ""))))
+        print("[DEBUG]   Response Body (primeiros 500 chars): " .. string.sub(tostring(response_body or ""), 1, 500))
         
         if status_code == 200 or status_code == 201 then
-            print("[DEBUG] Status OK, tentando decodificar JSON...")
+            print("[DEBUG] Status OK, verificando json...")
+            print("[DEBUG] json existe? " .. tostring(json ~= nil))
+            if json then
+                print("[DEBUG] json.decode existe? " .. tostring(json.decode ~= nil))
+            end
+            
+            -- Verificar se json está disponível
+            if not json then
+                print("[DEBUG] ERRO: json não está disponível globalmente")
+                print("[DEBUG] Retornando response_body como string")
+                return true, response_body, status_code
+            end
+            if not json.decode then
+                print("[DEBUG] ERRO: json.decode não está disponível")
+                print("[DEBUG] Retornando response_body como string")
+                return true, response_body, status_code
+            end
+            
+            print("[DEBUG] Tentando decodificar JSON...")
             local success, decoded = pcall(json.decode, response_body or "")
             if success and decoded then
                 print("[DEBUG] JSON decodificado com sucesso")
+                print("[DEBUG] Tipo do decoded: " .. type(decoded))
                 print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (SUCESSO) ===")
                 return true, decoded, status_code
             else
                 print("[DEBUG] ERRO ao decodificar JSON")
+                print("[DEBUG] Erro: " .. tostring(decoded))
                 print("[DEBUG] Response body completo: " .. tostring(response_body))
                 print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO JSON) ===")
                 return false, "Erro ao decodificar JSON: " .. tostring(response_body), status_code
@@ -210,6 +257,7 @@ function APIClient:ReceberPlanta()
     print("[ReceberPlanta]   status_code: " .. tostring(status_code))
     print("[ReceberPlanta]   data type: " .. type(data))
     if type(data) == "string" then
+        print(data)
         print("[ReceberPlanta]   data (primeiros 200 chars): " .. string.sub(data, 1, 200))
     end
     
@@ -294,6 +342,53 @@ function APIClient:AtualizarMotor(motor)
     }
     
     return self:httpRequest("PUT", endpoint, data)
+end
+
+-- Função para buscar motores da planta
+function APIClient:BuscarMotoresPlanta(plantaUUID)
+    local endpoint = "/api/plantas/" .. (plantaUUID or self.PlantaUUID) .. "/motores"
+    local success, data, status_code = self:httpRequest("GET", endpoint, nil)
+    
+    if success and status_code == 200 then
+        -- data já vem decodificado do httpRequest
+        if type(data) == "table" then
+            return data, nil
+        else
+            -- Se não for tabela, tentar decodificar novamente
+            local success2, decoded = pcall(json.decode, tostring(data or ""))
+            if success2 and decoded then
+                return decoded, nil
+            else
+                return nil, "Erro ao decodificar resposta: " .. tostring(data)
+            end
+        end
+    else
+        return nil, "Erro ao buscar motores: " .. tostring(data or "Erro desconhecido")
+    end
+end
+
+-- Função para atualizar motor da planta
+function APIClient:AtualizarMotorPlanta(plantaUUID, motorGUID, dados)
+    local endpoint = "/api/plantas/" .. (plantaUUID or self.PlantaUUID) .. "/motores/" .. motorGUID
+    local success, status, data = self:httpRequest("PUT", endpoint, dados)
+    
+    if success and status == 200 then
+        return json.decode(data), nil
+    else
+        return nil, "Erro ao atualizar motor: " .. tostring(data)
+    end
+end
+
+-- Função para criar motor na planta
+function APIClient:CriarMotorPlanta(plantaUUID, dados)
+    local endpoint = "/api/plantas/" .. (plantaUUID or self.PlantaUUID) .. "/motores"
+    local success, status, data = self:httpRequest("POST", endpoint, dados)
+    
+    if success and (status == 200 or status == 201) then
+        return json.decode(data), nil
+    else
+        return nil, "Erro ao criar motor: " .. tostring(data)
+    end
 end
 
 return APIClient

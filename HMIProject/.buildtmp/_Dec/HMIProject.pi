@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project filever="1.0" SoftLang="English" OldVersion="9.4.13" ProjectVer="9.4.13.25053001">
 	<HmiSet Type="PI8151ig" RotateAngle="0" Width="1024" Height="768" HmiTypeIndex="122" HmiCpuType="RK128" PIEx="0" GUID="ea589b58-bae4-4801-ae88-400f75cb98a5" Language="0" StartScrNo="0" Style="Rurality" SaveAsJpg="0" JpgBkColor="0" />
-	<AddressLib />
+	<AddressLib>
+		<Address Index="1" AddrType="W" AddrVal="0" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="Motor1" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+	</AddressLib>
 	<StringLib Language="0" />
 	<SysSet>
 		<SecSet Design="" />

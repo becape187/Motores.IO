@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<project filever="1.0" />
+<project filever="1.0">
+	<WordAddr>
+		<Add Addr="HDW_W_0000000" Len="1" Fast="0" />
+	</WordAddr>
+</project>

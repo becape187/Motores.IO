@@ -61,10 +61,10 @@
 	<g
 		id="shadow"
 		inkscape:label="#g3007"
-		style="fill:#000000">
+		style="fill:#c0c0c0">
 		<g
 			id="g3004"
-			style="fill:#000000">
+			style="fill:#c0c0c0">
 			<rect
 				id="_136200144"
 				class="fil0"
@@ -72,7 +72,7 @@
 				height="0.90213501"
 				x="0"
 				y="0"
-				style="fill:#000000" />
+				style="fill:#c0c0c0" />
 		</g>
 	</g>
 	<g
@@ -87,7 +87,7 @@
 				y="0.0232809"
 				width="2.41295"
 				height="0.85556102"
-				style="fill:#ffffff" />
+				style="fill:#c0c0c0" />
 		</g>
 	</g>
 </svg>

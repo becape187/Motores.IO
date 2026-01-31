@@ -14,7 +14,7 @@ endif
 @HSW_W_0001858 = 0</InitialAction>
 	</Script>
 	<PartInfo PartType="WordSwitch" PartClassifyType="Switch" PartID="5004_WS_0" PartName="WS_0_5004">
-		<General Desc="WS_0" Area="0 0 360 270" HighLowChange="0" DataFormat="105" IsManyTypeShow="0" Const="1" FigureFile="" LaStartPt="180 135" IsIndirectR="0" IsIndirectW="0" isReturn="0" UseClickTime="0" ClickTime="2000" TextAlign="0" TextArea="0 0" BmpIndex="104" WordAddr="HSW_W_0001858" WriteAddr="HSW_W_0001858" BorderColor="#ade7f7" />
+		<General Desc="WS_0" Area="0 0 360 270" HighLowChange="0" DataFormat="105" IsManyTypeShow="0" Const="1" FigureFile="" LaStartPt="180 135" IsIndirectR="0" IsIndirectW="0" isReturn="0" UseClickTime="0" ClickTime="2000" TextAlign="0" TextArea="0 0" BmpIndex="105" WordAddr="HSW_W_0001858" WriteAddr="HSW_W_0001858" BorderColor="#ade7f7" />
 		<Extension TouchState="1" Buzzer="0" IsCheck="0" AckTime="0" />
 		<MoveZoom DataFormatMZ="0" MutipleMZ="1.000000000000000" />
 		<TrigHide UseShowHide="0" HideType="0" IsHideAllTime="0" />
@@ -82,7 +82,7 @@ endif
 		<General IsBackColor="0" CharSize="1414141414141414" Bold="0" StartPt="89 22" Width="219" Height="20" Area="89 22 271 48" InAlign="0" LaFrnColor="#000000" BgColor="#c4f0fd" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" TextContent="UDisk downloadUDisk downloadUDisk downloadUDisk downloadUDisk downloadUDisk downloadUDisk downloadUDisk download" />
 	</PartInfo>
 	<PartInfo PartType="Numeric" PartClassifyType="InputAndShow" PartID="5004_NUM_0" PartName="NUM_6_5004">
-		<General Desc="NUM_0" Area="212 216 293 247" CharSize="1414141414141414" Fast="0" HighLowChange="0" IsInput="0" KbdScreen="1000" IsPopKeyBrod="0" FigureFile="" IsKeyBoardRemark="0" Align="1" LaStartPt="0 0" IsHideNum="0" HighZeroPad="0" IsShowPwd="0" ZeroNoDisplay="0" IsIndirectR="0" IsIndirectW="0" KbdContinue="0" KbdContinueNum="0" KbdContinueGroup="0" KbdContinueEnd="0" IsShowNaturalDecimals="0" BmpIndex="104" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" LaIndexID="" WordAddr="HSW_W_0001859" BorderColor="#ade7f7" LaFrnColor="#ff0000" BgColor="#c4f0fd" />
+		<General Desc="NUM_0" Area="212 216 293 247" CharSize="1414141414141414" Fast="0" HighLowChange="0" IsInput="0" KbdScreen="1000" IsPopKeyBrod="0" FigureFile="" IsKeyBoardRemark="0" Align="1" LaStartPt="0 0" IsHideNum="0" HighZeroPad="0" IsShowPwd="0" ZeroNoDisplay="0" IsIndirectR="0" IsIndirectW="0" KbdContinue="0" KbdContinueNum="0" KbdContinueGroup="0" KbdContinueEnd="0" IsShowNaturalDecimals="0" BmpIndex="105" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" LaIndexID="" WordAddr="HSW_W_0001859" BorderColor="#ade7f7" LaFrnColor="#ff0000" BgColor="#c4f0fd" />
 		<SVGColor svgfile="" dark="#000000" light="#ffffff" hlight="#000000" shadow="#000000" shape="#000000" gstartcolor="#000000" gmidcolor="#000000" gendcolor="#000000" />
 		<DispFormat DispType="105" DigitCount="5 0" DataLimit="0105 05 00 0 65535" IsVar="0" Zoom="0" Mutiple="1.000000000000000" Round="0" IsInputLabelL="0" IsInputLabelR="1" InputLabelR="s" IsInputDefault="0" bShowRange="0" IsVar1="0" UseOutRangeText="0" ColorHText="#000000" ColorHBag="#000000" ColorLText="#000000" ColorLBag="#000000" />
 		<MoveZoom DataFormatMZ="4" MutipleMZ="1.000000000000000" />
@@ -94,7 +94,7 @@ endif
 		<UserAuthority IsUseUserAuthority="0" IsPopUserLoginWin="0" PopType="0" IsHidePart="0" />
 	</PartInfo>
 	<PartInfo PartType="WordSwitch" PartClassifyType="Switch" PartID="5004_WS_4" PartName="WS_7_5004">
-		<General Desc="WS_4" Area="78 216 208 247" HighLowChange="0" DataFormat="105" IsManyTypeShow="0" Const="1" FigureFile="" Align="2" LaStartPt="13 2" IsIndirectR="0" IsIndirectW="0" isReturn="0" UseClickTime="0" ClickTime="2000" TextAlign="2" TextArea="117 26" BmpIndex="104" WordAddr="HSW_W_0001858" WriteAddr="HSW_W_0001858" BorderColor="#ade7f7" />
+		<General Desc="WS_4" Area="78 216 208 247" HighLowChange="0" DataFormat="105" IsManyTypeShow="0" Const="1" FigureFile="" Align="2" LaStartPt="13 2" IsIndirectR="0" IsIndirectW="0" isReturn="0" UseClickTime="0" ClickTime="2000" TextAlign="2" TextArea="117 26" BmpIndex="105" WordAddr="HSW_W_0001858" WriteAddr="HSW_W_0001858" BorderColor="#ade7f7" />
 		<Extension TouchState="0" Buzzer="0" IsCheck="0" AckTime="0" />
 		<MoveZoom DataFormatMZ="0" MutipleMZ="1.000000000000000" />
 		<TrigHide UseShowHide="1" HideType="1" IsHideAllTime="0" TrigHideAddr="HSX_X_0001858.00" />

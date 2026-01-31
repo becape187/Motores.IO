@@ -23,16 +23,16 @@
 		</G_bmp>
 		<G_bmp IsVector="1" szPath="Button" szFilename="Button0016.svg" nId="101" nTotalStatus="1" nNewTotalStatus="0" Use="1" />
 		<G_bmp nId="102" nTotalStatus="1" nNewTotalStatus="0" nPvgTOImg="2" szFilename="00000.png" />
-		<G_bmp nId="103" szFilename="Bmp103" nTotalStatus="2" nNewTotalStatus="0" nPvgTOImg="2">
-			<MulStatus dwMID="0" IsVector="1" szFilename="00001.png" />
+		<G_bmp nId="103" nTotalStatus="1" nNewTotalStatus="0" nPvgTOImg="2" szFilename="00001.png" />
+		<G_bmp nId="104" szFilename="Bmp104" nTotalStatus="2" nNewTotalStatus="0" nPvgTOImg="2">
+			<MulStatus dwMID="0" IsVector="1" szFilename="00002.png" />
 			<MulStatus dwMID="1" IsVector="0" szFilename="NoFace.png" MaxWidth="100" MaxHeight="100" />
 		</G_bmp>
-		<G_bmp nId="104" nTotalStatus="1" nNewTotalStatus="0" nPvgTOImg="1" szFilename="NoFace.png" dwMID="0" MaxWidth="100" MaxHeight="100" />
-		<G_bmp nId="105" szFilename="Bmp105" nTotalStatus="2" nNewTotalStatus="0" nPvgTOImg="2">
-			<MulStatus dwMID="0" IsVector="1" szFilename="00002.png" />
-			<MulStatus dwMID="1" IsVector="1" szFilename="00003.png" />
+		<G_bmp nId="105" nTotalStatus="1" nNewTotalStatus="0" nPvgTOImg="1" szFilename="NoFace.png" dwMID="0" MaxWidth="100" MaxHeight="100" />
+		<G_bmp nId="106" szFilename="Bmp106" nTotalStatus="2" nNewTotalStatus="0" nPvgTOImg="2">
+			<MulStatus dwMID="0" IsVector="1" szFilename="00003.png" />
+			<MulStatus dwMID="1" IsVector="1" szFilename="00004.png" />
 		</G_bmp>
-		<G_bmp nId="106" nTotalStatus="1" nNewTotalStatus="0" nPvgTOImg="2" szFilename="00004.png" />
 		<G_bmp nId="107" nTotalStatus="1" nNewTotalStatus="0" nPvgTOImg="2" szFilename="00005.png" />
 	</G_bmplib>
 </G_Picture>

@@ -16,7 +16,7 @@
 		<General IsBackColor="0" CharSize="1414141414141414" Bold="0" StartPt="129 124" Width="195" Height="26" Area="129 124 324 150" LaFrnColor="#000000" BgColor="#c4f0fd" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" TextContent="Input Password:Input Password:Input Password:Input Password:Input Password:Input Password:Input Password:Input Password:" />
 	</PartInfo>
 	<PartInfo PartType="String" PartClassifyType="InputAndShow" PartID="1008_STR_0" PartName="STR_2_1008">
-		<General Desc="STR_0" Area="135 178 320 229" Fast="0" stCount="8" HighLowChange="0" HighLowByteChange="0" IsInput="1" KbdScreen="1003" IsPopKeyBrod="0" FigureFile="" CharSize="1414141414141414" IsHideNum="0" IsShowPwd="1" IsIndirectR="0" IsIndirectW="0" IsInputDefault="0" IsDWord="0" WordAddr="HSW_W_0000185" WriteAddr="HSW_W_0000185" BorderColor="#ade7f7" LaFrnColor="#000000" BgColor="#c4f0fd" BmpIndex="107" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" LaIndexID="" />
+		<General Desc="STR_0" Area="135 178 320 229" Fast="0" stCount="8" HighLowChange="0" HighLowByteChange="0" IsInput="1" KbdScreen="1003" IsPopKeyBrod="0" FigureFile="" CharSize="1414141414141414" IsHideNum="0" IsShowPwd="1" IsIndirectR="0" IsIndirectW="0" IsInputDefault="0" IsDWord="0" WordAddr="HSW_W_0000185" WriteAddr="HSW_W_0000185" BorderColor="#ade7f7" LaFrnColor="#000000" BgColor="#c4f0fd" BmpIndex="103" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" LaIndexID="" />
 		<SVGColor svgfile="Rectangle\Rectangle0001.svg" dark="#000000" light="#ffffff" hlight="#000000" shadow="#000000" shape="#000000" gstartcolor="#000000" gmidcolor="#000000" gendcolor="#000000" />
 		<TrigHide UseShowHide="0" HideType="0" IsHideAllTime="0" />
 		<MoveZoom DataFormatMZ="4" MutipleMZ="1.000000000000000" />
@@ -25,12 +25,12 @@
 		<UserAuthority IsUseUserAuthority="0" IsPopUserLoginWin="0" PopType="0" IsHidePart="0" />
 	</PartInfo>
 	<PartInfo PartType="DateDisplay" PartClassifyType="Time" PartID="1008_DD_0" PartName="DD_3_1008">
-		<General Desc="DD_0" Area="5 3 136 47" FigureFile="" CharSize="1414141414141414" BmpIndex="104" BorderColor="#ade7f7" LaFrnColor="#000000" BgColor="#c4f0fd" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" LaIndexID="" />
+		<General Desc="DD_0" Area="5 3 136 47" FigureFile="" CharSize="1414141414141414" BmpIndex="105" BorderColor="#ade7f7" LaFrnColor="#000000" BgColor="#c4f0fd" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" LaIndexID="" />
 		<SVGColor svgfile="" dark="#000000" light="#ffffff" hlight="#000000" shadow="#000000" shape="#000000" gstartcolor="#000000" gmidcolor="#000000" gendcolor="#000000" />
 		<MoveZoom DataFormatMZ="0" MutipleMZ="1.000000000000000" />
 	</PartInfo>
 	<PartInfo PartType="TimeDisplay" PartClassifyType="Time" PartID="1008_TIME_0" PartName="TIME_4_1008">
-		<General Desc="TIME_0" Area="156 3 269 47" FigureFile="" CharSize="1414141414141414" BmpIndex="104" BorderColor="#ade7f7" LaFrnColor="#000000" BgColor="#c4f0fd" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" LaIndexID="" />
+		<General Desc="TIME_0" Area="156 3 269 47" FigureFile="" CharSize="1414141414141414" BmpIndex="105" BorderColor="#ade7f7" LaFrnColor="#000000" BgColor="#c4f0fd" FontStyle="26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun26px SimSun" LaIndexID="" />
 		<SVGColor svgfile="" dark="#000000" light="#ffffff" hlight="#000000" shadow="#000000" shape="#000000" gstartcolor="#000000" gmidcolor="#000000" gendcolor="#000000" />
 		<MoveZoom DataFormatMZ="0" MutipleMZ="1.000000000000000" />
 	</PartInfo>
