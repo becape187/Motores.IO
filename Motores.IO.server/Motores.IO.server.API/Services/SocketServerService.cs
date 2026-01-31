@@ -329,6 +329,19 @@ public class SocketServerService : BackgroundService, ISocketServerService
             }
 
             // Criar registro de histórico
+            // IMPORTANTE: PostgreSQL requer DateTime com Kind=UTC
+            DateTime timestampUtc;
+            if (message.Timestamp.HasValue)
+            {
+                // Converter timestamp Unix para DateTime UTC
+                timestampUtc = DateTimeOffset.FromUnixTimeSeconds(message.Timestamp.Value).UtcDateTime;
+            }
+            else
+            {
+                // Usar DateTime.UtcNow que já retorna UTC
+                timestampUtc = DateTime.UtcNow;
+            }
+
             var historico = new HistoricoMotor
             {
                 MotorId = motorId,
@@ -336,9 +349,7 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 Tensao = motor.Tensao, // Usar tensão do motor
                 Temperatura = 0, // Valor padrão, pode ser ajustado se necessário
                 Status = message.Status ?? motor.Status,
-                Timestamp = message.Timestamp.HasValue 
-                    ? DateTimeOffset.FromUnixTimeSeconds(message.Timestamp.Value).DateTime 
-                    : DateTime.UtcNow
+                Timestamp = timestampUtc // Garantir que seja UTC
             };
 
             dbContext.HistoricosMotores.Add(historico);

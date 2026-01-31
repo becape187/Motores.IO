@@ -12,10 +12,12 @@ namespace Motores.IO.server.API.Controllers;
 public class PlantasController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<PlantasController> _logger;
 
-    public PlantasController(ApplicationDbContext context)
+    public PlantasController(ApplicationDbContext context, ILogger<PlantasController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // GET: api/plantas
@@ -318,11 +320,23 @@ public class PlantasController : ControllerBase
                 })
                 .ToListAsync();
 
+            // Log de sincronização
+            _logger.LogInformation("[Sync] === BUSCA DE MOTORES DA PLANTA ===");
+            _logger.LogInformation("[Sync] Planta ID: {PlantaId}", id);
+            _logger.LogInformation("[Sync] Motores encontrados: {Count}", motores.Count);
+            foreach (var motor in motores)
+            {
+                _logger.LogInformation("[Sync]   - Motor: {Nome} (ID: {Id}, Status: {Status}, Última atualização: {DataAtualizacao})", 
+                    motor.Nome, motor.Id, motor.Status, motor.DataAtualizacao);
+            }
+            _logger.LogInformation("[Sync] ==================================");
+            
             return Ok(motores);
         }
         catch (Exception ex)
         {
             // Log do erro para debug
+            _logger.LogError(ex, "[Sync] ✗ Erro ao buscar motores da planta {PlantaId}", id);
             return StatusCode(500, new { 
                 error = "Erro interno do servidor", 
                 message = ex.Message,
@@ -370,9 +384,16 @@ public class PlantasController : ControllerBase
             return BadRequest("ID do motor no body não corresponde ao ID na rota");
         }
 
-        // Preservar campos protegidos (Status e Horimetro são atualizados apenas via endpoint /estado)
-        motor.Status = existingMotor.Status;
-        motor.Horimetro = existingMotor.Horimetro;
+        // Permitir atualização de Status e Horimetro via sincronização
+        // (mantém valores existentes apenas se não vierem no body)
+        if (motor.Status == null || motor.Status == "")
+        {
+            motor.Status = existingMotor.Status;
+        }
+        if (motor.Horimetro == 0 && existingMotor.Horimetro > 0)
+        {
+            motor.Horimetro = existingMotor.Horimetro;
+        }
         motor.PosicaoX = existingMotor.PosicaoX;
         motor.PosicaoY = existingMotor.PosicaoY;
         motor.HorimetroProximaManutencao = existingMotor.HorimetroProximaManutencao;
@@ -381,11 +402,21 @@ public class PlantasController : ControllerBase
         motor.DataCriacao = existingMotor.DataCriacao;
         motor.DataAtualizacao = DateTime.UtcNow;
 
+        // Log de sincronização
+        _logger.LogInformation("[Sync] === ATUALIZAÇÃO DE MOTOR VIA API ===");
+        _logger.LogInformation("[Sync] Motor ID: {MotorId}", motorId);
+        _logger.LogInformation("[Sync] Nome: {Nome}", motor.Nome);
+        _logger.LogInformation("[Sync] Status: {Status}", motor.Status);
+        _logger.LogInformation("[Sync] Horímetro: {Horimetro}", motor.Horimetro);
+        _logger.LogInformation("[Sync] Data Atualização: {DataAtualizacao}", motor.DataAtualizacao);
+        _logger.LogInformation("[Sync] ====================================");
+
         _context.Entry(existingMotor).CurrentValues.SetValues(motor);
 
         try
         {
             await _context.SaveChangesAsync();
+            _logger.LogInformation("[Sync] ✓ Motor atualizado com sucesso no banco de dados");
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -400,6 +431,61 @@ public class PlantasController : ControllerBase
         }
 
         return NoContent();
+    }
+
+    // POST: api/plantas/{plantaId}/motores - Criar motor na planta (aceita JWT ou PlantaToken)
+    [HttpPost("{plantaId}/motores")]
+    public async Task<ActionResult<Models.Motor>> CriarMotorPlanta(Guid plantaId, Models.Motor motor)
+    {
+        // Verificar se a planta existe e está ativa
+        var planta = await _context.Plantas
+            .FirstOrDefaultAsync(p => p.Id == plantaId && p.Ativo);
+
+        if (planta == null)
+        {
+            return NotFound("Planta não encontrada ou inativa");
+        }
+
+        // Se autenticado com token de planta, verificar se o token pertence a esta planta
+        var authType = User.FindFirst("AuthType")?.Value;
+        if (authType == "PlantaToken")
+        {
+            var plantaIdClaim = User.FindFirst("PlantaId")?.Value;
+            if (plantaIdClaim != plantaId.ToString())
+            {
+                return Forbid("Token de planta não autorizado para esta planta");
+            }
+        }
+
+        // Configurar motor
+        motor.Id = Guid.NewGuid();
+        motor.PlantaId = plantaId;
+        motor.DataCriacao = DateTime.UtcNow;
+        motor.DataAtualizacao = DateTime.UtcNow;
+
+        // Log de sincronização
+        _logger.LogInformation("[Sync] === CRIAÇÃO DE MOTOR VIA API ===");
+        _logger.LogInformation("[Sync] Motor ID: {MotorId}", motor.Id);
+        _logger.LogInformation("[Sync] Nome: {Nome}", motor.Nome);
+        _logger.LogInformation("[Sync] Planta ID: {PlantaId}", plantaId);
+        _logger.LogInformation("[Sync] Status: {Status}", motor.Status);
+        _logger.LogInformation("[Sync] Horímetro: {Horimetro}", motor.Horimetro);
+        _logger.LogInformation("[Sync] Data Criação: {DataCriacao}", motor.DataCriacao);
+        _logger.LogInformation("[Sync] ================================");
+
+        _context.Motores.Add(motor);
+
+        try
+        {
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("[Sync] ✓ Motor criado com sucesso no banco de dados");
+            return CreatedAtAction(nameof(GetMotoresPlanta), new { id = plantaId }, motor);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Sync] ✗ Erro ao criar motor na planta {PlantaId}", plantaId);
+            return StatusCode(500, new { error = "Erro ao criar motor", message = ex.Message });
+        }
     }
 
     private bool PlantaExists(Guid id)

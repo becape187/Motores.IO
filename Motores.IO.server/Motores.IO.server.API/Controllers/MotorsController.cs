@@ -12,10 +12,12 @@ namespace Motores.IO.server.API.Controllers;
 public class MotorsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<MotorsController> _logger;
 
-    public MotorsController(ApplicationDbContext context)
+    public MotorsController(ApplicationDbContext context, ILogger<MotorsController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // GET: api/motors
@@ -52,8 +54,17 @@ public class MotorsController : ControllerBase
     {
         motor.Id = Guid.NewGuid();
         motor.DataCriacao = DateTime.UtcNow;
+        motor.DataAtualizacao = DateTime.UtcNow;
         _context.Motores.Add(motor);
         await _context.SaveChangesAsync();
+
+        // Log de sincronização
+        _logger.LogInformation("[Sync] === CRIAÇÃO DE MOTOR VIA API ===");
+        _logger.LogInformation("[Sync] Motor ID: {MotorId}", motor.Id);
+        _logger.LogInformation("[Sync] Nome: {Nome}", motor.Nome);
+        _logger.LogInformation("[Sync] Planta ID: {PlantaId}", motor.PlantaId);
+        _logger.LogInformation("[Sync] Data Criação: {DataCriacao}", motor.DataCriacao);
+        _logger.LogInformation("[Sync] ================================");
 
         return CreatedAtAction(nameof(GetMotor), new { id = motor.Id }, motor);
     }
