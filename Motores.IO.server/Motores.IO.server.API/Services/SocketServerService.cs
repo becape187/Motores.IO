@@ -191,17 +191,21 @@ public class SocketServerService : BackgroundService, ISocketServerService
         if (string.IsNullOrEmpty(message))
             return;
 
-        _logger.LogDebug("Mensagem recebida: {Message}", message);
+        _logger.LogInformation("=== MENSAGEM RECEBIDA ===");
+        _logger.LogInformation("Conteúdo: {Message}", message);
+        _logger.LogInformation("Tamanho: {Length} bytes", message.Length);
 
         // Processar comandos especiais
         if (message == "PING")
         {
+            _logger.LogInformation("Comando PING recebido, enviando PONG");
             await SendResponseAsync(client, "PONG\n");
             return;
         }
 
         if (message == "KEEPALIVE")
         {
+            _logger.LogInformation("Comando KEEPALIVE recebido, enviando OK");
             await SendResponseAsync(client, "OK\n");
             return;
         }
@@ -209,6 +213,7 @@ public class SocketServerService : BackgroundService, ISocketServerService
         // Tentar processar como JSON
         try
         {
+            _logger.LogInformation("Tentando deserializar JSON...");
             var socketMessage = JsonSerializer.Deserialize<SocketMessageDto>(message, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -216,33 +221,47 @@ public class SocketServerService : BackgroundService, ISocketServerService
 
             if (socketMessage == null)
             {
-                _logger.LogWarning("Mensagem JSON inválida: {Message}", message);
+                _logger.LogWarning("Mensagem JSON inválida ou nula: {Message}", message);
+                await SendResponseAsync(client, "ERROR: JSON inválido\n");
                 return;
             }
+
+            _logger.LogInformation("JSON deserializado com sucesso:");
+            _logger.LogInformation("  Tipo: {Tipo}", socketMessage.Tipo);
+            _logger.LogInformation("  ID: {Id}", socketMessage.Id);
+            _logger.LogInformation("  Nome: {Nome}", socketMessage.Nome);
+            _logger.LogInformation("  Status: {Status}", socketMessage.Status);
+            _logger.LogInformation("  Corrente Atual: {CorrenteAtual}", socketMessage.CorrenteAtual);
+            _logger.LogInformation("  Horímetro: {Horimetro}", socketMessage.Horimetro);
 
             // Processar mensagem de motor
             if (socketMessage.Tipo == "motor" && !string.IsNullOrEmpty(socketMessage.Id))
             {
+                _logger.LogInformation("Processando dados do motor ID: {Id}", socketMessage.Id);
                 var success = await ProcessMotorDataAsync(socketMessage, cancellationToken);
                 // Enviar confirmação de recebimento
                 if (success)
                 {
+                    _logger.LogInformation("✓ Motor processado com sucesso, enviando OK");
                     await SendResponseAsync(client, "OK\n");
                 }
                 else
                 {
+                    _logger.LogWarning("✗ Erro ao processar motor, enviando ERROR");
                     await SendResponseAsync(client, "ERROR\n");
                 }
             }
             else
             {
-                _logger.LogWarning("Tipo de mensagem desconhecido: {Tipo}", socketMessage.Tipo);
-                await SendResponseAsync(client, "ERROR: Tipo desconhecido\n");
+                _logger.LogWarning("Tipo de mensagem desconhecido ou ID vazio. Tipo: {Tipo}, ID: {Id}", 
+                    socketMessage.Tipo, socketMessage.Id);
+                await SendResponseAsync(client, "ERROR: Tipo desconhecido ou ID vazio\n");
             }
         }
         catch (JsonException ex)
         {
-            _logger.LogWarning(ex, "Erro ao deserializar JSON: {Message}", message);
+            _logger.LogError(ex, "Erro ao deserializar JSON: {Message}", message);
+            await SendResponseAsync(client, "ERROR: JSON inválido\n");
         }
         catch (Exception ex)
         {
@@ -258,20 +277,26 @@ public class SocketServerService : BackgroundService, ISocketServerService
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             // Tentar converter ID para Guid
+            _logger.LogInformation("Tentando converter ID '{Id}' para GUID...", message.Id);
             if (!Guid.TryParse(message.Id, out var motorId))
             {
-                _logger.LogWarning("ID de motor inválido: {Id}", message.Id);
+                _logger.LogWarning("✗ ID de motor inválido (não é um GUID válido): {Id}", message.Id);
                 return false;
             }
+            _logger.LogInformation("✓ ID convertido para GUID: {MotorId}", motorId);
 
             // Buscar motor no banco
+            _logger.LogInformation("Buscando motor no banco de dados...");
             var motor = await dbContext.Motores.FindAsync(new object[] { motorId }, cancellationToken);
 
             if (motor == null)
             {
-                _logger.LogWarning("Motor não encontrado: {Id}", message.Id);
+                _logger.LogWarning("✗ Motor não encontrado no banco de dados com ID: {Id} (GUID: {MotorId})", 
+                    message.Id, motorId);
+                _logger.LogWarning("Verifique se o motor foi cadastrado na API com este GUID");
                 return false;
             }
+            _logger.LogInformation("✓ Motor encontrado: {Nome} (ID: {Id})", motor.Nome, motorId);
 
             // Atualizar dados do motor
             var hasChanges = false;
