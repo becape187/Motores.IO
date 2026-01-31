@@ -23,9 +23,6 @@ function Login() {
     
     try {
       await login(email, password);
-      // Marcar que acabou de fazer login para mostrar o modal no Dashboard
-      localStorage.setItem('showWelcomeModal', 'true');
-      // Navegar para o dashboard
       navigate('/');
     } catch (err: any) {
       if (err.message === 'SEM_PLANTAS') {
@@ -37,7 +34,6 @@ function Login() {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="login-container">
