@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Activity, TrendingUp, AlertCircle, Power, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor } from '../types';
+import { useWebSocketCorrentes } from '../hooks/useWebSocketCorrentes';
 import './Dashboard.css';
 
 function Dashboard() {
@@ -62,7 +63,25 @@ function Dashboard() {
     loadMotors();
   }, [plantaSelecionada, getMotors]);
 
-  // Atualização em background - atualiza dados dinâmicos periodicamente
+  // WebSocket para atualização em tempo real das correntes
+  const handleCorrentesUpdate = useCallback((correntesMap: Map<string, number>) => {
+    setMotors(prevMotors => 
+      prevMotors.map(motor => {
+        const novaCorrente = correntesMap.get(motor.id);
+        if (novaCorrente !== undefined) {
+          return { ...motor, correnteAtual: novaCorrente };
+        }
+        return motor;
+      })
+    );
+  }, []);
+
+  const { isConnected: wsConnected } = useWebSocketCorrentes(
+    plantaSelecionada?.id,
+    handleCorrentesUpdate
+  );
+
+  // Atualização em background - atualiza dados dinâmicos periodicamente (apenas status e horimetro)
   useEffect(() => {
     if (!plantaSelecionada || isEditMode) return;
 
@@ -72,21 +91,23 @@ function Dashboard() {
         const updatedMotors = await getMotors(plantaSelecionada.id, { useCache: false });
         
         // Atualizar apenas dados dinâmicos sem recriar o array completo
+        // NOTA: correnteAtual agora vem via WebSocket, não via polling
         setMotors(prevMotors => {
           const motorsMap = new Map(prevMotors.map(m => [m.id, m]));
           
           return updatedMotors.map(m => {
             const existing = motorsMap.get(m.id);
             if (existing) {
-              // Atualizar apenas campos dinâmicos, mantendo o resto (incluindo posição)
+              // Atualizar apenas status e horimetro, mantendo correnteAtual do WebSocket
               return {
                 ...existing,
                 status: m.status,
-                correnteAtual: m.correnteAtual,
                 horimetro: m.horimetro,
                 // Preservar posição existente se não vier do servidor
                 posicaoX: m.posicaoX ?? existing.posicaoX,
                 posicaoY: m.posicaoY ?? existing.posicaoY,
+                // Manter correnteAtual existente (vem do WebSocket)
+                correnteAtual: existing.correnteAtual,
               };
             } else {
               // Novo motor - adicionar
@@ -99,7 +120,7 @@ function Dashboard() {
       }
     };
 
-    const interval = setInterval(updateMotorsData, 10000); // Atualizar a cada 10 segundos
+    const interval = setInterval(updateMotorsData, 30000); // Atualizar a cada 30 segundos (apenas status/horimetro)
     return () => clearInterval(interval);
   }, [plantaSelecionada, isEditMode, getMotors]);
 

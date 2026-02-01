@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Save, X, Search, Filter, ArrowLeft, Cog, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor } from '../types';
+import { useWebSocketCorrentes } from '../hooks/useWebSocketCorrentes';
 import './Motors.css';
 
 function Motors() {
@@ -80,6 +81,27 @@ function Motors() {
       setFormData(selectedMotor);
     }
   };
+
+  // WebSocket para atualização em tempo real das correntes
+  const handleCorrentesUpdate = useCallback((correntesMap: Map<string, number>) => {
+    setMotors(prevMotors => 
+      prevMotors.map(motor => {
+        const novaCorrente = correntesMap.get(motor.id);
+        if (novaCorrente !== undefined) {
+          const updatedMotor = { ...motor, correnteAtual: novaCorrente };
+          // Atualizar motor selecionado se for o mesmo
+          setSelectedMotor(prev => prev && prev.id === motor.id ? updatedMotor : prev);
+          return updatedMotor;
+        }
+        return motor;
+      })
+    );
+  }, []);
+
+  const { isConnected: wsConnected } = useWebSocketCorrentes(
+    plantaSelecionada?.id,
+    handleCorrentesUpdate
+  );
 
   // Buscar motores usando cache
   useEffect(() => {
