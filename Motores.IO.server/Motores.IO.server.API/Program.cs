@@ -154,6 +154,10 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Habilitar WebSockets
+app.UseWebSockets();
+
 app.MapControllers();
 
 // Aplicar migrations automaticamente (apenas para desenvolvimento)
