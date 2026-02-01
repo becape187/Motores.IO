@@ -12,7 +12,7 @@ function MotorSync:new(apiClient, sqliteDB, plantaUUID)
     obj.PlantaUUID = plantaUUID
     obj.MotoresMemoria = {} -- Tabela em memória: [GUID] = {motor, ultimaAtualizacao}
     obj.LastSyncTime = 0
-    obj.SyncInterval = 20000 -- 20 segundos em milissegundos
+    obj.SyncInterval = 300000 -- 20 segundos em milissegundos
     obj.Inicializado = false
     
     return obj

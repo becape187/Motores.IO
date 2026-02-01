@@ -88,14 +88,15 @@ end
 
 -- Função chamada automaticamente pelo sistema (pode ficar vazia ou fazer inicialização mínima)
 function we_bg_init()
-    -- Inicialização automática desabilitada para permitir inicialização manual
+    -- Iicialização automática desabilitada para permitir inicialização manual
     -- Chame inicializarSistema() através de um botão ou script
     print("[Init] Sistema aguardando inicialização manual...")
     print("[Init] Use a função 'inicializarSistema()' para inicializar o sistema")
 end
 
 function we_bg_poll()
-    conta = conta + 1
+    -- Gerar número aleatório entre 180 e 220
+    conta = math.random(180, 220)
     we_bas_setint("@HDW_W_0000000", conta)
     
     -- Só executar loops se o sistema estiver inicializado
