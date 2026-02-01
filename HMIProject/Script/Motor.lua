@@ -1,4 +1,4 @@
--- Classe Motor
+-- ClasseMotor
 Motor = {}
 Motor.__index = Motor
 
@@ -9,14 +9,23 @@ function Motor:new(id, nome, registroModBus, registroLocal, correnteNominal)
     
     obj.ID = id or ""
     obj.Nome = nome or ""
+    obj.GUID = nil -- GUID do motor na API
+    obj.Potencia = 0.0
+    obj.Tensao = 0.0
     obj.RegistroModBus = registroModBus or ""
     obj.RegistroLocal = registroLocal or ""
     obj.CorrenteAtual = 0.0
     obj.CorrenteNominal = correnteNominal or 0.0
-    obj.PercentCorrenteMaximaErro = 0.0
-    obj.PercentHistereseErro = 0.0
+    obj.PercentualCorrenteMaxima = 0.0  -- Nome da API: percentualCorrenteMaxima
+    obj.Histerese = 0.0  -- Nome da API: histerese
     obj.Status = false
-    obj.Horimetro = 0
+    obj.Horimetro = 0.0
+    obj.Habilitado = true
+    obj.PosicaoX = 0.0
+    obj.PosicaoY = 0.0
+    obj.HorimetroProximaManutencao = nil
+    obj.DataEstimadaProximaManutencao = nil
+    obj.DataCriacao = nil
     
     return obj
 end

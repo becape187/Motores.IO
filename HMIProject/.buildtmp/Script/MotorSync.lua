@@ -1,4 +1,4 @@
--- Classe MotorSync para sincronização bidirecional entre API e banco loca
+-- Case MotoSync para sinconização bidirecional entre API e banco loc
 MotorSync = {}
 MotorSync.__index = MotorSync
 
@@ -12,7 +12,7 @@ function MotorSync:new(apiClient, sqliteDB, plantaUUID)
     obj.PlantaUUID = plantaUUID
     obj.MotoresMemoria = {} -- Tabela em memória: [GUID] = {motor, ultimaAtualizacao}
     obj.LastSyncTime = 0
-    obj.SyncInterval = 60000 -- 1 minuto em milissegundos
+    obj.SyncInterval = 20000 -- 20 segundos em milissegundos
     obj.Inicializado = false
     
     return obj
@@ -88,11 +88,7 @@ function MotorSync:Sincronizar()
         return
     end
     
-    print("[Sync] === INICIANDO SINCRONIZAÇÃO ===")
-    print("[Sync] Timestamp: " .. os.date("%Y-%m-%d %H:%M:%S"))
-    
     -- Buscar motores da API
-    print("[Sync] Buscando motores da API...")
     local motoresAPI, errAPI = self.APIClient:BuscarMotoresPlanta(self.PlantaUUID)
     
     if not motoresAPI then
@@ -101,7 +97,6 @@ function MotorSync:Sincronizar()
         return false
     end
     
-    print("[Sync] ✓ " .. #motoresAPI .. " motores encontrados na API")
     
     -- Criar tabela de motores da API indexada por GUID
     local motoresAPIMap = {}
@@ -117,14 +112,11 @@ function MotorSync:Sincronizar()
     
     -- ETAPA 1: Sincronizar EXISTÊNCIA de motores (API -> IHM)
     -- A IHM NUNCA cria motores na API, apenas recebe da API
-    print("[Sync] --- ETAPA 1: Sincronizando EXISTÊNCIA (API -> IHM) ---")
     for guid, motorAPI in pairs(motoresAPIMap) do
         local motorLocal = self.MotoresMemoria[guid]
         
         if not motorLocal then
             -- Motor não existe localmente, criar na IHM (API -> IHM)
-            print(string.format("[Sync]   + Criando motor local (da API): %s (GUID: %s)", 
-                motorAPI.nome or "Sem nome", guid))
             local timestampAPI = 0
             if motorAPI.dataAtualizacao then
                 timestampAPI = self:StringParaTimestamp(motorAPI.dataAtualizacao)
@@ -137,13 +129,10 @@ function MotorSync:Sincronizar()
                 }
                 criadosLocal = criadosLocal + 1
             end
-        else
-            print(string.format("[Sync]   = Motor já existe localmente: %s", motorAPI.nome or "Sem nome"))
         end
     end
     
     -- ETAPA 2: Sincronizar DADOS dos motores (bidirecional baseado em timestamp)
-    print("[Sync] --- ETAPA 2: Sincronizando DADOS (bidirecional) ---")
     for guid, motorAPI in pairs(motoresAPIMap) do
         local motorLocal = self.MotoresMemoria[guid]
         
@@ -157,38 +146,26 @@ function MotorSync:Sincronizar()
             
             if timestampAPI > timestampLocal then
                 -- API é mais recente, atualizar local
-                print(string.format("[Sync]   ↻ Atualizando motor local: %s (API: %s, Local: %s)", 
-                    motorAPI.nome or "Sem nome", 
-                    os.date("%Y-%m-%d %H:%M:%S", timestampAPI),
-                    os.date("%Y-%m-%d %H:%M:%S", timestampLocal)))
                 self:AtualizarMotorLocal(motorLocal.motor, motorAPI, timestampAPI)
                 motorLocal.ultimaAtualizacao = timestampAPI
                 atualizadosLocal = atualizadosLocal + 1
             elseif timestampLocal > timestampAPI then
                 -- Local é mais recente, atualizar API
-                print(string.format("[Sync]   ↻ Atualizando motor na API: %s (Local: %s, API: %s)", 
-                    motorAPI.nome or "Sem nome",
-                    os.date("%Y-%m-%d %H:%M:%S", timestampLocal),
-                    os.date("%Y-%m-%d %H:%M:%S", timestampAPI)))
                 local success = self:AtualizarMotorAPI(motorLocal.motor, motorAPI.id)
                 if success then
                     -- Atualizar timestamp local após sucesso na API
                     motorLocal.ultimaAtualizacao = os.time()
                     atualizadosAPI = atualizadosAPI + 1
                 end
-            else
-                -- Mesmo timestamp, sem necessidade de atualização
-                print(string.format("[Sync]   = Motor já sincronizado: %s", motorAPI.nome or "Sem nome"))
             end
         end
     end
     
-    -- Resumo da sincronização
-    print("[Sync] === RESUMO DA SINCRONIZAÇÃO ===")
-    print(string.format("[Sync] Criados na IHM (da API): %d", criadosLocal))
-    print(string.format("[Sync] Atualizados na IHM (da API): %d", atualizadosLocal))
-    print(string.format("[Sync] Atualizados na API (da IHM): %d", atualizadosAPI))
-    print("[Sync] ==============================")
+    -- Resumo da sincronização (apenas se houver mudanças)
+    if criadosLocal > 0 or atualizadosLocal > 0 or atualizadosAPI > 0 then
+        print(string.format("[Sync] Sync: +%d criados, ↻%d atualizados (IHM), ↻%d atualizados (API)", 
+            criadosLocal, atualizadosLocal, atualizadosAPI))
+    end
     
     return true
 end
@@ -199,16 +176,26 @@ function MotorSync:CriarMotorLocal(motorAPI)
     local motor = Motor:new(
         nil, -- ID será gerado pelo banco
         motorAPI.nome or "",
-        tonumber(motorAPI.registroModBus) or 0,
-        tonumber(motorAPI.registroLocal) or 0,
+        tostring(motorAPI.registroModBus or ""),
+        tostring(motorAPI.registroLocal or ""),
         tonumber(motorAPI.correnteNominal) or 0
     )
     
     motor.GUID = motorAPI.id
+    motor.Potencia = tonumber(motorAPI.potencia) or 0.0
+    motor.Tensao = tonumber(motorAPI.tensao) or 0.0
     motor.CorrenteAtual = tonumber(motorAPI.correnteAtual) or 0
-    motor.Status = motorAPI.status == "ligado" or false
-    motor.Horimetro = tonumber(motorAPI.horimetro) or 0
     motor.CorrenteNominal = tonumber(motorAPI.correnteNominal) or 0
+    motor.PercentualCorrenteMaxima = tonumber(motorAPI.percentualCorrenteMaxima) or 0.0
+    motor.Histerese = tonumber(motorAPI.histerese) or 0.0
+    motor.Status = motorAPI.status == "ligado" or false
+    motor.Horimetro = tonumber(motorAPI.horimetro) or 0.0
+    motor.Habilitado = motorAPI.habilitado ~= false  -- true por padrão se não especificado
+    motor.PosicaoX = tonumber(motorAPI.posicaoX) or 0.0
+    motor.PosicaoY = tonumber(motorAPI.posicaoY) or 0.0
+    motor.HorimetroProximaManutencao = motorAPI.horimetroProximaManutencao
+    motor.DataEstimadaProximaManutencao = motorAPI.dataEstimadaProximaManutencao
+    motor.DataCriacao = motorAPI.dataCriacao
     
     -- Salvar no banco local com timestamp da API
     local timestampAPI = 0
@@ -225,10 +212,30 @@ end
 -- Função para atualizar motor local a partir de dados da API
 function MotorSync:AtualizarMotorLocal(motorLocal, motorAPI, timestampAPI)
     motorLocal.Nome = motorAPI.nome or motorLocal.Nome
+    motorLocal.Potencia = tonumber(motorAPI.potencia) or motorLocal.Potencia
+    motorLocal.Tensao = tonumber(motorAPI.tensao) or motorLocal.Tensao
+    motorLocal.RegistroModBus = tostring(motorAPI.registroModBus or motorLocal.RegistroModBus or "")
+    motorLocal.RegistroLocal = tostring(motorAPI.registroLocal or motorLocal.RegistroLocal or "")
     motorLocal.CorrenteAtual = tonumber(motorAPI.correnteAtual) or motorLocal.CorrenteAtual
+    motorLocal.CorrenteNominal = tonumber(motorAPI.correnteNominal) or motorLocal.CorrenteNominal
+    motorLocal.PercentualCorrenteMaxima = tonumber(motorAPI.percentualCorrenteMaxima) or motorLocal.PercentualCorrenteMaxima
+    motorLocal.Histerese = tonumber(motorAPI.histerese) or motorLocal.Histerese
     motorLocal.Status = motorAPI.status == "ligado" or false
     motorLocal.Horimetro = tonumber(motorAPI.horimetro) or motorLocal.Horimetro
-    motorLocal.CorrenteNominal = tonumber(motorAPI.correnteNominal) or motorLocal.CorrenteNominal
+    if motorAPI.habilitado ~= nil then
+        motorLocal.Habilitado = motorAPI.habilitado
+    end
+    motorLocal.PosicaoX = tonumber(motorAPI.posicaoX) or motorLocal.PosicaoX
+    motorLocal.PosicaoY = tonumber(motorAPI.posicaoY) or motorLocal.PosicaoY
+    if motorAPI.horimetroProximaManutencao ~= nil then
+        motorLocal.HorimetroProximaManutencao = motorAPI.horimetroProximaManutencao
+    end
+    if motorAPI.dataEstimadaProximaManutencao ~= nil then
+        motorLocal.DataEstimadaProximaManutencao = motorAPI.dataEstimadaProximaManutencao
+    end
+    if motorAPI.dataCriacao ~= nil then
+        motorLocal.DataCriacao = motorAPI.dataCriacao
+    end
     
     -- Atualizar no banco local com timestamp
     self.SQLiteDB:InserirOuAtualizarMotor(motorLocal, timestampAPI)
@@ -248,13 +255,10 @@ function MotorSync:AtualizarMotorAPI(motorLocal, guidAPI)
     }
     
     local success, err = self.APIClient:AtualizarMotorPlanta(self.PlantaUUID, guidAPI, dados)
-    if success then
-        print(string.format("[Sync]   ✓ Motor atualizado na API: %s", motorLocal.Nome))
-        return true
-    else
-        print(string.format("[Sync]   ✗ Erro ao atualizar motor na API: %s", tostring(err)))
-        return false
+    if not success then
+        print(string.format("[Sync] ✗ Erro ao atualizar motor na API: %s - %s", motorLocal.Nome, tostring(err)))
     end
+    return success
 end
 
 -- Função para criar motor na API (REMOVIDA - IHM nunca cria motores na API)

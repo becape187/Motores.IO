@@ -1,4 +1,4 @@
--- Classe SocketClient para comunicação via socket
+-- Clss SocketClient para comunicação via socke
 SocketClient = {}
 SocketClient.__index = SocketClient
 
@@ -148,17 +148,13 @@ function SocketClient:EnviarMensagem(mensagem)
         mensagem = mensagem .. "\n"
     end
     
-    -- Log da mensagem que será enviada (apenas para debug)
-    print("[Socket] Enviando mensagem (" .. string.len(mensagem) .. " bytes): " .. string.sub(mensagem, 1, 100) .. (string.len(mensagem) > 100 and "..." or ""))
-    
     -- tcp:send() retorna: sent (número de bytes ou nil), err, last_byte
     local sent, err = self.Socket:send(mensagem)
     
     if sent then
-        print("[Socket] Mensagem enviada com sucesso (" .. tostring(sent) .. " bytes)")
         return true
     else
-        print("[Socket] Erro ao enviar mensagem: " .. tostring(err))
+        print("[Socket] ✗ Erro ao enviar: " .. tostring(err))
         self.Connected = false
         return false, "Erro ao enviar mensagem: " .. tostring(err)
     end
@@ -204,18 +200,39 @@ function SocketClient:ReceberMensagem(timeout)
     end
     
     if mensagem then
-        print("[Socket] Mensagem recebida (" .. string.len(mensagem) .. " bytes): " .. tostring(mensagem))
         return mensagem
     else
-        if err == "timeout" then
-            print("[Socket] Timeout ao receber mensagem (timeout: " .. tostring(timeout) .. "s)")
-            return nil, "Timeout ao receber mensagem"
-        else
-            print("[Socket] Erro ao receber mensagem: " .. tostring(err))
+        if err ~= "timeout" then
+            print("[Socket] ✗ Erro ao receber mensagem: " .. tostring(err))
             self.Connected = false
-            return nil, "Erro ao receber mensagem: " .. tostring(err)
         end
+        return nil, err == "timeout" and "Timeout ao receber mensagem" or "Erro ao receber mensagem: " .. tostring(err)
     end
+end
+
+-- Função para enviar array de correntes via socket
+function SocketClient:EnviarCorrentesArray(correntesArray, plantaId)
+    if not correntesArray or #correntesArray == 0 then
+        return false, "Array de correntes vazio"
+    end
+    
+    -- Criar mensagem com array de correntes
+    local data = {
+        tipo = "correntes",
+        plantaId = plantaId,
+        motores = correntesArray,
+        timestamp = os.time()
+    }
+    
+    local mensagem = json.encode(data)
+    
+    local success, err = self:EnviarMensagem(mensagem)
+    
+    if not success then
+        print("[Socket] ✗ Erro ao enviar correntes: " .. tostring(err))
+    end
+    
+    return success, err
 end
 
 -- Função para enviar dados de motor via socket
@@ -246,17 +263,6 @@ function SocketClient:EnviarDadosMotor(motor)
     
     local mensagem = json.encode(data)
     
-    -- Log dos dados que serão enviados
-    print("[Socket] === DADOS ENVIADOS ===")
-    print("[Socket] JSON: " .. mensagem)
-    print("[Socket] Tipo: " .. tostring(data.tipo))
-    print("[Socket] ID: " .. tostring(data.id))
-    print("[Socket] Nome: " .. tostring(data.nome))
-    print("[Socket] Corrente Atual: " .. tostring(data.correnteAtual))
-    print("[Socket] Status: " .. tostring(data.status))
-    print("[Socket] Horímetro: " .. tostring(data.horimetro))
-    print("[Socket] Timestamp: " .. tostring(data.timestamp))
-    print("[Socket] ======================")
     
     local success, err = self:EnviarMensagem(mensagem)
     
@@ -266,35 +272,17 @@ function SocketClient:EnviarDadosMotor(motor)
         if resposta then
             resposta = string.gsub(resposta, "\n", "") -- Remove quebra de linha
             
-            -- Log da resposta recebida
-            print("[Socket] === RESPOSTA RECEBIDA ===")
-            print("[Socket] Resposta: " .. tostring(resposta))
-            print("[Socket] ========================")
-            
             if resposta == "OK" then
-                print("[Socket] ✓ Dados do motor processados com sucesso pelo servidor")
                 return true
-            elseif resposta == "ERROR" then
-                print("[Socket] ✗ Servidor retornou ERROR ao processar dados do motor")
+            elseif resposta == "ERROR" or string.find(resposta, "ERROR") then
+                print("[Socket] ✗ Servidor retornou ERROR")
                 return false, "Erro no servidor"
-            elseif string.find(resposta, "ERROR") then
-                print("[Socket] ✗ Servidor retornou erro: " .. resposta)
-                return false, "Erro no servidor: " .. resposta
             else
-                print("[Socket] ⚠ Resposta inesperada do servidor: " .. resposta)
-                -- Mesmo com resposta inesperada, assume sucesso se conseguiu enviar
+                -- Resposta inesperada, mas assume sucesso se conseguiu enviar
                 return true
             end
         else
-            -- Log quando não recebe resposta
-            print("[Socket] === RESPOSTA RECEBIDA ===")
-            print("[Socket] Nenhuma resposta recebida (timeout ou erro)")
-            if errResp then
-                print("[Socket] Erro: " .. tostring(errResp))
-            end
-            print("[Socket] ========================")
-            -- Se não recebeu resposta, assume sucesso (compatibilidade com versões antigas)
-            print("[Socket] ⚠ Assumindo sucesso (sem resposta do servidor)")
+            -- Se não recebeu resposta, assume sucesso (compatibilidade)
             return true
         end
     else
@@ -319,14 +307,7 @@ function SocketClient:Loop()
         
         -- Verificar se está conectado
         if not self:EstaConectado() then
-            print("[Socket] Não está conectado, tentando reconectar...")
-            local connected, err = self:Conectar()
-            if connected then
-                print("[Socket] Reconectado com sucesso!")
-            else
-                print("[Socket] Falha ao reconectar: " .. tostring(err))
-                print("[Socket] Tentará novamente na próxima verificação...")
-            end
+            self:Conectar()
         end
     end
     
@@ -340,13 +321,9 @@ function SocketClient:Loop()
             self:FazerPooling()
         else
             -- Se não estiver conectado, tentar conectar
-            print("[Socket] Tentando conectar para enviar keep-alive...")
-            local connected, err = self:Conectar()
+            local connected = self:Conectar()
             if connected then
-                print("[Socket] Conectado, enviando keep-alive...")
                 self:FazerPooling()
-            else
-                print("[Socket] Falha ao conectar para keep-alive: " .. tostring(err))
             end
         end
     end
@@ -357,14 +334,12 @@ function SocketClient:Loop()
         
         -- Verificar se callback está configurado
         if not self.GetMotorDataCallback then
-            print("[Socket] ⚠ Callback de dados do motor não configurado")
             return
         end
         
         -- Obter dados do motor através do callback
         local motor = self.GetMotorDataCallback()
         if not motor then
-            print("[Socket] ⚠ Callback não retornou dados do motor")
             return
         end
         
@@ -372,27 +347,19 @@ function SocketClient:Loop()
         if self:EstaConectado() then
             -- Enviar dados do motor via socket
             local success, err = self:EnviarDadosMotor(motor)
-            if success then
-                print("[Socket] Dados do motor enviados com sucesso!")
-            else
-                print("[Socket] Erro ao enviar dados do motor: " .. tostring(err))
+            if not success then
+                print("[Socket] ✗ Erro ao enviar dados do motor: " .. tostring(err))
                 -- Se falhou, marcar como desconectado
                 self.Connected = false
             end
         else
             -- Se não estiver conectado, tentar conectar
-            print("[Socket] Tentando conectar para enviar dados do motor...")
-            local connected, err = self:Conectar()
+            local connected = self:Conectar()
             if connected then
-                print("[Socket] Conectado, enviando dados do motor...")
                 local success, err = self:EnviarDadosMotor(motor)
-                if success then
-                    print("[Socket] Dados do motor enviados com sucesso!")
-                else
-                    print("[Socket] Erro ao enviar dados do motor: " .. tostring(err))
+                if not success then
+                    print("[Socket] ✗ Erro ao enviar dados do motor: " .. tostring(err))
                 end
-            else
-                print("[Socket] Falha ao conectar para enviar dados: " .. tostring(err))
             end
         end
     end

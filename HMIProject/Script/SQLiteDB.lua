@@ -1,4 +1,4 @@
--- Classe SQLiteDBpara interagir com SQLite (API nativa do PIStudio)
+-- ss SLiteDBpar iteragir com SQLite (API nativa do PIStudio)
 -- Conforme documentação: https://docs.we-con.com.cn/bin/view/PIStudio/09%20Lua%20Editor/Lua%20Script/#HLuaSqlitemodule
 SQLiteDB = {}
 SQLiteDB.__index = SQLiteDB
@@ -90,14 +90,22 @@ function SQLiteDB:CriarTabelas()
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             guid TEXT UNIQUE,
             nome TEXT NOT NULL,
-            registroModBus INTEGER,
-            registroLocal INTEGER,
+            potencia REAL DEFAULT 0.0,
+            tensao REAL DEFAULT 0.0,
             correnteAtual REAL DEFAULT 0.0,
             correnteNominal REAL DEFAULT 0.0,
-            percentCorrenteMaximaErro REAL DEFAULT 0.0,
-            percentHistereseErro REAL DEFAULT 0.0,
-            status INTEGER DEFAULT 0,
+            percentualCorrenteMaxima REAL DEFAULT 0.0,
+            histerese REAL DEFAULT 0.0,
+            registroModBus TEXT,
+            registroLocal TEXT,
+            status TEXT DEFAULT 'desligado',
             horimetro REAL DEFAULT 0.0,
+            habilitado INTEGER DEFAULT 1,
+            posicaoX REAL DEFAULT 0.0,
+            posicaoY REAL DEFAULT 0.0,
+            horimetroProximaManutencao REAL,
+            dataEstimadaProximaManutencao TEXT,
+            dataCriacao TEXT,
             ultimaAtualizacao TEXT DEFAULT CURRENT_TIMESTAMP,
             dataAtualizacao TEXT
         )
@@ -255,24 +263,39 @@ function SQLiteDB:BuscarTodosMotores()
     local count = 0
     while row do
         count = count + 1
-        -- Ordem das colunas: id(1), guid(2), nome(3), registroModBus(4), registroLocal(5), 
-        -- correnteAtual(6), correnteNominal(7), percentCorrenteMaximaErro(8), 
-        -- percentHistereseErro(9), status(10), horimetro(11), ultimaAtualizacao(12), dataAtualizacao(13)
+        -- Ordem das colunas: id(1), guid(2), nome(3), potencia(4), tensao(5), registroModBus(6), registroLocal(7),
+        -- correnteAtual(8), correnteNominal(9), percentualCorrenteMaxima(10), histerese(11), status(12), 
+        -- horimetro(13), habilitado(14), posicaoX(15), posicaoY(16), horimetroProximaManutencao(17),
+        -- dataEstimadaProximaManutencao(18), dataCriacao(19), ultimaAtualizacao(20), dataAtualizacao(21)
         local motor = Motor:new(
             row[1] or row.id, -- id
             row[3] or row.nome, -- nome (coluna 3)
-            row[4] or row.registroModBus, -- registroModBus
-            row[5] or row.registroLocal, -- registroLocal
-            row[7] or row.correnteNominal or 0.0  -- correnteNominal (coluna 7)
+            row[6] or row.registroModBus, -- registroModBus (coluna 6)
+            row[7] or row.registroLocal, -- registroLocal (coluna 7)
+            row[9] or row.correnteNominal or 0.0  -- correnteNominal (coluna 9)
         )
         
         motor.ID = row[1] or row.id
         motor.GUID = row[2] or row.guid -- GUID está na coluna 2
-        motor:setCorrenteAtual(row[6] or row.correnteAtual or 0.0)
-        motor:setPercentCorrenteMaximaErro(row[8] or row.percentCorrenteMaximaErro or 0.0)
-        motor:setPercentHistereseErro(row[9] or row.percentHistereseErro or 0.0)
-        motor:setStatus((row[10] or row.status or 0) == 1)
-        motor.Horimetro = row[11] or row.horimetro or 0.0
+        motor.Potencia = row[4] or row.potencia or 0.0
+        motor.Tensao = row[5] or row.tensao or 0.0
+        motor:setCorrenteAtual(row[8] or row.correnteAtual or 0.0)
+        motor.PercentualCorrenteMaxima = row[10] or row.percentualCorrenteMaxima or 0.0
+        motor.Histerese = row[11] or row.histerese or 0.0
+        -- Status pode ser string ("ligado"/"desligado") ou número (0/1)
+        local statusValue = row[12] or row.status
+        if type(statusValue) == "string" then
+            motor.Status = statusValue == "ligado"
+        else
+            motor.Status = (statusValue == 1 or statusValue == true)
+        end
+        motor.Horimetro = row[13] or row.horimetro or 0.0
+        motor.Habilitado = (row[14] or row.habilitado or 1) == 1
+        motor.PosicaoX = row[15] or row.posicaoX or 0.0
+        motor.PosicaoY = row[16] or row.posicaoY or 0.0
+        motor.HorimetroProximaManutencao = row[17] or row.horimetroProximaManutencao
+        motor.DataEstimadaProximaManutencao = row[18] or row.dataEstimadaProximaManutencao
+        motor.DataCriacao = row[19] or row.dataCriacao
         
         table.insert(motores, motor)
         row = cursor:fetch()
@@ -317,7 +340,16 @@ function SQLiteDB:InserirOuAtualizarMotor(motor, timestampUnix)
     if checkCursor then
         local row = checkCursor:fetch()
         if row then
-            existingId = row[1] or row.id
+            -- Quando SELECT retorna apenas uma coluna, fetch pode retornar o valor diretamente
+            -- ou uma tabela. Verificar o tipo e tratar adequadamente.
+            if type(row) == "table" then
+                existingId = row[1] or row.id
+            elseif type(row) == "number" then
+                -- Se retornou diretamente o número (id), usar esse valor
+                existingId = row
+            else
+                print("[SQLite] ⚠ AVISO: cursor:fetch() retornou tipo inesperado: " .. type(row))
+            end
         end
         -- Fechar cursor conforme documentação
         if checkCursor.close then
@@ -328,33 +360,77 @@ function SQLiteDB:InserirOuAtualizarMotor(motor, timestampUnix)
         -- Isso é normal, não é um erro
     end
     
+    -- Preparar valores para campos opcionais
+    local potenciaValue = motor.Potencia or 0.0
+    local tensaoValue = motor.Tensao or 0.0
+    local registroModBusValue = self:escapeString(tostring(motor.RegistroModBus or ""))
+    local registroLocalValue = self:escapeString(tostring(motor.RegistroLocal or ""))
+    local percentualCorrenteMaximaValue = motor.PercentualCorrenteMaxima or 0.0
+    local histereseValue = motor.Histerese or 0.0
+    local statusValue = motor.Status
+    if type(statusValue) == "string" then
+        statusValue = statusValue == "ligado"
+    end
+    local statusStr = statusValue and "ligado" or "desligado"
+    local habilitadoValue = motor.Habilitado and 1 or 0
+    local posicaoXValue = motor.PosicaoX or 0.0
+    local posicaoYValue = motor.PosicaoY or 0.0
+    local horimetroProximaManutencaoValue = "NULL"
+    if motor.HorimetroProximaManutencao ~= nil then
+        horimetroProximaManutencaoValue = tostring(motor.HorimetroProximaManutencao)
+    end
+    local dataEstimadaProximaManutencaoValue = "NULL"
+    if motor.DataEstimadaProximaManutencao then
+        dataEstimadaProximaManutencaoValue = self:escapeString(motor.DataEstimadaProximaManutencao)
+    end
+    local dataCriacaoValue = "NULL"
+    if motor.DataCriacao then
+        dataCriacaoValue = self:escapeString(motor.DataCriacao)
+    end
+    
     local sql
     if existingId then
         -- UPDATE: motor já existe, atualizar
         sql = string.format([[
             UPDATE motores SET
                 nome = %s,
-                registroModBus = %d,
-                registroLocal = %d,
+                potencia = %.2f,
+                tensao = %.2f,
+                registroModBus = %s,
+                registroLocal = %s,
                 correnteAtual = %.2f,
                 correnteNominal = %.2f,
-                percentCorrenteMaximaErro = %.2f,
-                percentHistereseErro = %.2f,
-                status = %d,
+                percentualCorrenteMaxima = %.2f,
+                histerese = %.2f,
+                status = %s,
                 horimetro = %.2f,
+                habilitado = %d,
+                posicaoX = %.2f,
+                posicaoY = %.2f,
+                horimetroProximaManutencao = %s,
+                dataEstimadaProximaManutencao = %s,
+                dataCriacao = %s,
                 ultimaAtualizacao = CURRENT_TIMESTAMP,
                 dataAtualizacao = %s
             WHERE guid = %s
         ]],
             self:escapeString(motor.Nome),
-            motor.RegistroModBus or 0,
-            motor.RegistroLocal or 0,
+            potenciaValue,
+            tensaoValue,
+            registroModBusValue,
+            registroLocalValue,
             motor.CorrenteAtual or 0.0,
             motor.CorrenteNominal or 0.0,
-            motor.PercentCorrenteMaximaErro or 0.0,
-            motor.PercentHistereseErro or 0.0,
-            motor.Status and 1 or 0,
+            percentualCorrenteMaximaValue,
+            histereseValue,
+            self:escapeString(statusStr),
             motor.Horimetro or 0.0,
+            habilitadoValue,
+            posicaoXValue,
+            posicaoYValue,
+            horimetroProximaManutencaoValue,
+            dataEstimadaProximaManutencaoValue,
+            dataCriacaoValue,
             dataAtualizacaoValue,
             guidValue
         )
@@ -363,23 +439,32 @@ function SQLiteDB:InserirOuAtualizarMotor(motor, timestampUnix)
         -- INSERT: motor não existe, criar novo
         sql = string.format([[
             INSERT INTO motores 
-            (guid, nome, registroModBus, registroLocal, correnteAtual, correnteNominal, 
-             percentCorrenteMaximaErro, percentHistereseErro, status, horimetro, ultimaAtualizacao, dataAtualizacao)
+            (guid, nome, potencia, tensao, registroModBus, registroLocal, correnteAtual, correnteNominal, 
+             percentualCorrenteMaxima, histerese, status, horimetro, habilitado, posicaoX, posicaoY, 
+             horimetroProximaManutencao, dataEstimadaProximaManutencao, dataCriacao, ultimaAtualizacao, dataAtualizacao)
             VALUES (
-                %s, %s, %d, %d, %.2f, %.2f, %.2f, %.2f, %d, %.2f, 
-                CURRENT_TIMESTAMP, %s
+                %s, %s, %.2f, %.2f, %s, %s, %.2f, %.2f, %.2f, %.2f, %s, %.2f, %d, %.2f, %.2f, 
+                %s, %s, %s, CURRENT_TIMESTAMP, %s
             )
         ]],
             guidValue,
             self:escapeString(motor.Nome),
-            motor.RegistroModBus or 0,
-            motor.RegistroLocal or 0,
+            potenciaValue,
+            tensaoValue,
+            registroModBusValue,
+            registroLocalValue,
             motor.CorrenteAtual or 0.0,
             motor.CorrenteNominal or 0.0,
-            motor.PercentCorrenteMaximaErro or 0.0,
-            motor.PercentHistereseErro or 0.0,
-            motor.Status and 1 or 0,
+            percentualCorrenteMaximaValue,
+            histereseValue,
+            self:escapeString(statusStr),
             motor.Horimetro or 0.0,
+            habilitadoValue,
+            posicaoXValue,
+            posicaoYValue,
+            horimetroProximaManutencaoValue,
+            dataEstimadaProximaManutencaoValue,
+            dataCriacaoValue,
             dataAtualizacaoValue
         )
         print("[SQLite] Criando novo motor: " .. motor.Nome .. " (GUID: " .. motor.GUID .. ")")
@@ -398,6 +483,27 @@ function SQLiteDB:InserirOuAtualizarMotor(motor, timestampUnix)
     end
     
     print("[SQLite] ✓ Motor salvo com sucesso: " .. motor.Nome .. " (GUID: " .. motor.GUID .. ")")
+    print("[SQLite] --- DADOS COMPLETOS DO MOTOR SALVO ---")
+    print("[SQLite]   ID: " .. tostring(motor.ID or "nil"))
+    print("[SQLite]   GUID: " .. tostring(motor.GUID or "nil"))
+    print("[SQLite]   Nome: " .. tostring(motor.Nome or "nil"))
+    print("[SQLite]   Potência: " .. tostring(motor.Potencia or 0.0) .. " W")
+    print("[SQLite]   Tensão: " .. tostring(motor.Tensao or 0.0) .. " V")
+    print("[SQLite]   Registro ModBus: " .. tostring(motor.RegistroModBus or "nil"))
+    print("[SQLite]   Registro Local: " .. tostring(motor.RegistroLocal or "nil"))
+    print("[SQLite]   Corrente Atual: " .. tostring(motor.CorrenteAtual or 0.0) .. " A")
+    print("[SQLite]   Corrente Nominal: " .. tostring(motor.CorrenteNominal or 0.0) .. " A")
+    print("[SQLite]   Percentual Corrente Máxima: " .. tostring(motor.PercentualCorrenteMaxima or 0.0) .. "%")
+    print("[SQLite]   Histerese: " .. tostring(motor.Histerese or 0.0) .. "%")
+    print("[SQLite]   Status: " .. tostring(motor.Status and "ligado" or "desligado"))
+    print("[SQLite]   Horímetro: " .. tostring(motor.Horimetro or 0.0) .. " h")
+    print("[SQLite]   Habilitado: " .. tostring(motor.Habilitado and "sim" or "não"))
+    print("[SQLite]   Posição X: " .. tostring(motor.PosicaoX or 0.0))
+    print("[SQLite]   Posição Y: " .. tostring(motor.PosicaoY or 0.0))
+    print("[SQLite]   Horímetro Próxima Manutenção: " .. tostring(motor.HorimetroProximaManutencao or "nil"))
+    print("[SQLite]   Data Estimada Próxima Manutenção: " .. tostring(motor.DataEstimadaProximaManutencao or "nil"))
+    print("[SQLite]   Data Criação: " .. tostring(motor.DataCriacao or "nil"))
+    print("[SQLite] ========================================")
     return true
 end
 
@@ -428,8 +534,16 @@ function SQLiteDB:BuscarUltimaAtualizacaoMotor(guid)
     local dataAtualizacao = nil
     
     if row then
-        -- cursor:fetch() retorna uma tabela com os valores
-        dataAtualizacao = row[1] or row.dataAtualizacao
+        -- Quando SELECT retorna apenas uma coluna, fetch pode retornar o valor diretamente
+        -- ou uma tabela. Verificar o tipo e tratar adequadamente.
+        if type(row) == "table" then
+            dataAtualizacao = row[1] or row.dataAtualizacao
+        elseif type(row) == "string" then
+            -- Se retornou diretamente a string (dataAtualizacao), usar esse valor
+            dataAtualizacao = row
+        else
+            print("[SQLite] ⚠ AVISO: cursor:fetch() retornou tipo inesperado: " .. type(row))
+        end
     end
     
     -- Fechar cursor conforme documentação

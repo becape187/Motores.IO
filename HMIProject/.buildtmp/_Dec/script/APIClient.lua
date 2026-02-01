@@ -1,4 +1,4 @@
--- Classe APIClient para consultar a API
+-- Cse APIClientpara consult
 APIClient = {}
 APIClient.__index = APIClient
 
@@ -7,6 +7,7 @@ APIClient.__index = APIClient
 local http = require("socket.http") -- Para requisições HTTP
 local json = require("json")
 local ltn12 = require("ltn12") -- Para sink.table (receber dados)
+-- Nota: No exemplo que funciona, usa LTN12 (maiúsculas), mas ltn12 (minúsculas) também funciona
 
 -- UUID da planta (hardcoded)
 local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874" -- TODO: Definir UUID real da planta
@@ -77,9 +78,10 @@ function APIClient:httpRequest(method, endpoint, data)
         print("[DEBUG] AVISO: Token não configurado!")
     end
     
-    -- Para GET: tentar sintaxe simples primeiro (como no exemplo que funcionou)
+    -- Para GET: usar sintaxe simples sem sink (mais confiável)
     if method == "GET" then
         print("[DEBUG] Preparando requisição GET...")
+        print("[DEBUG] URL: " .. url)
         print("[DEBUG] Headers:")
         for key, value in pairs(headers) do
             if key == "Authorization" then
@@ -89,10 +91,23 @@ function APIClient:httpRequest(method, endpoint, data)
             end
         end
         
-        print("[DEBUG] Fazendo chamada http.request com sink.table (conforme exemplo)...")
+        -- Verificar se http está disponível
+        if not http then
+            print("[DEBUG] ERRO: http não está disponível")
+            return false, "Módulo HTTP não disponível", nil
+        end
         
-        -- Usar sink.table conforme exemplo fornecido
-        -- Conforme exemplo: os dados ficam em response_body_table[1], não concatenados
+        if not http.request then
+            print("[DEBUG] ERRO: http.request não está disponível")
+            return false, "http.request não disponível", nil
+        end
+        
+        print("[DEBUG] Fazendo chamada http.request com sink.table (conforme exemplo)...")
+        print("[DEBUG] Tipo de http.request: " .. type(http.request))
+        
+        -- Usar sink.table conforme exemplo que funciona
+        -- Conforme exemplo: status, str_result = http.request(tabRequest)
+        -- O body fica em response_body_table[1]
         local response_body_table = {}
         local tabRequest = {}
         tabRequest.url = url
@@ -100,40 +115,45 @@ function APIClient:httpRequest(method, endpoint, data)
         tabRequest.headers = headers
         tabRequest.sink = ltn12.sink.table(response_body_table)
         
-        -- Conforme exemplo: status, str_result = http.request(tabRequest)
-        -- Mas str_result não é usado, os dados estão em response_body_table[1]
-        local status_result, str_result = http.request(tabRequest)
+        local request_ok, status_result, str_result = pcall(function()
+            return http.request(tabRequest)
+        end)
         
-        print("[DEBUG] http.request retornou:")
-        print("[DEBUG]   status_result: " .. tostring(status_result))
-        print("[DEBUG]   str_result: " .. tostring(str_result))
-        print("[DEBUG]   response_body_table tipo: " .. type(response_body_table))
-        print("[DEBUG]   response_body_table tamanho: " .. tostring(#response_body_table))
-        
-        -- Conforme exemplo: os dados estão em response_body_table[1]
-        local response_body = nil
-        local status_code = nil
-        
-        if response_body_table and #response_body_table > 0 then
-            response_body = response_body_table[1]
-            print("[DEBUG] Response body de response_body_table[1]:")
-            print("[DEBUG]   tipo: " .. type(response_body))
-            if response_body then
-                print("[DEBUG]   tamanho: " .. tostring(string.len(tostring(response_body))))
-                print("[DEBUG]   conteúdo (primeiros 500 chars): " .. string.sub(tostring(response_body), 1, 500))
-            end
-        else
-            print("[DEBUG] AVISO: response_body_table está vazio!")
+        if not request_ok then
+            print("[DEBUG] ERRO ao chamar http.request: " .. tostring(status_result))
+            print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO DE EXECUÇÃO) ===")
+            return false, "Erro ao chamar http.request: " .. tostring(status_result), nil
         end
         
-        -- Conforme exemplo: status_result é 1 (sucesso do sink), str_result é o código HTTP real
-        -- Quando usamos sink, o código HTTP está em str_result, não em status_result
-        if status_result == 1 then
-            status_code = str_result -- str_result contém o código HTTP (200, 404, etc)
-            print("[DEBUG] status_result é 1 (sucesso), usando str_result como status_code: " .. tostring(status_code))
+        -- Conforme exemplo: status_result é 1 (sucesso do sink), str_result é o código HTTP
+        local status_code = str_result  -- O código HTTP está em str_result
+        local response_body = nil
+        
+        -- O body está em response_body_table[1] (conforme exemplo)
+        print("[DEBUG] Verificando response_body_table...")
+        print("[DEBUG]   response_body_table existe: " .. tostring(response_body_table ~= nil))
+        print("[DEBUG]   response_body_table tamanho: " .. tostring(#response_body_table))
+        if response_body_table and #response_body_table > 0 then
+            print("[DEBUG]   response_body_table[1] existe: " .. tostring(response_body_table[1] ~= nil))
+            print("[DEBUG]   response_body_table[1] tipo: " .. type(response_body_table[1]))
+            print("[DEBUG]   response_body_table[1] valor (primeiros 100 chars): " .. tostring(response_body_table[1]):sub(1, 100))
+            response_body = response_body_table[1]
         else
-            status_code = status_result
-            print("[DEBUG] status_result não é 1, usando status_result como status_code: " .. tostring(status_code))
+            print("[DEBUG]   AVISO: response_body_table está vazio ou não tem [1]")
+        end
+        
+        print("[DEBUG] http.request retornou:")
+        print("[DEBUG]   request_ok: " .. tostring(request_ok))
+        print("[DEBUG]   status_result: " .. tostring(status_result))
+        print("[DEBUG]   str_result (status_code): " .. tostring(str_result))
+        print("[DEBUG]   response_body tipo: " .. type(response_body))
+        if response_body then
+            if type(response_body) == "string" then
+                print("[DEBUG]   response_body tamanho: " .. tostring(string.len(response_body)))
+                print("[DEBUG]   response_body (primeiros 500 chars): " .. string.sub(response_body, 1, 500))
+            else
+                print("[DEBUG]   response_body valor: " .. tostring(response_body))
+            end
         end
         
         print("[DEBUG] Resposta final:")
@@ -142,14 +162,53 @@ function APIClient:httpRequest(method, endpoint, data)
         print("========================================")
         print(tostring(response_body or ""))
         print("========================================")
-        print("[DEBUG]   Response Body tipo: " .. type(response_body))
-        print("[DEBUG]   Response Body tamanho: " .. tostring(string.len(tostring(response_body or ""))))
+        
+        -- Verificar se status_result é 1 (sucesso do sink)
+        if status_result ~= 1 then
+            print("[DEBUG] ERRO: status_result não é 1 (sink falhou)")
+            print("[DEBUG] status_result: " .. tostring(status_result))
+            print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO DE SINK) ===")
+            return false, "Erro no sink: " .. tostring(status_result), nil
+        end
+        
+        -- Se status_code for nil ou string de erro, pode ser erro de conexão
+        if not status_code or type(status_code) == "string" then
+            local errorMsg = tostring(status_code or "nil")
+            print("[DEBUG] ERRO: status_code inválido - " .. errorMsg)
+            print("[DEBUG] Verificando possíveis causas:")
+            print("[DEBUG]   1. API não está rodando em " .. url)
+            print("[DEBUG]   2. Firewall bloqueando porta 5000")
+            print("[DEBUG]   3. URL/endereço incorreto (verifique a configuração da API)")
+            print("[DEBUG]   4. Rede não acessível")
+            print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO DE CONEXÃO) ===")
+            return false, "Erro de conexão: " .. errorMsg .. ". Verifique se a API está rodando em " .. url, nil
+        end
         
         if status_code == 200 or status_code == 201 then
             print("[DEBUG] Status OK, tentando decodificar JSON...")
-            local success, decoded = pcall(json.decode, response_body or "")
+            if not response_body then
+                print("[DEBUG] ERRO: response_body é nil")
+                print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO - BODY VAZIO) ===")
+                return false, "Response body vazio", status_code
+            end
+            
+            -- Verificar se response_body é string (deve ser para decodificar JSON)
+            if type(response_body) ~= "string" then
+                print("[DEBUG] ERRO: response_body não é string, tipo: " .. type(response_body))
+                print("[DEBUG] response_body valor: " .. tostring(response_body))
+                print("[DEBUG] response_body_table[1] tipo: " .. type(response_body_table[1]))
+                print("[DEBUG] response_body_table[1] valor: " .. tostring(response_body_table[1]))
+                print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO - BODY NÃO É STRING) ===")
+                return false, "Response body não é string: " .. type(response_body), status_code
+            end
+            
+            local success, decoded = pcall(json.decode, response_body)
             if success and decoded then
                 print("[DEBUG] JSON decodificado com sucesso")
+                print("[DEBUG] Tipo do decoded: " .. type(decoded))
+                if type(decoded) == "table" then
+                    print("[DEBUG] Tamanho da tabela decoded: " .. tostring(#decoded))
+                end
                 print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (SUCESSO) ===")
                 return true, decoded, status_code
             else
@@ -205,7 +264,7 @@ function APIClient:httpRequest(method, endpoint, data)
             headers = headers
         }
         
-        print("[DEBUG] Resposta recebida (POST/PUT):")
+        print("[DEBUG] Resposta recebida (POST/PUT): v2.0")
         print("[DEBUG]   Status Code: " .. tostring(status_code))
         print("[DEBUG]   Status: " .. tostring(status))
         print("[DEBUG]   Response Body COMPLETO (literal):")
@@ -370,13 +429,23 @@ end
 -- Função para buscar motores da planta
 function APIClient:BuscarMotoresPlanta(plantaUUID)
     local endpoint = "/api/plantas/" .. (plantaUUID or self.PlantaUUID) .. "/motores"
-    local success, status, data = self:httpRequest("GET", endpoint, nil)
+    local success, data, status_code = self:httpRequest("GET", endpoint, nil)
     
-    if success and status == 200 then
-        local motores = json.decode(data)
-        return motores, nil
+    if success and status_code == 200 then
+        -- data já vem decodificado do httpRequest
+        if type(data) == "table" then
+            return data, nil
+        else
+            -- Se não for tabela, tentar decodificar novamente
+            local success2, decoded = pcall(json.decode, tostring(data or ""))
+            if success2 and decoded then
+                return decoded, nil
+            else
+                return nil, "Erro ao decodificar resposta: " .. tostring(data)
+            end
+        end
     else
-        return nil, "Erro ao buscar motores: " .. tostring(data)
+        return nil, "Erro ao buscar motores: " .. tostring(data or "Erro desconhecido")
     end
 end
 

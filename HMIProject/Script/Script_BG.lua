@@ -5,6 +5,7 @@ local socketClient
 local motorSync
 local apiClient
 local sqliteDB
+local motorCurrentReader
 local conta = 0
 local sistemaInicializado = false
 
@@ -37,7 +38,7 @@ function inicializarSistema()
     
     -- Inicializar API Client
     print("[Init] Inicializando API Client...")
-    apiClient = APIClient:new("http://192.168.15.187:5000") -- IP do PC de desenvolvimento
+    apiClient = APIClient:new("http://api.motores.automais.io") -- API em produção
     print("[Init] ✓ API Client inicializado")
     
     -- Inicializar MotorSync
@@ -54,7 +55,7 @@ function inicializarSistema()
     
     -- Inicializar SocketClient
     print("[Init] Inicializando SocketClient...")
-    socketClient = SocketClient:new("192.168.15.187", 5055)
+    socketClient = SocketClient:new("api.motores.automais.io", 5055)
     
     -- Configurar callback para obter dados do motor (buscar da memória do MotorSync)
     socketClient:SetMotorDataCallback(function()
@@ -69,6 +70,11 @@ function inicializarSistema()
         return nil
     end)
     print("[Init] ✓ SocketClient inicializado")
+    
+    -- Inicializar MotorCurrentReader (passar socketClient para enviar dados)
+    print("[Init] Inicializando MotorCurrentReader...")
+    motorCurrentReader = MotorCurrentReader:new(motorSync, socketClient)
+    print("[Init] ✓ MotorCurrentReader inicializado")
     
     sistemaInicializado = true
     print("[Init] === INICIALIZAÇÃO CONCLUÍDA ===")
@@ -105,5 +111,10 @@ function we_bg_poll()
     -- Chamar o loop da classe MotorSync (sincronização a cada minuto)
     if motorSync then
         motorSync:Loop()
+    end
+    
+    -- Chamar o loop da classe MotorCurrentReader (atualiza correntes da IHM)
+    if motorCurrentReader then
+        motorCurrentReader:Loop()
     end
 end
