@@ -76,7 +76,7 @@ function Dashboard() {
     );
   }, []);
 
-  const { isConnected: wsConnected } = useWebSocketCorrentes(
+  useWebSocketCorrentes(
     plantaSelecionada?.id,
     handleCorrentesUpdate
   );

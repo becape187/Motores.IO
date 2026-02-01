@@ -98,7 +98,7 @@ function Motors() {
     );
   }, []);
 
-  const { isConnected: wsConnected } = useWebSocketCorrentes(
+  useWebSocketCorrentes(
     plantaSelecionada?.id,
     handleCorrentesUpdate
   );
