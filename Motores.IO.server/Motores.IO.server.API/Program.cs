@@ -82,6 +82,9 @@ builder.Services.AddSingleton<ISocketServerService>(provider =>
 builder.Services.AddHostedService(provider => 
     provider.GetRequiredService<SocketServerService>());
 
+// Registrar WebSocket Hub
+builder.Services.AddSingleton<IWebSocketHub, WebSocketHub>();
+
 // Configurar JWT Authentication
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? "MinhaChaveSecretaSuperSeguraParaJWT2024!@#$%";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "MotoresIO";

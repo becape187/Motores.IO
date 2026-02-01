@@ -251,6 +251,34 @@ public class SocketServerService : BackgroundService, ISocketServerService
                     await SendResponseAsync(client, "ERROR\n");
                 }
             }
+            // Processar mensagem de array de correntes
+            else if (socketMessage.Tipo == "correntes")
+            {
+                _logger.LogInformation("Processando array de correntes");
+                try
+                {
+                    var correntesDto = JsonSerializer.Deserialize<CorrentesArrayDto>(message, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (correntesDto?.Motores != null && correntesDto.Motores.Count > 0)
+                    {
+                        await ProcessCorrentesArrayAsync(correntesDto, cancellationToken);
+                        await SendResponseAsync(client, "OK\n");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Array de correntes vazio ou inválido");
+                        await SendResponseAsync(client, "ERROR: Array vazio\n");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro ao processar array de correntes");
+                    await SendResponseAsync(client, "ERROR: Erro ao processar\n");
+                }
+            }
             else
             {
                 _logger.LogWarning("Tipo de mensagem desconhecido ou ID vazio. Tipo: {Tipo}, ID: {Id}", 
@@ -266,6 +294,28 @@ public class SocketServerService : BackgroundService, ISocketServerService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao processar mensagem: {Message}", message);
+        }
+    }
+
+    private async Task ProcessCorrentesArrayAsync(CorrentesArrayDto correntesDto, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Processando array de {Count} correntes", correntesDto.Motores?.Count ?? 0);
+        
+        if (correntesDto.Motores == null || correntesDto.Motores.Count == 0)
+            return;
+        
+        // Retransmitir via WebSocket hub diretamente usando plantaId da mensagem
+        // Sem buscar no banco - apenas retransmitir para clientes conectados
+        var webSocketHub = _serviceProvider.GetService<IWebSocketHub>();
+        if (webSocketHub != null && !string.IsNullOrEmpty(correntesDto.PlantaId))
+        {
+            _logger.LogDebug("Retransmitindo correntes para planta {PlantaId}", correntesDto.PlantaId);
+            await webSocketHub.BroadcastCorrentesAsync(correntesDto, correntesDto.PlantaId);
+        }
+        else if (webSocketHub != null)
+        {
+            _logger.LogWarning("PlantaId não fornecido, retransmitindo para todas as conexões");
+            await webSocketHub.BroadcastCorrentesAsync(correntesDto, null);
         }
     }
 
