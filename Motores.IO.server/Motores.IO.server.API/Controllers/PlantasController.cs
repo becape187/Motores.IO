@@ -268,8 +268,12 @@ public class PlantasController : ControllerBase
     }
 
     // GET: api/plantas/{id}/motores - Obter motores da planta (aceita JWT ou PlantaToken)
+    // Suporta paginação: ?skip=0&take=5
     [HttpGet("{id}/motores")]
-    public async Task<ActionResult<IEnumerable<Models.Motor>>> GetMotoresPlanta(Guid id)
+    public async Task<ActionResult<IEnumerable<Models.Motor>>> GetMotoresPlanta(
+        Guid id,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 0)
     {
         try
         {
@@ -294,35 +298,55 @@ public class PlantasController : ControllerBase
             }
 
             // Buscar motores da planta (sem incluir relacionamentos para evitar referências circulares)
-            var motores = await _context.Motores
+            // Construir query base com ordenação
+            var orderedQuery = _context.Motores
                 .Where(m => m.PlantaId == id)
-                .Select(m => new Models.Motor
-                {
-                    Id = m.Id,
-                    Nome = m.Nome,
-                    Potencia = m.Potencia,
-                    Tensao = m.Tensao,
-                    CorrenteNominal = m.CorrenteNominal,
-                    PercentualCorrenteMaxima = m.PercentualCorrenteMaxima,
-                    Histerese = m.Histerese,
-                    RegistroModBus = m.RegistroModBus,
-                    RegistroLocal = m.RegistroLocal,
-                    Status = m.Status,
-                    Horimetro = m.Horimetro,
-                    Habilitado = m.Habilitado,
-                    PosicaoX = m.PosicaoX,
-                    PosicaoY = m.PosicaoY,
-                    HorimetroProximaManutencao = m.HorimetroProximaManutencao,
-                    DataEstimadaProximaManutencao = m.DataEstimadaProximaManutencao,
-                    DataCriacao = m.DataCriacao,
-                    DataAtualizacao = m.DataAtualizacao,
-                    PlantaId = m.PlantaId
-                })
-                .ToListAsync();
+                .OrderBy(m => m.Nome);
+
+            // Aplicar paginação se especificada (take > 0) - ANTES do Select
+            IQueryable<Models.Motor> queryableQuery;
+            if (take > 0)
+            {
+                queryableQuery = orderedQuery.Skip(skip).Take(take);
+            }
+            else
+            {
+                queryableQuery = orderedQuery;
+            }
+
+            // Agora fazer o Select após ordenação e paginação
+            var query = queryableQuery.Select(m => new Models.Motor
+            {
+                Id = m.Id,
+                Nome = m.Nome,
+                Potencia = m.Potencia,
+                Tensao = m.Tensao,
+                CorrenteNominal = m.CorrenteNominal,
+                PercentualCorrenteMaxima = m.PercentualCorrenteMaxima,
+                Histerese = m.Histerese,
+                RegistroModBus = m.RegistroModBus,
+                RegistroLocal = m.RegistroLocal,
+                Status = m.Status,
+                Horimetro = m.Horimetro,
+                Habilitado = m.Habilitado,
+                PosicaoX = m.PosicaoX,
+                PosicaoY = m.PosicaoY,
+                HorimetroProximaManutencao = m.HorimetroProximaManutencao,
+                DataEstimadaProximaManutencao = m.DataEstimadaProximaManutencao,
+                DataCriacao = m.DataCriacao,
+                DataAtualizacao = m.DataAtualizacao,
+                PlantaId = m.PlantaId
+            });
+
+            var motores = await query.ToListAsync();
 
             // Log de sincronização
             _logger.LogInformation("[Sync] === BUSCA DE MOTORES DA PLANTA ===");
             _logger.LogInformation("[Sync] Planta ID: {PlantaId}", id);
+            if (take > 0)
+            {
+                _logger.LogInformation("[Sync] Paginação: Skip={Skip}, Take={Take}", skip, take);
+            }
             _logger.LogInformation("[Sync] Motores encontrados: {Count}", motores.Count);
             foreach (var motor in motores)
             {
