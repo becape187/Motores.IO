@@ -1,0 +1,407 @@
+<?xml version="1.0"?>
+<project filever="1.0" SoftLang="English" OldVersion="9.4.13" ProjectVer="9.4.13.25053001">
+	<HmiSet Type="PI8150ig2" RotateAngle="0" Width="1920" Height="1080" HmiTypeIndex="105" HmiCpuType="RK128" PIEx="0" GUID="745d5c4f-0354-420a-8d4c-723c4f0498b3" Language="0" StartScrNo="2" Style="Rurality" SaveAsJpg="0" JpgBkColor="0" />
+	<AddressLib>
+		<Address Index="1" AddrType="W" AddrVal="8" TypeIndex="4" ConnIndex="2" StatNO="-1" BitVal="0" Name="I_AV01" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="2" AddrType="W" AddrVal="10" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_AV02" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="3" AddrType="W" AddrVal="11" TypeIndex="4" ConnIndex="2" StatNO="-1" BitVal="0" Name="I_BRT10" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="4" AddrType="W" AddrVal="20" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_BRT05" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="45" AddrType="W" AddrVal="21" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_BRT06" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="6" AddrType="W" AddrVal="10" TypeIndex="4" ConnIndex="2" StatNO="-1" BitVal="0" Name="I_TC01" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="7" AddrType="W" AddrVal="11" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_TC02" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="8" AddrType="W" AddrVal="12" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_TC03" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="9" AddrType="W" AddrVal="13" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_TC04" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="10" AddrType="W" AddrVal="14" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_TC05" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="11" AddrType="W" AddrVal="15" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_TC06" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="12" AddrType="W" AddrVal="16" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_TC07" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="13" AddrType="W" AddrVal="17" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_TC08" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="14" AddrType="W" AddrVal="18" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_TC09" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="15" AddrType="W" AddrVal="19" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_TC10" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="20" AddrType="W" AddrVal="8" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_PV01" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="21" AddrType="W" AddrVal="9" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_PV02" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="23" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="0" Name="ALARME_AV01" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="24" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="1" Name="ALARME_AV02" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="25" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="2" Name="ALARME_BRT10" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="26" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="3" Name="ALARME_BRT05" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="27" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="4" Name="ALARME_BRT06" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="28" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="5" Name="ALARME_TC01" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="29" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="6" Name="ALARME_TC02" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="30" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="7" Name="ALARME_TC03" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="31" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="8" Name="ALARME_TC04" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="32" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="9" Name="ALARME_TC05" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="33" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="10" Name="ALARME_TC06" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="34" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="11" Name="ALARME_TC07" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="35" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="12" Name="ALARME_TC08" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="36" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="13" Name="ALARME_TC09" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="37" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="14" Name="ALARME_TC10" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="42" AddrType="X" AddrVal="0" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="15" Name="ALARME_PV01" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="43" AddrType="X" AddrVal="1" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="0" Name="ALARME_PV02" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="46" AddrType="W" AddrVal="100" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_PV01_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="47" AddrType="W" AddrVal="101" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_PV02_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="48" AddrType="W" AddrVal="102" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_AV02_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="49" AddrType="W" AddrVal="103" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC02_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="50" AddrType="W" AddrVal="104" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC03_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="51" AddrType="W" AddrVal="105" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC04_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="52" AddrType="W" AddrVal="106" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC05_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="53" AddrType="W" AddrVal="107" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC06_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="54" AddrType="W" AddrVal="108" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC07_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="55" AddrType="W" AddrVal="109" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC08_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="56" AddrType="W" AddrVal="110" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC09_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="57" AddrType="W" AddrVal="111" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC10_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="58" AddrType="W" AddrVal="112" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT05_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="59" AddrType="W" AddrVal="113" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT06_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="60" AddrType="W" AddrVal="114" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_AV01_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="61" AddrType="W" AddrVal="115" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC01_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="62" AddrType="W" AddrVal="116" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT10_LC" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="63" AddrType="W" AddrVal="200" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_PV01_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="64" AddrType="W" AddrVal="201" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_PV02_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="65" AddrType="W" AddrVal="202" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_AV02_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="66" AddrType="W" AddrVal="203" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC02_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="67" AddrType="W" AddrVal="204" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC03_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="68" AddrType="W" AddrVal="205" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC04_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="69" AddrType="W" AddrVal="206" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC05_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="70" AddrType="W" AddrVal="207" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC06_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="71" AddrType="W" AddrVal="208" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC07_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="72" AddrType="W" AddrVal="209" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC08_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="73" AddrType="W" AddrVal="210" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC09_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="74" AddrType="W" AddrVal="211" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC10_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="75" AddrType="W" AddrVal="212" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT05_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="76" AddrType="W" AddrVal="213" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT06_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="77" AddrType="W" AddrVal="214" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_AV01_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="78" AddrType="W" AddrVal="215" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC01_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="79" AddrType="W" AddrVal="216" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT10_HS" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="80" AddrType="W" AddrVal="300" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_PV01_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="81" AddrType="W" AddrVal="301" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_PV02_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="82" AddrType="W" AddrVal="302" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_AV02_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="83" AddrType="W" AddrVal="303" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC02_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="84" AddrType="W" AddrVal="304" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC03_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="85" AddrType="W" AddrVal="305" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC04_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="86" AddrType="W" AddrVal="306" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC05_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="87" AddrType="W" AddrVal="307" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC06_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="88" AddrType="W" AddrVal="308" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC07_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="89" AddrType="W" AddrVal="309" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC08_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="90" AddrType="W" AddrVal="310" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC09_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="91" AddrType="W" AddrVal="311" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC10_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="118" AddrType="W" AddrVal="424" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT05_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="119" AddrType="W" AddrVal="426" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT06_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="92" AddrType="W" AddrVal="312" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT05_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="93" AddrType="W" AddrVal="313" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT06_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="94" AddrType="W" AddrVal="314" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_AV01_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="116" AddrType="W" AddrVal="1000" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="SL_MOTOR_OLD" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="95" AddrType="W" AddrVal="315" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC01_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="96" AddrType="W" AddrVal="316" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT10_AL" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="97" AddrType="W" AddrVal="400" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_PV01_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="98" AddrType="W" AddrVal="402" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_PV02_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="99" AddrType="W" AddrVal="404" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_AV02_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="100" AddrType="W" AddrVal="406" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC02_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="101" AddrType="W" AddrVal="408" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC03_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="102" AddrType="W" AddrVal="410" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC04_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="103" AddrType="W" AddrVal="412" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC05_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="104" AddrType="W" AddrVal="414" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC06_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="105" AddrType="W" AddrVal="416" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC07_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="106" AddrType="W" AddrVal="418" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC08_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="107" AddrType="W" AddrVal="420" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC09_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="108" AddrType="W" AddrVal="422" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC10_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="109" AddrType="W" AddrVal="428" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_AV01_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="110" AddrType="W" AddrVal="430" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_TC01_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="111" AddrType="W" AddrVal="432" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="I_BRT10_HO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="112" AddrType="W" AddrVal="1001" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="SL_MOTOR" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="113" AddrType="W" AddrVal="1002" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="SL_HISTESE" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="114" AddrType="W" AddrVal="1003" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="SL_ALARME" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="115" AddrType="W" AddrVal="1010" TypeIndex="9912" ConnIndex="0" StatNO="-1" BitVal="0" Name="SL_HORIMETRO" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+		<Address Index="117" AddrType="X" AddrVal="1004" TypeIndex="9120" ConnIndex="0" StatNO="-1" BitVal="0" Name="SALVAR_BT" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
+	</AddressLib>
+	<StringLib Language="0">
+		<String Index="1" Content0="I ALTA MOTOR AV01" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="2" Content0="I ALTA MOTOR AV02" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="3" Content0="I ALTA MOTOR BRT10" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="4" Content0="I ALTA MOTOR BRT05" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="5" Content0="I ALTA MOTOR BRT06" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="6" Content0="I ALTA MOTOR TC01" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="7" Content0="I ALTA MOTOR TC02" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="8" Content0="I ALTA MOTOR TC03" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="9" Content0="I ALTA MOTOR TC04" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="10" Content0="I ALTA MOTOR TC05" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="11" Content0="I ALTA MOTOR TC06" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="12" Content0="I ALTA MOTOR TC07" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="13" Content0="I ALTA MOTOR TC08" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="14" Content0="I ALTA MOTOR TC09" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="15" Content0="I ALTA MOTOR TC10" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="20" Content0="I ALTA MOTOR PV01" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+		<String Index="21" Content0="I ALTA MOTOR PV02" Content1="" Content2="" Content3="" Content4="" Content5="" Content6="" Content7="" />
+	</StringLib>
+	<SysSet>
+		<SecSet Design="" />
+		<NETSet NET2IPaddr="192.168.1.67" NET2MASKaddr="255.255.255.0" NET2Wayaddr="192.168.1.1" NETIPaddr="10.30.30.147" NETMASKaddr="255.255.255.0" NETWayaddr="10.30.30.147" DNS1="1.1.1.1" DNS2="8.8.8.8" UseNet="0" UseNet2="0" />
+		<UpnpPortSet UsePortMapping="0" />
+		<RemoteSet RemotePwd="888888" />
+		<ServerSet ServerAddr="hmi.weconcloud.com" />
+		<DDNSSet UseDDNS="0" />
+		<Extend GotoBackSetType="2" PushTime="5" BackSetPsw="" IsAudio="0" IsKeyBoard="0" IsShortcutKey="0" IsCamera="0" UseTTF="1" IsUsbPopScreen="0" IsPicCompress="0" IsFtpServer="1" FtpServerPwd="030957" StrTabNum="8" IsPacketSVG="1" IsMultiLink="0" MultiType="0" />
+		<BaseSet IsProjBackup="1" StorePattern="1" AlarmPath="0" Background="1200" AlarmScrSave="0" JianGe="0" OsLanguage="0" IsScrIdVar="0" ScrIdWordAddr="" CurScrIdAddr="" SysLen="0" IsScrFast="0" IsUDKeyboard="0" IsNShowPOPUP="0" IsEncrypt="0" IsuseTTS="0" IsUseAuthority="0" IsUseOptLogFunc="0" ChangeTime="0" nWallId="1" FloatHiLowReverse="0" HMINAME="" ProtectScreen="0" ProtectScreenTime="10" ProtectScreenNo="0" IsShowNC="0" IsHighWord="0" IsShowCursor="0" IsDownValid="0" HeadLang="1" UseScrSaver="0" ScrSaverTime="1" ScrSaverType="0" />
+		<DataSourceSet UseDataSource="0" DataSourceName="" SQLDataFilePath="0" SQLDataFileType="0" SQLDataGroupNum="1" />
+		<PwdProtect UsePassword="0" MaxGradeNum="1" Default="1" Grade1="" Grade2="" Grade3="" Grade4="" Grade5="" Grade6="" Grade7="" Grade8="" Grade9="" Grade10="" Grade11="" Grade12="" GradeIndependent="0" UseScrProtect="0" ScrPwd="030957" PwdTimeout="1" IsUseUserAuthority="0" UserGroupIdSet="0" />
+		<LANPassword Enable="0" AppleId="" Password="" />
+	</SysSet>
+	<ScreenSet>
+		<ScreenInfo ScrnNo="0" Child="0" bInscreen="0" IsModeScr="0" ScrnName="ADMIN" Height="1080" Width="1920" Filled="0" BkColor="0xf7c639" FnColor="0x0" Pattern="0" BmpIndex="127" UseRight="1" RightClass="0" PopType="0" ScrnFile="0.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" />
+		<ScreenInfo ScrnNo="1" Child="0" bInscreen="0" IsModeScr="0" ScrnName="BASE" Height="1080" Width="1920" Filled="0" BkColor="0xf7c639" FnColor="0xf7c639" Pattern="0" BmpIndex="122" UseRight="0" RightClass="-1" PopType="0" ScrnFile="2.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" />
+		<ScreenInfo ScrnNo="2" Child="0" bInscreen="0" IsModeScr="0" ScrnName="MORRO_GRANDE" Height="1080" Width="1920" Filled="0" BkColor="0xf7c639" FnColor="0xf7c639" Pattern="0" BmpIndex="127" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="1" BgScreenNo="1" />
+		<ScreenInfo ScrnNo="3" Child="0" bInscreen="0" IsModeScr="0" ScrnName="CONFIGURAÇÕES" Height="1080" Width="1920" Filled="0" BkColor="0xf7c639" FnColor="0x0" Pattern="0" BmpIndex="127" UseRight="0" RightClass="0" PopType="0" ScrnFile="3.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="1" BgScreenNo="1" />
+		<ScreenInfo ScrnNo="48" Child="1" bInscreen="0" IsModeScr="0" ScrnName="SET_DATA_HORA" Height="360" Width="480" Filled="0" BkColor="0xf7c639" FnColor="0x0" Pattern="0" BmpIndex="129" UseRight="0" RightClass="0" PopType="0" ScrnFile="49.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="1000" Child="1" bInscreen="1" IsModeScr="0" ScrnName="BuilNum" Height="700" Width="700" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="-1" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1000.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="1001" Child="1" bInscreen="1" IsModeScr="0" ScrnName="BuilKey" Height="512" Width="887" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="-1" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1001.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="1002" Child="0" bInscreen="1" IsModeScr="0" ScrnName="Common Window" Height="1080" Width="1920" Filled="1" BkColor="0xffffff" FnColor="0xffffff" Pattern="0" BmpIndex="-1" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1002.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" />
+		<ScreenInfo ScrnNo="1003" Child="1" bInscreen="1" IsModeScr="0" ScrnName="PwdKeyBoard" Height="512" Width="887" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="-1" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1003.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="1006" Child="1" bInscreen="1" IsModeScr="0" ScrnName="UserLogin" Height="700" Width="700" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="11" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1006.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="1007" Child="1" bInscreen="1" IsModeScr="0" ScrnName="UserChangePSW" Height="700" Width="700" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="11" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1007.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="1008" Child="1" bInscreen="1" IsModeScr="0" ScrnName="Installment" Height="700" Width="700" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="11" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1008.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="1009" Child="1" bInscreen="1" IsModeScr="0" ScrnName="InstallmentNotice" Height="700" Width="700" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="11" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1009.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="1010" Child="1" bInscreen="1" IsModeScr="0" ScrnName="SetInstalment" Height="700" Width="700" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="11" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1010.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="1011" Child="1" bInscreen="1" IsModeScr="0" ScrnName="Check" Height="300" Width="600" Filled="0" BkColor="0xe7e7e7" FnColor="0xc0c0c0" Pattern="0" BmpIndex="-1" UseRight="0" RightClass="-1" PopType="0" ScrnFile="1011.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="5003" Child="1" bInscreen="1" IsModeScr="0" ScrnName="Format U_Disk" Height="700" Width="700" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="11" UseRight="0" RightClass="-1" PopType="0" ScrnFile="5003.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+		<ScreenInfo ScrnNo="5004" Child="1" bInscreen="1" IsModeScr="0" ScrnName="UdiskUp" Height="360" Width="480" Filled="0" BkColor="0xc0c0c0" FnColor="0xc0c0c0" Pattern="0" BmpIndex="11" UseRight="0" RightClass="-1" PopType="0" ScrnFile="5004.hsc" Opened="1" PartPng="" bUseJumpTimer="0" ChangeScrNo="-1" ScrTimeout="0" IsDynamic="0" TimeAddr="" ScreenBgFunc="-1" BgScreenNo="-1" PreViewName="" />
+	</ScreenSet>
+	<PlcSet Count="2">
+		<Connection>
+			<PLC TypeAlias="MODBUS RTU Slave(All Fuction)" Type="ModBus RTU Slave(All Fuction)" Driver="libModbusRTU_All.so" HmiStatNo="0" PlcStatNo="1" />
+			<CommSet Port="COM1" ComType="1" BaudRate="9600" StopBit="1" DataLength="8" CheckBit="NONE" RetryTimes="2" WaitTimeout="300" RevTimeout="50" RetryTimeOut="3" ComIoDelayTime="0" SingleReadLen="0" ComStepInterval="5" CustomName="MODBUS RTU Slave(All Fuction)" NETIPaddr="" NETPort="0" NETBroadcastAddr="0" NETIsBroadcast="0" NETIsUDP="0" EthType="1" />
+		</Connection>
+		<Connection>
+			<PLC TypeAlias="MODBUS TCP Slave(All Fuction)" Type="ModBus TCP Slave(All Fuction)" Driver="libModbus_TCP_All.so" HmiStatNo="0" PlcStatNo="2" />
+			<CommSet Port="Ethernet" ComType="0" BaudRate="19200" StopBit="1" DataLength="8" CheckBit="NONE" RetryTimes="2" WaitTimeout="1500" RevTimeout="50" RetryTimeOut="3" ComIoDelayTime="0" SingleReadLen="0" ComStepInterval="5" CustomName="MODBUS TCP Slave(All Fuction)" NETIPaddr="10.1.5.189" NETPort="502" NETBroadcastAddr="0" NETIsBroadcast="0" NETIsUDP="2" EthType="0" />
+		</Connection>
+	</PlcSet>
+	<Script>
+		<TimerAction>
+			<Timer Interval="1" AliasName="CARREGAR">@I_PV01_LC = @I_PV01 ''@W_0#HDW100 - ESCREVE O NOME DOS MOTORES AQUI
+@I_PV02_LC = @I_PV02 ''@W_0#HDW101 -
+@I_AV02_LC = @I_AV02 ''@W_0#HDW102 - 
+@I_TC02_LC = @I_TC02 ''@W_0#HDW103
+@I_TC03_LC = @I_TC03 ''@W_0#HDW104
+@I_TC04_LC = @I_TC04 ''@W_0#HDW105
+@I_TC05_LC = @I_TC05 ''@W_0#HDW106
+@I_TC06_LC = @I_TC06 ''@W_0#HDW107
+@I_TC07_LC = @I_TC07 ''@W_0#HDW108
+@I_TC08_LC = @I_TC08 ''@W_0#HDW109
+@I_TC09_LC = @I_TC09 ''@W_0#HDW110
+@I_TC10_LC = @I_TC10 ''@W_0#HDW111
+@I_BRT05_LC = @I_BRT05 ''@W_0#HDW112
+@I_BRT06_LC = @I_BRT06 ''@W_0#HDW113
+@I_AV01_LC = @I_AV01 ''@W_0#HDW114
+@I_TC01_LC = @I_TC01 ''@W_0#HDW115
+@I_BRT10_LC = @I_BRT10 ''@W_0#HDW116
+
+
+
+</Timer>
+			<Timer Interval="1" AliasName="SELECIONA">IF @SL_MOTOR &lt;&gt; @SL_MOTOR_OLD THEN
+
+	IF @SL_MOTOR = 0 THEN
+		@SL_HISTESE = 0
+		@SL_ALARME = 0
+		@SL_HORIMETRO = 0
+	ENDIF
+
+	IF @SL_MOTOR = 1 THEN
+		@SL_HISTESE = @I_PV01_HS
+		@SL_ALARME = @I_PV01_AL
+		@SL_HORIMETRO = @I_PV01_HO
+	ENDIF
+
+	IF @SL_MOTOR = 2 THEN
+		@SL_HISTESE = @I_PV02_HS
+		@SL_ALARME = @I_PV02_AL
+		@SL_HORIMETRO = @I_PV02_HO
+	ENDIF
+
+	IF @SL_MOTOR = 3 THEN
+		@SL_HISTESE = @I_AV01_HS
+		@SL_ALARME = @I_AV01_AL
+		@SL_HORIMETRO = @I_AV01_HO
+	ENDIF
+
+	IF @SL_MOTOR = 4 THEN
+		@SL_HISTESE = @I_AV02_HS
+		@SL_ALARME = @I_AV02_AL
+		@SL_HORIMETRO = @I_AV02_HO
+	ENDIF
+
+	IF @SL_MOTOR = 5 THEN
+		@SL_HISTESE = @I_TC01_HS
+		@SL_ALARME = @I_TC01_AL
+		@SL_HORIMETRO = @I_TC01_HO
+	ENDIF
+
+	IF @SL_MOTOR = 6 THEN
+		@SL_HISTESE = @I_TC02_HS
+		@SL_ALARME = @I_TC02_AL
+		@SL_HORIMETRO = @I_TC02_HO
+	ENDIF
+
+	IF @SL_MOTOR = 7 THEN
+		@SL_HISTESE = @I_TC03_HS
+		@SL_ALARME = @I_TC03_AL
+		@SL_HORIMETRO = @I_TC03_HO
+	ENDIF
+
+	IF @SL_MOTOR = 8 THEN
+		@SL_HISTESE = @I_TC04_HS
+		@SL_ALARME = @I_TC04_AL
+		@SL_HORIMETRO = @I_TC04_HO
+	ENDIF
+
+	IF @SL_MOTOR = 9 THEN
+		@SL_HISTESE = @I_TC05_HS
+		@SL_ALARME = @I_TC05_AL
+		@SL_HORIMETRO = @I_TC05_HO
+	ENDIF
+
+	IF @SL_MOTOR = 10 THEN
+		@SL_HISTESE = @I_TC06_HS
+		@SL_ALARME = @I_TC06_AL
+		@SL_HORIMETRO = @I_TC06_HO
+	ENDIF
+
+	IF @SL_MOTOR = 11 THEN
+		@SL_HISTESE = @I_TC07_HS
+		@SL_ALARME = @I_TC07_AL
+		@SL_HORIMETRO = @I_TC07_HO
+	ENDIF
+
+	IF @SL_MOTOR = 12 THEN
+		@SL_HISTESE = @I_TC08_HS
+		@SL_ALARME = @I_TC08_AL
+		@SL_HORIMETRO = @I_TC08_HO
+	ENDIF
+
+	IF @SL_MOTOR = 13 THEN
+		@SL_HISTESE = @I_TC09_HS
+		@SL_ALARME = @I_TC09_AL
+		@SL_HORIMETRO = @I_TC09_HO
+	ENDIF
+
+	IF @SL_MOTOR = 14 THEN
+		@SL_HISTESE = @I_TC10_HS
+		@SL_ALARME = @I_TC10_AL
+		@SL_HORIMETRO = @I_TC10_HO
+	ENDIF
+
+	IF @SL_MOTOR = 15 THEN
+		@SL_HISTESE = @I_BRT05_HS
+		@SL_ALARME = @I_BRT05_AL
+		@SL_HORIMETRO = @I_BRT05_HO
+	ENDIF
+
+	IF @SL_MOTOR = 16 THEN
+		@SL_HISTESE = @I_BRT06_HS
+		@SL_ALARME = @I_BRT06_AL
+		@SL_HORIMETRO = @I_BRT06_HO
+	ENDIF
+
+	IF @SL_MOTOR = 17 THEN
+		@SL_HISTESE = @I_BRT10_HS
+		@SL_ALARME = @I_BRT10_AL
+		@SL_HORIMETRO = @I_BRT10_HO
+	ENDIF
+
+	@SL_MOTOR_OLD = @SL_MOTOR
+
+ENDIF
+
+
+IF @SALVAR_BT = 1 THEN
+
+	IF @SL_MOTOR = 1 THEN
+		@I_PV01_HS = @SL_HISTESE
+		@I_PV01_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 2 THEN
+		@I_PV02_HS = @SL_HISTESE
+		@I_PV02_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 3 THEN
+		@I_AV01_HS = @SL_HISTESE
+		@I_AV01_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 4 THEN
+		@I_AV02_HS = @SL_HISTESE
+		@I_AV02_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 5 THEN
+		@I_TC01_HS = @SL_HISTESE
+		@I_TC01_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 6 THEN
+		@I_TC02_HS = @SL_HISTESE
+		@I_TC02_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 7 THEN
+		@I_TC03_HS = @SL_HISTESE
+		@I_TC03_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 8 THEN
+		@I_TC04_HS = @SL_HISTESE
+		@I_TC04_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 9 THEN
+		@I_TC05_HS = @SL_HISTESE
+		@I_TC05_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 10 THEN
+		@I_TC06_HS = @SL_HISTESE
+		@I_TC06_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 11 THEN
+		@I_TC07_HS = @SL_HISTESE
+		@I_TC07_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 12 THEN
+		@I_TC08_HS = @SL_HISTESE
+		@I_TC08_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 13 THEN
+		@I_TC09_HS = @SL_HISTESE
+		@I_TC09_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 14 THEN
+		@I_TC10_HS = @SL_HISTESE
+		@I_TC10_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 15 THEN
+		@I_BRT05_HS = @SL_HISTESE
+		@I_BRT05_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 16 THEN
+		@I_BRT06_HS = @SL_HISTESE
+		@I_BRT06_AL = @SL_ALARME
+	ENDIF
+
+	IF @SL_MOTOR = 17 THEN
+		@I_BRT10_HS = @SL_HISTESE
+		@I_BRT10_AL = @SL_ALARME
+	ENDIF
+
+	@SALVAR_BT = 0
+
+ENDIF
+
+</Timer>
+		</TimerAction>
+	</Script>
+</project>

@@ -279,6 +279,35 @@ public class SocketServerService : BackgroundService, ISocketServerService
                     await SendResponseAsync(client, "ERROR: Erro ao processar\n");
                 }
             }
+            // Processar mensagens de console (log, error, warn, info)
+            else if (socketMessage.Tipo == "log" || socketMessage.Tipo == "error" || 
+                     socketMessage.Tipo == "warn" || socketMessage.Tipo == "info")
+            {
+                _logger.LogInformation("Processando mensagem de console: {Tipo}", socketMessage.Tipo);
+                try
+                {
+                    var consoleMessage = JsonSerializer.Deserialize<ConsoleMessageDto>(message, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (consoleMessage != null && !string.IsNullOrEmpty(consoleMessage.Mensagem))
+                    {
+                        await ProcessConsoleMessageAsync(consoleMessage, cancellationToken);
+                        await SendResponseAsync(client, "OK\n");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Mensagem de console vazia ou inválida");
+                        await SendResponseAsync(client, "ERROR: Mensagem vazia\n");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro ao processar mensagem de console");
+                    await SendResponseAsync(client, "ERROR: Erro ao processar\n");
+                }
+            }
             else
             {
                 _logger.LogWarning("Tipo de mensagem desconhecido ou ID vazio. Tipo: {Tipo}, ID: {Id}", 
@@ -316,6 +345,24 @@ public class SocketServerService : BackgroundService, ISocketServerService
         {
             _logger.LogWarning("PlantaId não fornecido, retransmitindo para todas as conexões");
             await webSocketHub.BroadcastCorrentesAsync(correntesDto, null);
+        }
+    }
+
+    private async Task ProcessConsoleMessageAsync(ConsoleMessageDto consoleMessage, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Processando mensagem de console: {Tipo} - {Mensagem}", 
+            consoleMessage.Tipo, consoleMessage.Mensagem);
+        
+        if (string.IsNullOrEmpty(consoleMessage.Mensagem))
+            return;
+        
+        // Retransmitir via WebSocket hub usando plantaId da mensagem
+        var webSocketHub = _serviceProvider.GetService<IWebSocketHub>();
+        if (webSocketHub != null)
+        {
+            var plantaId = consoleMessage.PlantaId;
+            _logger.LogDebug("Retransmitindo mensagem de console para planta {PlantaId}", plantaId ?? "todas");
+            await webSocketHub.BroadcastConsoleAsync(consoleMessage, plantaId);
         }
     }
 

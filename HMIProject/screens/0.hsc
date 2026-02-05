@@ -24,4 +24,7 @@
 		<ClickPopTrig />
 		<UserAuthority IsUseUserAuthority="0" IsPopUserLoginWin="0" PopType="0" IsHidePart="0" />
 	</PartInfo>
+	<PartInfo PartType="PrintRect" PartName="PrintRect_0" PartClassifyType="Pic" PartID="0_PrintRect_0">
+		<General Desc="PrintRect_0" Area="172 154 665 609" PrintDirection="0" PrintStorMed="0" PrintScale="0" PrintMode="0" Locking="0" />
+	</PartInfo>
 </ScrInfo>

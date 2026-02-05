@@ -95,6 +95,7 @@ function we_bg_init()
 end
 
 function we_bg_poll()
+printf("HMI 8070") 
     -- Gerar número aleatório entre 180 e 220
     conta = math.random(180, 220)
     we_bas_setint("@Motor1", conta)

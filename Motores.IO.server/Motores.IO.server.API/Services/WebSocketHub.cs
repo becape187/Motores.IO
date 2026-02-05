@@ -75,6 +75,67 @@ public class WebSocketHub : IWebSocketHub
             sentCount, plantaId ?? "todas");
     }
 
+    public async Task BroadcastConsoleAsync(ConsoleMessageDto consoleMessage, string? plantaId = null)
+    {
+        if (consoleMessage == null || string.IsNullOrEmpty(consoleMessage.Mensagem))
+            return;
+        
+        var json = JsonSerializer.Serialize(consoleMessage);
+        var bytes = Encoding.UTF8.GetBytes(json);
+
+        var connectionsToRemove = new List<string>();
+        var sentCount = 0;
+
+        foreach (var kvp in _connections)
+        {
+            var connection = kvp.Value;
+            
+            // Filtrar por plantaId se especificado
+            if (!string.IsNullOrEmpty(plantaId) && connection.PlantaId != plantaId)
+            {
+                continue; // Pular conexões de outras plantas
+            }
+            
+            // Verificar se é conexão de console (tipo "console") ou conexão geral
+            // Por enquanto, enviar para todas as conexões WebSocket
+            // No futuro, podemos adicionar um campo ConnectionType para diferenciar
+            
+            if (connection.WebSocket.State == WebSocketState.Open)
+            {
+                try
+                {
+                    await connection.WebSocket.SendAsync(
+                        new ArraySegment<byte>(bytes),
+                        WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None);
+                    
+                    sentCount++;
+                    _logger.LogDebug("Mensagem de console enviada para conexão {ConnectionId} (planta: {PlantaId})", 
+                        kvp.Key, connection.PlantaId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Erro ao enviar mensagem de console para conexão {ConnectionId}", kvp.Key);
+                    connectionsToRemove.Add(kvp.Key);
+                }
+            }
+            else
+            {
+                connectionsToRemove.Add(kvp.Key);
+            }
+        }
+
+        // Remover conexões fechadas
+        foreach (var connectionId in connectionsToRemove)
+        {
+            _connections.TryRemove(connectionId, out _);
+        }
+
+        _logger.LogInformation("Mensagem de console retransmitida para {Count} conexões WebSocket (planta: {PlantaId})", 
+            sentCount, plantaId ?? "todas");
+    }
+
     public Task AddConnectionAsync(string connectionId, string plantaId)
     {
         // Esta função será chamada quando uma nova conexão WebSocket for estabelecida

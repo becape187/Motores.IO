@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<G_Picture G_PictureVer="2.0">
+	<G_bmplib FileType="1" CurBmpTotal="45" AllBmpTotal="144">
+		<G_bmp Default="1" szFilename="Bmp1" nId="1" nTotalStatus="2" nNewTotalStatus="0">
+			<MulStatus szFilename="Bmp1_0.dat" dwMID="0" />
+			<MulStatus szFilename="Bmp1_1.dat" dwMID="1" />
+		</G_bmp>
+		<G_bmp Default="1" szFilename="Bmp2_0.dat" nId="2" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp3_0.dat" nId="3" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp4_0.dat" nId="4" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp5_0.dat" nId="5" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp6_0.dat" nId="6" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp7_0.dat" nId="7" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp8_0.dat" nId="8" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp9_0.dat" nId="9" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp10_0.dat" nId="10" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp11_0.dat" nId="11" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp12_0.dat" nId="12" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp13_0.dat" nId="13" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp Default="1" szFilename="Bmp14" nId="14" nTotalStatus="2" nNewTotalStatus="0">
+			<MulStatus szFilename="Bmp14_0.dat" dwMID="0" />
+			<MulStatus szFilename="Bmp14_1.dat" dwMID="1" />
+		</G_bmp>
+		<G_bmp IsVector="1" szPath="Button" nId="102" szFilename="Bmp102" nTotalStatus="2" nNewTotalStatus="0">
+			<MulStatus dwMID="0" IsVector="1" szPath="Button" szFilename="Button0200.svg" bSavePng="0" bTransparent="0" cTransColor="0" />
+			<MulStatus dwMID="1" IsVector="1" szPath="Button" szFilename="Button0200.svg" bSavePng="0" bTransparent="0" cTransColor="0" />
+		</G_bmp>
+		<G_bmp szFilename="Bmp104_0.dat" nId="104" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp106_0.dat" nId="106" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp IsVector="1" szPath="Button" szFilename="Button0400.svg" nId="108" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp110_0.dat" nId="110" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp nId="111" szFilename="Bmp111" nTotalStatus="2" nNewTotalStatus="0">
+			<MulStatus dwMID="0" szFilename="Bmp111_0.dat" bSavePng="0" bTransparent="0" cTransColor="0" />
+			<MulStatus dwMID="1" szFilename="Bmp111_1.dat" bSavePng="0" bTransparent="0" cTransColor="0" />
+		</G_bmp>
+		<G_bmp IsVector="1" szPath="Icon" szFilename="Icon4028.svg" nId="112" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp IsVector="1" szPath="Icon" szFilename="Icon2305.svg" nId="113" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp IsVector="1" szPath="Icon" szFilename="Icon2330.svg" nId="114" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp IsVector="1" szPath="Icon" szFilename="Icon2326.svg" nId="117" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp IsVector="1" szPath="Icon" szFilename="Icon2313.svg" nId="118" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp121_0.dat" nId="121" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp122_0.dat" nId="122" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp123_0.dat" nId="123" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp125_0.dat" nId="125" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp127_0.dat" nId="127" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp129_0.dat" nId="129" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp130_0.dat" nId="130" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp nId="131" szFilename="Bmp131" nTotalStatus="2" nNewTotalStatus="0">
+			<MulStatus dwMID="0" szFilename="Bmp131_0.dat" bSavePng="0" bTransparent="0" cTransColor="0" />
+			<MulStatus dwMID="1" szFilename="Bmp131_1.dat" bSavePng="0" bTransparent="0" cTransColor="0" />
+		</G_bmp>
+		<G_bmp IsVector="1" szPath="Icon" szFilename="Icon2315.svg" nId="132" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp nId="133" szFilename="Bmp133" nTotalStatus="2" nNewTotalStatus="0">
+			<MulStatus dwMID="0" szFilename="Bmp133_0.dat" bSavePng="0" bTransparent="0" cTransColor="0" />
+			<MulStatus dwMID="1" szFilename="Bmp133_1.dat" bSavePng="0" bTransparent="0" cTransColor="0" />
+		</G_bmp>
+		<G_bmp IsVector="1" szPath="Icon" nId="134" szFilename="Bmp134" nTotalStatus="2" nNewTotalStatus="0">
+			<MulStatus dwMID="0" IsVector="1" szPath="Icon" szFilename="Icon2328.svg" bSavePng="0" bTransparent="0" cTransColor="0" />
+			<MulStatus dwMID="1" IsVector="1" szPath="Icon" szFilename="Icon2328.svg" bSavePng="0" bTransparent="0" cTransColor="0" />
+		</G_bmp>
+		<G_bmp IsVector="1" szPath="Direction" szFilename="Direction0701.svg" nId="135" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp IsVector="1" szPath="Direction" szFilename="Direction0700.svg" nId="136" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp137_0.dat" nId="137" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp138_0.dat" nId="138" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp IsVector="1" szPath="Direction" szFilename="Direction0653.svg" nId="139" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp141_0.dat" nId="141" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp szFilename="Bmp142_0.dat" nId="142" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp IsVector="1" szPath="Icon" szFilename="Icon0302.svg" nId="143" nTotalStatus="1" nNewTotalStatus="0" />
+		<G_bmp IsVector="1" szPath="Icon" szFilename="Icon0501.svg" nId="144" nTotalStatus="1" nNewTotalStatus="0" />
+	</G_bmplib>
+</G_Picture>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project filever="1.0">
+	<BaseSet URL="ASEAN" RemotePswd="030957" UploadTo="0" UpdateTime="2" ServerType="1" DataSaving="1" Use="1" PrivateDeploy="" />
+	<MqttSet URL="" PORT="0" ClientID="" ConnTimeout="10" KeepAlive="60" Cleansession="0" Username="" Password="" Qos="0" Retained="0" LastWill="" Testament="" IsCrt="0" CrtName="" />
+	<DataGrpSet Cloud="1" CustomName="">
+		<Group ID="1" GroupName="CorrentesRecord1Record1Record1Record1Record1Record1Record1" Trigger="0" ChannelCount="17" Timer="1" ReportType="0">
+			<Data ID="1" WordAddr="I_AV01" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="AV_01Channel1Channel1Channel1Channel1Channel1Channel1Channel1" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="2" WordAddr="I_AV02" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="AV_02Channel2Channel2Channel2Channel2Channel2Channel2Channel2" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="3" WordAddr="I_BRT10" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="BRT_10Channel3Channel3Channel3Channel3Channel3Channel3Channel3" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="4" WordAddr="I_BRT05" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="BRT_05Channel4Channel4Channel4Channel4Channel4Channel4Channel4" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="5" WordAddr="I_BRT06" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="BRT_06Channel5Channel5Channel5Channel5Channel5Channel5Channel5" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="6" WordAddr="I_TC01" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="TC_01Channel6Channel6Channel6Channel6Channel6Channel6Channel6" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="7" WordAddr="I_TC02" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="TC_02Channel7Channel7Channel7Channel7Channel7Channel7Channel7" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="8" WordAddr="I_TC03" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="TC_03Channel8Channel8Channel8Channel8Channel8Channel8Channel8" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="9" WordAddr="I_TC04" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="TC_04Channel9Channel9Channel9Channel9Channel9Channel9Channel9" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="10" WordAddr="I_TC05" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="TC_05Channel10Channel10Channel10Channel10Channel10Channel10Channel10" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="11" WordAddr="I_TC06" DataFormat="105" DataLimit="0,9999" ByteLen="1" DigitCount="4.0" Name="TC_06Channel11Channel11Channel11Channel11Channel11Channel11Channel11" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="12" WordAddr="I_TC07" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="TC_07Channel12Channel12Channel12Channel12Channel12Channel12Channel12" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="13" WordAddr="I_TC08" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="TC_08Channel13Channel13Channel13Channel13Channel13Channel13Channel13" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="14" WordAddr="I_TC09" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="TC_09Channel14Channel14Channel14Channel14Channel14Channel14Channel14" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="15" WordAddr="I_TC10" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="TC_10Channel15Channel15Channel15Channel15Channel15Channel15Channel15" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="16" WordAddr="I_PV01" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="PV_01Channel16Channel16Channel16Channel16Channel16Channel16Channel16" IsBitCollect="0" RW="0" SaveTraffic="1" />
+			<Data ID="17" WordAddr="I_PV02" DataFormat="105" DataLimit="0,655.35" ByteLen="1" DigitCount="3.2" Name="PV_02Channel17Channel17Channel17Channel17Channel17Channel17Channel17" IsBitCollect="0" RW="0" SaveTraffic="1" />
+		</Group>
+	</DataGrpSet>
+	<PlcSet>
+		<Connection ID="1" Type="ModBus RTU Slave(All Fuction)" Port="COM1" />
+		<Connection ID="2" Type="ModBus TCP Slave(All Fuction)" Port="Ethernet" />
+	</PlcSet>
+</project>
