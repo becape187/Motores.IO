@@ -86,14 +86,23 @@ public class WebSocketHub : IWebSocketHub
         var connectionsToRemove = new List<string>();
         var sentCount = 0;
 
+        // Usar plantaId da mensagem se disponível, senão usar o parâmetro
+        var messagePlantaId = consoleMessage.PlantaId ?? plantaId;
+
         foreach (var kvp in _connections)
         {
             var connection = kvp.Value;
             
             // Filtrar por plantaId se especificado
-            if (!string.IsNullOrEmpty(plantaId) && connection.PlantaId != plantaId)
+            // Se connection.PlantaId for "all", sempre enviar (recebe de todas as plantas)
+            // Se messagePlantaId for especificado, enviar apenas para conexões com mesmo plantaId ou "all"
+            if (!string.IsNullOrEmpty(messagePlantaId))
             {
-                continue; // Pular conexões de outras plantas
+                // Se a conexão não é "all" e não é a planta da mensagem, pular
+                if (connection.PlantaId != "all" && connection.PlantaId != messagePlantaId)
+                {
+                    continue; // Pular conexões de outras plantas
+                }
             }
             
             // Verificar se é conexão de console (tipo "console") ou conexão geral
