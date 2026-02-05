@@ -19,7 +19,8 @@ export function useWebSocketConsole(
   const shouldReconnect = useRef(true);
 
   useEffect(() => {
-    // Construir URL do WebSocket (pode receber de todas as plantas se não especificar)
+    // TESTE: Usar o mesmo endpoint de correntes que funciona
+    // Filtrar mensagens de console na camada de aplicação
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     // Usar a mesma base URL da API se disponível
     const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://api.motores.automais.io/api';
@@ -30,11 +31,14 @@ export function useWebSocketConsole(
       const url = new URL(apiBaseUrl.replace(/\/api$/, ''));
       wsHost = url.host;
     }
+    
+    // Usar endpoint de correntes (que sabemos que funciona)
     const wsUrl = plantaId 
-      ? `${wsProtocol}//${wsHost}/api/websocket/console?plantaId=${plantaId}`
-      : `${wsProtocol}//${wsHost}/api/websocket/console?plantaId=all`;
+      ? `${wsProtocol}//${wsHost}/api/websocket/correntes?plantaId=${plantaId}`
+      : `${wsProtocol}//${wsHost}/api/websocket/correntes?plantaId=all`;
 
-    console.log('[Console WebSocket] Tentando conectar em:', wsUrl);
+    console.log('[Console WebSocket] TESTE: Usando endpoint de correntes:', wsUrl);
+    console.log('[Console WebSocket] Filtrando mensagens de console na camada de aplicação');
 
     const connect = () => {
       if (!shouldReconnect.current) {
@@ -54,10 +58,29 @@ export function useWebSocketConsole(
 
         ws.onmessage = (event) => {
           try {
-            const message: ConsoleMessage = JSON.parse(event.data);
-            onMessage(message);
+            const data = JSON.parse(event.data);
+            
+            // Filtrar apenas mensagens de console (tipo: log, error, warn, info)
+            // Mensagens de console têm: tipo, mensagem, timestamp, nivel, plantaId
+            // Mensagens de correntes têm: tipo: "correntes", motores, plantaId
+            if (data.tipo === 'log' || data.tipo === 'error' || data.tipo === 'warn' || data.tipo === 'info') {
+              // É uma mensagem de console
+              const message: ConsoleMessage = {
+                tipo: data.tipo,
+                mensagem: data.mensagem,
+                timestamp: data.timestamp,
+                nivel: data.nivel || data.tipo,
+                plantaId: data.plantaId
+              };
+              console.log('[Console WebSocket] Mensagem de console recebida:', message);
+              onMessage(message);
+            } else {
+              // É uma mensagem de correntes ou outro tipo, ignorar
+              console.log('[Console WebSocket] Mensagem ignorada (não é console):', data.tipo);
+            }
           } catch (err) {
             console.error('[Console WebSocket] Erro ao processar mensagem:', err);
+            console.error('[Console WebSocket] Dados recebidos:', event.data);
           }
         };
 
