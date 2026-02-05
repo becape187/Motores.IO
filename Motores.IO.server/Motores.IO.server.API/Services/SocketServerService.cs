@@ -356,13 +356,14 @@ public class SocketServerService : BackgroundService, ISocketServerService
         if (string.IsNullOrEmpty(consoleMessage.Mensagem))
             return;
         
-        // Retransmitir via WebSocket hub usando plantaId da mensagem
+        // Retransmitir via WebSocket hub
+        // Passar null como plantaId para enviar para TODAS as conexões (igual correntes)
+        // Isso garante que o console receba mensagens independente do plantaId da conexão
         var webSocketHub = _serviceProvider.GetService<IWebSocketHub>();
         if (webSocketHub != null)
         {
-            var plantaId = consoleMessage.PlantaId;
-            _logger.LogDebug("Retransmitindo mensagem de console para planta {PlantaId}", plantaId ?? "todas");
-            await webSocketHub.BroadcastConsoleAsync(consoleMessage, plantaId);
+            _logger.LogInformation("Retransmitindo mensagem de console para TODAS as conexões (sem filtro de plantaId)");
+            await webSocketHub.BroadcastConsoleAsync(consoleMessage, null);
         }
     }
 

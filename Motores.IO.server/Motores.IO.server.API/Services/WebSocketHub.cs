@@ -77,42 +77,60 @@ public class WebSocketHub : IWebSocketHub
 
     public async Task BroadcastConsoleAsync(ConsoleMessageDto consoleMessage, string? plantaId = null)
     {
+        _logger.LogInformation("=== BROADCAST CONSOLE INICIADO ===");
+        _logger.LogInformation("Mensagem: {Mensagem}", consoleMessage?.Mensagem ?? "null");
+        _logger.LogInformation("Tipo: {Tipo}", consoleMessage?.Tipo ?? "null");
+        _logger.LogInformation("PlantaId (parâmetro): {PlantaId}", plantaId ?? "null");
+        _logger.LogInformation("PlantaId (mensagem): {PlantaId}", consoleMessage?.PlantaId ?? "null");
+        _logger.LogInformation("Total de conexões WebSocket: {Count}", _connections.Count);
+        
         if (consoleMessage == null || string.IsNullOrEmpty(consoleMessage.Mensagem))
+        {
+            _logger.LogWarning("Mensagem de console nula ou vazia, abortando broadcast");
             return;
+        }
         
         var json = JsonSerializer.Serialize(consoleMessage);
         var bytes = Encoding.UTF8.GetBytes(json);
+        _logger.LogDebug("JSON serializado: {Json}", json);
+        _logger.LogDebug("Tamanho: {Size} bytes", bytes.Length);
 
         var connectionsToRemove = new List<string>();
         var sentCount = 0;
+        var skippedCount = 0;
 
-        // Usar plantaId da mensagem se disponível, senão usar o parâmetro
-        var messagePlantaId = consoleMessage.PlantaId ?? plantaId;
+        // Usar plantaId do parâmetro (se fornecido), senão usar da mensagem
+        // Se nenhum for fornecido, enviar para TODAS as conexões (igual BroadcastCorrentesAsync)
+        var filterPlantaId = plantaId ?? consoleMessage.PlantaId;
+        _logger.LogInformation("PlantaId usado para filtro: {PlantaId}", filterPlantaId ?? "TODAS (sem filtro)");
 
         foreach (var kvp in _connections)
         {
             var connection = kvp.Value;
+            _logger.LogDebug("Verificando conexão {ConnectionId} (planta: {PlantaId}, estado: {State})", 
+                kvp.Key, connection.PlantaId, connection.WebSocket.State);
             
-            // Filtrar por plantaId se especificado
-            // Se connection.PlantaId for "all", sempre enviar (recebe de todas as plantas)
-            // Se messagePlantaId for especificado, enviar apenas para conexões com mesmo plantaId ou "all"
-            if (!string.IsNullOrEmpty(messagePlantaId))
+            // Filtrar por plantaId se especificado (igual BroadcastCorrentesAsync)
+            // Se filterPlantaId for null/empty, enviar para TODAS as conexões
+            // Se filterPlantaId for especificado, enviar para conexões "all" OU com mesmo plantaId
+            if (!string.IsNullOrEmpty(filterPlantaId))
             {
-                // Se a conexão não é "all" e não é a planta da mensagem, pular
-                if (connection.PlantaId != "all" && connection.PlantaId != messagePlantaId)
+                // Se a conexão não é "all" e não corresponde ao filterPlantaId, pular
+                if (connection.PlantaId != "all" && connection.PlantaId != filterPlantaId)
                 {
-                    continue; // Pular conexões de outras plantas
+                    skippedCount++;
+                    _logger.LogDebug("Pulando conexão {ConnectionId} (planta {ConnectionPlanta} != {FilterPlanta} e != 'all')", 
+                        kvp.Key, connection.PlantaId, filterPlantaId);
+                    continue;
                 }
             }
-            
-            // Verificar se é conexão de console (tipo "console") ou conexão geral
-            // Por enquanto, enviar para todas as conexões WebSocket
-            // No futuro, podemos adicionar um campo ConnectionType para diferenciar
+            // Se filterPlantaId for null/empty, enviar para TODAS (não pular nenhuma)
             
             if (connection.WebSocket.State == WebSocketState.Open)
             {
                 try
                 {
+                    _logger.LogDebug("Enviando para conexão {ConnectionId}...", kvp.Key);
                     await connection.WebSocket.SendAsync(
                         new ArraySegment<byte>(bytes),
                         WebSocketMessageType.Text,
@@ -120,17 +138,19 @@ public class WebSocketHub : IWebSocketHub
                         CancellationToken.None);
                     
                     sentCount++;
-                    _logger.LogDebug("Mensagem de console enviada para conexão {ConnectionId} (planta: {PlantaId})", 
+                    _logger.LogInformation("✓ Mensagem enviada para conexão {ConnectionId} (planta: {PlantaId})", 
                         kvp.Key, connection.PlantaId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Erro ao enviar mensagem de console para conexão {ConnectionId}", kvp.Key);
+                    _logger.LogWarning(ex, "✗ Erro ao enviar mensagem de console para conexão {ConnectionId}", kvp.Key);
                     connectionsToRemove.Add(kvp.Key);
                 }
             }
             else
             {
+                _logger.LogDebug("Conexão {ConnectionId} não está aberta (estado: {State})", 
+                    kvp.Key, connection.WebSocket.State);
                 connectionsToRemove.Add(kvp.Key);
             }
         }
@@ -139,10 +159,12 @@ public class WebSocketHub : IWebSocketHub
         foreach (var connectionId in connectionsToRemove)
         {
             _connections.TryRemove(connectionId, out _);
+            _logger.LogDebug("Conexão {ConnectionId} removida", connectionId);
         }
 
-        _logger.LogInformation("Mensagem de console retransmitida para {Count} conexões WebSocket (planta: {PlantaId})", 
-            sentCount, plantaId ?? "todas");
+        _logger.LogInformation("=== BROADCAST CONSOLE CONCLUÍDO ===");
+        _logger.LogInformation("Enviadas: {SentCount}, Puladas: {SkippedCount}, Removidas: {RemovedCount}", 
+            sentCount, skippedCount, connectionsToRemove.Count);
     }
 
     public Task AddConnectionAsync(string connectionId, string plantaId)
