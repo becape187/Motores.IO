@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Motores.IO.server.API.Services;
 
@@ -7,6 +8,7 @@ namespace Motores.IO.server.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous] // WebSockets não precisam de autenticação
 public class WebSocketController : ControllerBase
 {
     private readonly IWebSocketHub _webSocketHub;
@@ -77,27 +79,55 @@ public class WebSocketController : ControllerBase
     [HttpGet("console")]
     public async Task GetConsole()
     {
+        _logger.LogInformation("=== REQUISIÇÃO WEBSOCKET CONSOLE RECEBIDA ===");
+        _logger.LogInformation("Path: {Path}", HttpContext.Request.Path);
+        _logger.LogInformation("QueryString: {QueryString}", HttpContext.Request.QueryString);
+        _logger.LogInformation("IsWebSocketRequest: {IsWebSocket}", HttpContext.WebSockets.IsWebSocketRequest);
+        
         if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
+            _logger.LogWarning("✗ Requisição não é WebSocket, retornando 400");
             HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await HttpContext.Response.WriteAsync("WebSocket request required");
             return;
         }
 
         // Obter plantaId da query string (opcional para console - pode receber de todas as plantas)
         var plantaId = Request.Query["plantaId"].ToString();
+        _logger.LogInformation("PlantaId recebido: {PlantaId}", plantaId ?? "null");
+        
         // Se não especificado, usar "all" para receber de todas as plantas
         if (string.IsNullOrEmpty(plantaId))
         {
             plantaId = "all";
+            _logger.LogInformation("PlantaId não especificado, usando 'all'");
         }
 
-        var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+        _logger.LogInformation("Aceitando conexão WebSocket...");
+        WebSocket webSocket;
+        try
+        {
+            webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+            _logger.LogInformation("✓ WebSocket aceito com sucesso");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "✗ Erro ao aceitar WebSocket");
+            return;
+        }
+        
         var connectionId = Guid.NewGuid().ToString();
+        _logger.LogInformation("ConnectionId gerado: {ConnectionId}", connectionId);
         
         // Adicionar conexão ao hub (marcada como console)
         if (_webSocketHub is WebSocketHub hub)
         {
             hub.AddConnection(connectionId, webSocket, plantaId);
+            _logger.LogInformation("✓ Conexão adicionada ao hub");
+        }
+        else
+        {
+            _logger.LogError("✗ WebSocketHub não é do tipo WebSocketHub!");
         }
 
         _logger.LogInformation("Nova conexão WebSocket Console estabelecida: {ConnectionId} para planta {PlantaId}", 
