@@ -1,0 +1,150 @@
+import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useWebSocketConsole, ConsoleMessage } from '../hooks/useWebSocketConsole';
+import { Terminal, Trash2, Download, Wifi, WifiOff } from 'lucide-react';
+import './Console.css';
+
+export default function Console() {
+  const { plantaSelecionada } = useAuth();
+  const [messages, setMessages] = useState<ConsoleMessage[]>([]);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const { isConnected } = useWebSocketConsole(
+    plantaSelecionada?.id,
+    (message) => {
+      setMessages((prev) => [...prev, message]);
+    }
+  );
+
+  // Auto-scroll quando novas mensagens chegarem
+  useEffect(() => {
+    if (autoScroll && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, autoScroll]);
+
+  // Detectar quando usuário rola manualmente
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+      setAutoScroll(isAtBottom);
+    }
+  };
+
+  const clearMessages = () => {
+    setMessages([]);
+  };
+
+  const downloadLogs = () => {
+    const logText = messages
+      .map((msg) => {
+        const date = new Date(msg.timestamp * 1000).toISOString();
+        return `[${date}] [${msg.tipo.toUpperCase()}] ${msg.mensagem}`;
+      })
+      .join('\n');
+    
+    const blob = new Blob([logText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `console-log-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const getMessageClass = (tipo: string) => {
+    switch (tipo) {
+      case 'error':
+        return 'console-message-error';
+      case 'warn':
+        return 'console-message-warn';
+      case 'info':
+        return 'console-message-info';
+      default:
+        return 'console-message-log';
+    }
+  };
+
+  const formatTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleTimeString('pt-BR', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit',
+      fractionalSecondDigits: 3
+    });
+  };
+
+  return (
+    <div className="console-page">
+      <div className="console-header">
+        <div className="console-title">
+          <Terminal size={24} />
+          <h2>Console</h2>
+          <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+            {isConnected ? (
+              <>
+                <Wifi size={16} />
+                <span>Conectado</span>
+              </>
+            ) : (
+              <>
+                <WifiOff size={16} />
+                <span>Desconectado</span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="console-actions">
+          <button onClick={clearMessages} className="btn-icon" title="Limpar console">
+            <Trash2 size={18} />
+            Limpar
+          </button>
+          <button onClick={downloadLogs} className="btn-icon" title="Baixar logs">
+            <Download size={18} />
+            Baixar
+          </button>
+        </div>
+      </div>
+
+      <div 
+        className="console-messages" 
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+      >
+        {messages.length === 0 ? (
+          <div className="console-empty">
+            <Terminal size={48} />
+            <p>Nenhuma mensagem ainda</p>
+            <span>As mensagens do console aparecerão aqui em tempo real</span>
+          </div>
+        ) : (
+          messages.map((message, index) => (
+            <div key={index} className={`console-message ${getMessageClass(message.tipo)}`}>
+              <span className="console-timestamp">{formatTimestamp(message.timestamp)}</span>
+              <span className="console-type">[{message.tipo.toUpperCase()}]</span>
+              <span className="console-text">{message.mensagem}</span>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="console-footer">
+        <span className="console-count">
+          {messages.length} mensagem{messages.length !== 1 ? 's' : ''}
+        </span>
+        {plantaSelecionada && (
+          <span className="console-planta">
+            Planta: {plantaSelecionada.nome}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}

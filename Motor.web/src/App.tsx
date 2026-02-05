@@ -10,6 +10,7 @@ import Maintenance from './pages/Maintenance';
 import Alarms from './pages/Alarms';
 import Users from './pages/Users';
 import PlantaTokens from './pages/PlantaTokens';
+import Console from './pages/Console';
 import './App.css';
 
 function AppRoutes() {
@@ -36,6 +37,7 @@ function AppRoutes() {
                 <Route path="/alarms" element={<Alarms />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/tokens" element={<PlantaTokens />} />
+                <Route path="/console" element={<Console />} />
               </Routes>
             </Layout>
           ) : (

@@ -14,7 +14,8 @@ import {
   Wrench,
   Building2,
   ChevronDown,
-  Key
+  Key,
+  Terminal
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
@@ -111,6 +112,7 @@ function Layout({ children, onLogout }: LayoutProps) {
   // Menu Avançado (apenas para usuários global)
   const advancedMenuItems = user?.perfil === 'global' ? [
     { path: '/tokens', icon: Key, label: 'Tokens de API' },
+    { path: '/console', icon: Terminal, label: 'Console' },
   ] : [];
 
   return (
