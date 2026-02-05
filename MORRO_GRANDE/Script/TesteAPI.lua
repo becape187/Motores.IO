@@ -1,4 +1,4 @@
--- Script para testar a chamada da AP
+-- Scriptpara testar a chamada da AP
 print(">>> INICIANDO TESTE <<<")
 local apiClient = APIClient:new()
 print(">>> APIClient criado <<<")

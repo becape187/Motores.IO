@@ -1,6 +1,6 @@
 Script_BG_limits = 11
 
--- Variáveis locais do módu
+-- Variáeis locis do módu
 local socketClient
 local logger
 local motorSync
@@ -9,29 +9,43 @@ local sqliteDB
 local motorCurrentReader
 local conta = 0
 local sistemaInicializado = false
+local inicioms 
 
 -- UUID da planta
 local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874"
 
--- Função de inicialização que pode ser chamada manualmente (ex: por botão)
+-- Função de inicializaço que pode ser chamada manualmente (ex: por botão)
 function inicializarSistema()
+    -- IMPORTANTE: Verificar se já está inicializado SEM usar print (ainda não temos Logger)
     if sistemaInicializado then
-        print("[Init] ⚠ Sistema já está inicializado!")
+        -- Usar print original aqui pois Logger ainda não foi inicializado
+        -- Mas isso só acontece se já estiver inicializado, então é raro
         return true
     end
     
     conta = 0
     
-    -- PRIMEIRA COISA: Conectar ao Socket ANTES de qualquer outra inicialização
-    print("[Init] === INICIANDO SISTEMA ===")
-    print("[Init] Conectando ao Socket (PRIORIDADE)...")
+    -- ============================================
+    -- PRIMEIRA COISA: Conectar ao Socket
+    -- ANTES de QUALQUER outra coisa, incluindo prints
+    -- ============================================
     we_bas_setint("@W_HDW300",10)
     
-    -- Criar SocketClient primeiro
+    -- Criar SocketClient primeiro (sem prints ainda)
     socketClient = SocketClient:new("api.motores.automais.io", 5055)
     
-    -- Tentar conectar ao socket
+    -- Tentar conectar ao socket (PRIMEIRA ação do sistema)
     local socketConnected, socketErr = socketClient:Conectar()
+    
+    -- ============================================
+    -- SEGUNDA COISA: Inicializar Logger IMEDIATAMENTE
+    -- Logo após conectar ao socket, antes de qualquer print
+    -- ============================================
+    logger = Logger:new(socketClient, PLANTA_UUID)  -- Passar PLANTA_UUID para incluir nas mensagens
+    logger:SubstituirPrint()  -- Substitui print global - AGORA todos os prints serão capturados
+    logger:ConfigurarTratamentoErros()  -- Configura tratamento de erros - AGORA todos os erros serão capturados
+    
+    -- AGORA SIM podemos usar print - ele já será redirecionado para o socket
     if not socketConnected then
         print("[Init] ⚠ Aviso: Não foi possível conectar ao socket: " .. tostring(socketErr))
         print("[Init] Continuando inicialização sem socket (logs locais apenas)...")
@@ -39,12 +53,8 @@ function inicializarSistema()
         print("[Init] ✓ Socket conectado com sucesso")
     end
     
-    -- Inicializar Logger e configurar redirecionamento de prints/erros
-    print("[Init] Inicializando Logger...")
-    logger = Logger:new(socketClient, PLANTA_UUID)  -- Passar PLANTA_UUID para incluir nas mensagens
-    logger:SubstituirPrint()  -- Substitui print global
-    logger:ConfigurarTratamentoErros()  -- Configura tratamento de erros
-    print("[Init] ✓ Logger inicializado - prints e erros serão enviados via socket")
+    print("[Init] === INICIANDO SISTEMA ===")
+    print("[Init] Logger inicializado - prints e erros serão enviados via socket")
     
     -- Agora continuar com inicialização normal
     -- Inicializar banco de dados local
@@ -113,7 +123,7 @@ function inicializarSistema()
     return true
 end
 
--- Função para verificar se o sistema está inicializado
+-- Função pra verificar se o sistema está inicializado
 function sistemaEstaInicializado()
     return sistemaInicializado
 end
@@ -122,12 +132,13 @@ end
 function we_bg_init()
     -- Iicialização automática desabilitada para permitir inicialização manual
     -- Chame inicializarSistema() através de um botão ou script
+    inicioms = we_bas_gettickcount()
     print("[Init] Sistema aguardando inicialização manual...")
     print("[Init] Use a função 'inicializarSistema()' para inicializar o sistema")
 end
 
 function we_bg_poll()
-    if we_bas_gettickcount() > 5000 and sistemaInicializado == false then
+    if we_bas_gettickcount() > (inicioms + 5000) and sistemaInicializado == false then
         we_bas_setint("@W_HDW300",10)
         inicializarSistema()
     end
@@ -139,7 +150,13 @@ function we_bg_poll()
     
     -- Chamar o loop da classe SocketClient
     if socketClient then
+        --we_bas_setdword("@W_HDW305",we_bas_gettickcount())
         socketClient:Loop()
+    end
+    
+    -- Enviar ping periódico do Logger (mostra que está conectado)
+    if logger then
+        logger:EnviarPing()
     end
     
     -- Chamar o loop da classe MotorSync (sincronização a cada minuto)

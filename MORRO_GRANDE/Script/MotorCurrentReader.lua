@@ -1,4 +1,4 @@
--- l MtorCurrentReader para ler correntes dos motores da IHM
+-- l MtorCu=rrentReader para ler correntes dos motores da IHM
 -- Lê os alrs dos registros locais e atualiza a corrente atual de cada motor em memória
 MotorCurrentReader = {}
 MotorCurrentReader.__index = MotorCurrentReader

@@ -1,4 +1,4 @@
--- Clss SocketClient para comunicação via socke
+-- Clss ScketClient para comunicação via socke
 SocketClient = {}
 SocketClient.__index = SocketClient
 

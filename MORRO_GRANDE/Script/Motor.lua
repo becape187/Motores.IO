@@ -1,4 +1,4 @@
--- ClasseMotor
+-- CasseMotor
 Motor = {}
 Motor.__index = Motor
 

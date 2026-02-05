@@ -1,4 +1,4 @@
--- Cse APIClientpra consult
+-- Cs= AIClientpra consult
 APIClient = {}
 APIClient.__index = APIClient
 
@@ -125,21 +125,33 @@ function APIClient:httpRequest(method, endpoint, data)
             return false, "Erro ao chamar http.request: " .. tostring(status_result), nil
         end
         
-        -- Conforme exemplo: status_result é 1 (sucesso do sink), str_result é o código HTTP
-        local status_code = str_result  -- O código HTTP está em str_result
+        -- Conforme exemplo: status_result é 1 (sucesso do sink), str_result pode ser o código HTTP ou nil
+        local status_code = str_result  -- O código HTTP pode estar em str_result
         local response_body = nil
         
-        -- O body está em response_body_table[1] (conforme exemplo)
+        -- O body pode estar em response_body_table[1] ou em múltiplos chunks
+        -- Conforme documentação LTN12, quando usa sink.table, os dados podem vir em múltiplas partes
         print("[DEBUG] Verificando response_body_table...")
         print("[DEBUG]   response_body_table existe: " .. tostring(response_body_table ~= nil))
         print("[DEBUG]   response_body_table tamanho: " .. tostring(#response_body_table))
+        
+        -- Concatenar todos os chunks do response_body_table
         if response_body_table and #response_body_table > 0 then
-            print("[DEBUG]   response_body_table[1] existe: " .. tostring(response_body_table[1] ~= nil))
-            print("[DEBUG]   response_body_table[1] tipo: " .. type(response_body_table[1]))
-            print("[DEBUG]   response_body_table[1] valor (primeiros 100 chars): " .. tostring(response_body_table[1]):sub(1, 100))
-            response_body = response_body_table[1]
+            print("[DEBUG]   Concatenando " .. tostring(#response_body_table) .. " chunk(s) do response...")
+            response_body = ""
+            for i = 1, #response_body_table do
+                local chunk = response_body_table[i]
+                if chunk then
+                    print("[DEBUG]   Chunk " .. i .. " tipo: " .. type(chunk) .. ", tamanho: " .. tostring(string.len(tostring(chunk))))
+                    response_body = response_body .. tostring(chunk)
+                end
+            end
+            print("[DEBUG]   Tamanho total concatenado: " .. tostring(string.len(response_body)) .. " bytes")
+            print("[DEBUG]   Primeiros 100 chars: " .. string.sub(response_body, 1, 100))
+            print("[DEBUG]   Últimos 100 chars: " .. string.sub(response_body, -100))
         else
-            print("[DEBUG]   AVISO: response_body_table está vazio ou não tem [1]")
+            print("[DEBUG]   AVISO: response_body_table está vazio")
+            response_body = nil
         end
         
         print("[DEBUG] http.request retornou:")
@@ -171,53 +183,147 @@ function APIClient:httpRequest(method, endpoint, data)
             return false, "Erro no sink: " .. tostring(status_result), nil
         end
         
-        -- Se status_code for nil ou string de erro, pode ser erro de conexão
-        if not status_code or type(status_code) == "string" then
-            local errorMsg = tostring(status_code or "nil")
-            print("[DEBUG] ERRO: status_code inválido - " .. errorMsg)
-            print("[DEBUG] Verificando possíveis causas:")
-            print("[DEBUG]   1. API não está rodando em " .. url)
-            print("[DEBUG]   2. Firewall bloqueando porta 5000")
-            print("[DEBUG]   3. URL/endereço incorreto (verifique a configuração da API)")
-            print("[DEBUG]   4. Rede não acessível")
-            print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO DE CONEXÃO) ===")
-            return false, "Erro de conexão: " .. errorMsg .. ". Verifique se a API está rodando em " .. url, nil
-        end
-        
-        if status_code == 200 or status_code == 201 then
-            print("[DEBUG] Status OK, tentando decodificar JSON...")
-            if not response_body then
-                print("[DEBUG] ERRO: response_body é nil")
-                print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO - BODY VAZIO) ===")
-                return false, "Response body vazio", status_code
+        -- Se temos response_body válido e status_result é 1, consideramos sucesso
+        -- Mesmo que status_code seja nil (algumas versões do luasocket não retornam o código)
+        if response_body and type(response_body) == "string" and string.len(response_body) > 0 then
+            -- Se status_code for nil mas temos body válido, assumir 200 OK
+            if not status_code or status_code == nil then
+                print("[DEBUG] Status code é nil, mas temos body válido - assumindo 200 OK")
+                status_code = 200
             end
             
-            -- Verificar se response_body é string (deve ser para decodificar JSON)
-            if type(response_body) ~= "string" then
-                print("[DEBUG] ERRO: response_body não é string, tipo: " .. type(response_body))
-                print("[DEBUG] response_body valor: " .. tostring(response_body))
-                print("[DEBUG] response_body_table[1] tipo: " .. type(response_body_table[1]))
-                print("[DEBUG] response_body_table[1] valor: " .. tostring(response_body_table[1]))
-                print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO - BODY NÃO É STRING) ===")
-                return false, "Response body não é string: " .. type(response_body), status_code
+            -- Se temos body válido, processar como sucesso (mesmo que status_code seja diferente de 200/201)
+            -- Isso é necessário porque algumas versões do luasocket não retornam o status code corretamente
+            print("[DEBUG] Status OK (body válido encontrado), tentando decodificar JSON...")
+            print("[DEBUG] Tamanho do JSON: " .. tostring(string.len(response_body)) .. " bytes")
+            
+            -- Verificar se JSON parece válido (começa com [ ou {)
+            local firstChar = string.sub(response_body, 1, 1)
+            if firstChar ~= "[" and firstChar ~= "{" then
+                print("[DEBUG] AVISO: JSON não começa com [ ou {, primeiro char: " .. firstChar)
             end
             
-            local success, decoded = pcall(json.decode, response_body)
+            -- Tentar decodificar JSON completo primeiro
+            local success, decoded = pcall(function()
+                -- Limpar possíveis caracteres problemáticos no início/fim
+                local cleanJson = string.gsub(response_body, "^%s+", "")  -- Remove espaços no início
+                cleanJson = string.gsub(cleanJson, "%s+$", "")  -- Remove espaços no fim
+                
+                -- Verificar se json.decode está disponível
+                if not json or not json.decode then
+                    error("json.decode não está disponível")
+                end
+                
+                -- Tentar decodificar
+                return json.decode(cleanJson)
+            end)
+            
             if success and decoded then
-                print("[DEBUG] JSON decodificado com sucesso")
+                print("[DEBUG] JSON decodificado com sucesso (método normal)")
                 print("[DEBUG] Tipo do decoded: " .. type(decoded))
                 if type(decoded) == "table" then
                     print("[DEBUG] Tamanho da tabela decoded: " .. tostring(#decoded))
                 end
                 print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (SUCESSO) ===")
-                return true, decoded, status_code
+                return true, decoded, status_code or 200
             else
-                print("[DEBUG] ERRO ao decodificar JSON")
-                print("[DEBUG] Response body completo: " .. tostring(response_body))
+                print("[DEBUG] Erro ao decodificar JSON completo, tentando método manual (objeto por objeto)...")
+                print("[DEBUG] Erro capturado: " .. tostring(decoded))
+                
+                -- Método alternativo: extrair objetos manualmente de { a }
+                local cleanJson = string.gsub(response_body, "^%s+", "")
+                cleanJson = string.gsub(cleanJson, "%s+$", "")
+                
+                -- Se começa com [, é um array de objetos
+                if string.sub(cleanJson, 1, 1) == "[" then
+                    print("[DEBUG] JSON é um array, extraindo objetos manualmente...")
+                    local result = {}
+                    local pos = 2  -- Pular o [
+                    local depth = 0
+                    local startPos = nil
+                    local objCount = 0
+                    local inString = false
+                    local escapeNext = false
+                    
+                    while pos <= string.len(cleanJson) do
+                        local char = string.sub(cleanJson, pos, pos)
+                        
+                        -- Tratar escape de caracteres
+                        if escapeNext then
+                            escapeNext = false
+                        elseif char == "\\" and inString then
+                            escapeNext = true
+                        -- Detectar início/fim de strings
+                        elseif char == '"' and not escapeNext then
+                            inString = not inString
+                        -- Só processar { e } se não estiver dentro de uma string
+                        elseif not inString then
+                            if char == "{" then
+                                if depth == 0 then
+                                    startPos = pos  -- Início de um novo objeto
+                                end
+                                depth = depth + 1
+                            elseif char == "}" then
+                                depth = depth - 1
+                                if depth == 0 and startPos then
+                                    -- Encontramos um objeto completo
+                                    local objJson = string.sub(cleanJson, startPos, pos)
+                                    objCount = objCount + 1
+                                    
+                                    -- Tentar decodificar este objeto individual
+                                    local objSuccess, objDecoded = pcall(function()
+                                        return json.decode(objJson)
+                                    end)
+                                    
+                                    if objSuccess and objDecoded then
+                                        table.insert(result, objDecoded)
+                                        print("[DEBUG] Objeto " .. objCount .. " decodificado com sucesso")
+                                    else
+                                        print("[DEBUG] Erro ao decodificar objeto " .. objCount .. ": " .. tostring(objDecoded))
+                                    end
+                                    
+                                    startPos = nil
+                                end
+                            elseif char == "]" and depth == 0 then
+                                -- Fim do array
+                                break
+                            end
+                        end
+                        
+                        pos = pos + 1
+                    end
+                    
+                    if #result > 0 then
+                        print("[DEBUG] JSON decodificado com sucesso (método manual)")
+                        print("[DEBUG] Total de objetos decodificados: " .. tostring(#result))
+                        print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (SUCESSO) ===")
+                        return true, result, status_code or 200
+                    else
+                        print("[DEBUG] Nenhum objeto foi decodificado com sucesso")
+                    end
+                end
+                
+                -- Se chegou aqui, ambos os métodos falharam
+                print("[DEBUG] ERRO: Ambos os métodos de decodificação falharam")
+                print("[DEBUG] Tamanho do response_body: " .. tostring(string.len(response_body)))
+                print("[DEBUG] Primeiros 200 chars: " .. string.sub(response_body, 1, 200))
+                print("[DEBUG] Últimos 200 chars: " .. string.sub(response_body, -200))
                 print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO JSON) ===")
-                return false, "Erro ao decodificar JSON: " .. tostring(response_body), status_code
+                -- Retornar erro mais informativo
+                local errorMsg = "Erro ao decodificar JSON (métodos normal e manual falharam)"
+                if decoded then
+                    errorMsg = errorMsg .. ": " .. tostring(decoded)
+                end
+                return false, errorMsg, status_code or 200
             end
         else
+            -- Se não temos body válido, verificar status_code
+            if not status_code or status_code == nil then
+                print("[DEBUG] ERRO: status_code é nil e não há body válido")
+                print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO DE CONEXÃO) ===")
+                return false, "Erro de conexão: status_code nil e sem body. Verifique se a API está rodando em " .. url, nil
+            end
+            
             print("[DEBUG] ERRO HTTP: " .. tostring(status_code))
             print("[DEBUG] Response body: " .. tostring(response_body))
             print("[DEBUG] === FIM DA REQUISIÇÃO HTTP (ERRO HTTP) ===")
@@ -321,33 +427,47 @@ function APIClient:httpRequest(method, endpoint, data)
     end
 end
 
--- Função para receber todos os motores da planta
+-- Função para receber todos os motores da planta (com paginação)
 function APIClient:ReceberPlanta()
-    print("=== TESTE DE API ===")
-    print("[ReceberPlanta] Iniciando...")
+    print("[ReceberPlanta] === INICIANDO BUSCA PAGINADA DE MOTORES ===")
     
-    local endpoint = "/api/plantas/" .. self.PlantaUUID .. "/motores"
-    print("[ReceberPlanta] Endpoint: " .. endpoint)
-    print("[ReceberPlanta] URL completa: " .. self.BaseURL .. endpoint)
-    print("[ReceberPlanta] Token: " .. (self.ApiToken and string.sub(self.ApiToken, 1, 10) .. "..." or "Não configurado"))
-    print("[ReceberPlanta] Chamando httpRequest...")
+    local todosMotores = {}  -- Array para acumular todos os motores
+    local pageSize = 5  -- Tamanho da página (5 motores por vez)
+    local skip = 0
+    local hasMore = true
+    local pageCount = 0
     
-    local success, data, status_code = self:httpRequest("GET", endpoint)
-    
-    print("[ReceberPlanta] httpRequest retornou:")
-    print("[ReceberPlanta]   success: " .. tostring(success))
-    print("[ReceberPlanta]   status_code: " .. tostring(status_code))
-    print("[ReceberPlanta]   data type: " .. type(data))
-    if type(data) == "string" then
-        print(data)
-        print("[ReceberPlanta]   data (primeiros 200 chars): " .. string.sub(data, 1, 200))
-    end
-    
-    if success then
-        -- Converter os dados recebidos em objetos Motor
-        local motores = {}
-        if data and type(data) == "table" then
-            print("Resposta recebida: " .. tostring(#data) .. " motores")
+    -- Buscar motores em páginas de 5 em 5
+    while hasMore do
+        pageCount = pageCount + 1
+        print("[ReceberPlanta] Buscando página " .. pageCount .. " (skip=" .. skip .. ", take=" .. pageSize .. ")")
+        
+        -- Construir endpoint com paginação
+        local endpoint = "/api/plantas/" .. self.PlantaUUID .. "/motores?skip=" .. skip .. "&take=" .. pageSize
+        print("[ReceberPlanta] Endpoint: " .. endpoint)
+        
+        local success, data, status_code = self:httpRequest("GET", endpoint)
+        
+        if not success then
+            print("[ReceberPlanta] ✗ Erro ao buscar página " .. pageCount .. ": " .. tostring(data))
+            -- Se for a primeira página, retornar erro
+            if pageCount == 1 then
+                return false, "Erro ao buscar motores: " .. tostring(data)
+            else
+                -- Se não for a primeira, retornar o que já foi coletado
+                print("[ReceberPlanta] ⚠ Retornando " .. #todosMotores .. " motores já coletados")
+                break
+            end
+        end
+        
+        -- Verificar se recebeu dados
+        if not data or type(data) ~= "table" or #data == 0 then
+            print("[ReceberPlanta] Nenhum motor na página " .. pageCount .. " - fim da busca")
+            hasMore = false
+        else
+            print("[ReceberPlanta] ✓ Página " .. pageCount .. ": " .. #data .. " motores recebidos")
+            
+            -- Converter os dados recebidos em objetos Motor e adicionar ao array
             for _, motorData in ipairs(data) do
                 local motor = Motor:new(
                     motorData.id or motorData.ID,
@@ -374,36 +494,45 @@ function APIClient:ReceberPlanta()
                     motor.Horimetro = motorData.horimetro or motorData.Horimetro
                 end
                 
-                table.insert(motores, motor)
+                -- Adicionar campos adicionais se existirem
+                if motorData.guid or motorData.GUID then
+                    motor.GUID = motorData.guid or motorData.GUID
+                end
+                if motorData.potencia or motorData.Potencia then
+                    motor.Potencia = motorData.potencia or motorData.Potencia
+                end
+                if motorData.tensao or motorData.Tensao then
+                    motor.Tensao = motorData.tensao or motorData.Tensao
+                end
+                if motorData.habilitado ~= nil or motorData.Habilitado ~= nil then
+                    motor.Habilitado = motorData.habilitado or motorData.Habilitado
+                end
+                if motorData.posicaoX or motorData.PosicaoX then
+                    motor.PosicaoX = motorData.posicaoX or motorData.PosicaoX
+                end
+                if motorData.posicaoY or motorData.PosicaoY then
+                    motor.PosicaoY = motorData.posicaoY or motorData.PosicaoY
+                end
+                
+                table.insert(todosMotores, motor)
             end
-        else
-            print("AVISO: Resposta não é uma tabela. Tipo: " .. type(data))
-        end
-        return true, motores
-    else
-        -- Tratamento de erros com mensagens detalhadas
-        print("[ReceberPlanta] ERRO DETECTADO!")
-        print("[ReceberPlanta] data type: " .. type(data))
-        print("[ReceberPlanta] data value: " .. tostring(data))
-        print("[ReceberPlanta] status_code: " .. tostring(status_code))
-        
-        local errorMsg = tostring(data or "Erro desconhecido")
-        print("[ReceberPlanta] ERRO HTTP " .. tostring(status_code or "?") .. ": " .. errorMsg)
-        
-        if type(data) == "string" then
-            print("[ReceberPlanta] Analisando mensagem de erro...")
-            if string.find(data, "401") or string.find(data, "Unauthorized") then
-                errorMsg = errorMsg .. " (Token inválido ou ausente)"
-            elseif string.find(data, "404") or string.find(data, "Not Found") then
-                errorMsg = errorMsg .. " (Endpoint não encontrado - verifique UUID da planta)"
-            elseif string.find(data, "500") or string.find(data, "Internal Server Error") then
-                errorMsg = errorMsg .. " (Erro no servidor - verifique logs da API)"
+            
+            -- Se recebeu menos que pageSize, não há mais páginas
+            if #data < pageSize then
+                hasMore = false
+                print("[ReceberPlanta] Última página recebida (menos de " .. pageSize .. " motores)")
+            else
+                -- Preparar próxima página
+                skip = skip + pageSize
             end
         end
-        
-        print("[ReceberPlanta] Retornando erro: " .. errorMsg)
-        return false, errorMsg
     end
+    
+    print("[ReceberPlanta] === BUSCA CONCLUÍDA ===")
+    print("[ReceberPlanta] Total de páginas: " .. pageCount)
+    print("[ReceberPlanta] Total de motores coletados: " .. #todosMotores)
+    
+    return true, todosMotores
 end
 
 -- Função auxiliar para atualizar dados de um motor na API
@@ -426,27 +555,57 @@ function APIClient:AtualizarMotor(motor)
     return self:httpRequest("PUT", endpoint, data)
 end
 
--- Função para buscar motores da planta
+-- Função para buscar motores da planta (com paginação automática)
+-- Retorna todos os motores em páginas de 5 em 5
 function APIClient:BuscarMotoresPlanta(plantaUUID)
-    local endpoint = "/api/plantas/" .. (plantaUUID or self.PlantaUUID) .. "/motores"
-    local success, data, status_code = self:httpRequest("GET", endpoint, nil)
+    local plantaId = plantaUUID or self.PlantaUUID
+    local todosMotores = {}  -- Array para acumular todos os motores
+    local pageSize = 5  -- Tamanho da página (5 motores por vez)
+    local skip = 0
+    local hasMore = true
+    local pageCount = 0
     
-    if success and status_code == 200 then
-        -- data já vem decodificado do httpRequest
-        if type(data) == "table" then
-            return data, nil
-        else
-            -- Se não for tabela, tentar decodificar novamente
-            local success2, decoded = pcall(json.decode, tostring(data or ""))
-            if success2 and decoded then
-                return decoded, nil
+    print("[BuscarMotoresPlanta] Iniciando busca paginada...")
+    
+    -- Buscar motores em páginas de 5 em 5
+    while hasMore do
+        pageCount = pageCount + 1
+        local endpoint = "/api/plantas/" .. plantaId .. "/motores?skip=" .. skip .. "&take=" .. pageSize
+        local success, data, status_code = self:httpRequest("GET", endpoint, nil)
+        
+        if not success or status_code ~= 200 then
+            print("[BuscarMotoresPlanta] Erro ao buscar página " .. pageCount)
+            if pageCount == 1 then
+                return nil, "Erro ao buscar motores: " .. tostring(data or "Erro desconhecido")
             else
-                return nil, "Erro ao decodificar resposta: " .. tostring(data)
+                -- Retornar o que já foi coletado
+                print("[BuscarMotoresPlanta] Retornando " .. #todosMotores .. " motores já coletados")
+                break
             end
         end
-    else
-        return nil, "Erro ao buscar motores: " .. tostring(data or "Erro desconhecido")
+        
+        -- Verificar se recebeu dados
+        if not data or type(data) ~= "table" or #data == 0 then
+            hasMore = false
+        else
+            -- Adicionar motores desta página ao array total
+            for _, motorData in ipairs(data) do
+                table.insert(todosMotores, motorData)
+            end
+            
+            print("[BuscarMotoresPlanta] Página " .. pageCount .. ": " .. #data .. " motores")
+            
+            -- Se recebeu menos que pageSize, não há mais páginas
+            if #data < pageSize then
+                hasMore = false
+            else
+                skip = skip + pageSize
+            end
+        end
     end
+    
+    print("[BuscarMotoresPlanta] Total: " .. #todosMotores .. " motores em " .. pageCount .. " página(s)")
+    return todosMotores, nil
 end
 
 -- Função para atualizar motor da planta
