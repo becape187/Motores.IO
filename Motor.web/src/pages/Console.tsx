@@ -18,6 +18,12 @@ export default function Console() {
     }
   );
 
+  // Log de debug no console do navegador
+  useEffect(() => {
+    console.log('[Console] Planta selecionada:', plantaSelecionada?.id);
+    console.log('[Console] Status conexão:', isConnected);
+  }, [plantaSelecionada, isConnected]);
+
   // Auto-scroll quando novas mensagens chegarem
   useEffect(() => {
     if (autoScroll && messagesEndRef.current) {
@@ -96,6 +102,9 @@ export default function Console() {
               <>
                 <WifiOff size={16} />
                 <span>Desconectado</span>
+                {!plantaSelecionada && (
+                  <span className="connection-warning"> (Selecione uma planta)</span>
+                )}
               </>
             )}
           </div>

@@ -49,6 +49,12 @@
   color: #f44336;
 }
 
+.connection-warning {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-left: 0.5rem;
+}
+
 .console-actions {
   display: flex;
   gap: 0.5rem;

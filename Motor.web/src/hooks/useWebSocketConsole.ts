@@ -21,10 +21,20 @@ export function useWebSocketConsole(
   useEffect(() => {
     // Construir URL do WebSocket (pode receber de todas as plantas se não especificar)
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = import.meta.env.VITE_WS_URL || 'api.motores.automais.io';
+    // Usar a mesma base URL da API se disponível
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://api.motores.automais.io/api';
+    // Extrair o host da API (remover /api do final se existir)
+    let wsHost = import.meta.env.VITE_WS_URL;
+    if (!wsHost) {
+      // Extrair host da URL da API
+      const url = new URL(apiBaseUrl.replace(/\/api$/, ''));
+      wsHost = url.host;
+    }
     const wsUrl = plantaId 
       ? `${wsProtocol}//${wsHost}/api/websocket/console?plantaId=${plantaId}`
       : `${wsProtocol}//${wsHost}/api/websocket/console?plantaId=all`;
+
+    console.log('[Console WebSocket] Tentando conectar em:', wsUrl);
 
     const connect = () => {
       if (!shouldReconnect.current) {
@@ -37,7 +47,7 @@ export function useWebSocketConsole(
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('[Console WebSocket] Conectado para planta:', plantaId || 'todas');
+          console.log('[Console WebSocket] ✓ Conectado com sucesso para planta:', plantaId || 'todas');
           setIsConnected(true);
           reconnectAttempts.current = 0;
         };
@@ -52,12 +62,13 @@ export function useWebSocketConsole(
         };
 
         ws.onerror = (error) => {
-          console.error('[Console WebSocket] Erro na conexão:', error);
+          console.error('[Console WebSocket] ✗ Erro na conexão:', error);
+          console.error('[Console WebSocket] URL tentada:', wsUrl);
           setIsConnected(false);
         };
 
-        ws.onclose = () => {
-          console.log('[Console WebSocket] Conexão fechada');
+        ws.onclose = (event) => {
+          console.log('[Console WebSocket] Conexão fechada. Code:', event.code, 'Reason:', event.reason);
           setIsConnected(false);
           
           // Tentar reconectar
