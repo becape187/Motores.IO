@@ -71,7 +71,9 @@ export function useWebSocketConsole(
             const data = JSON.parse(event.data);
             
             // Verificar se é mensagem de PING - não enviar para o console, apenas atualizar timestamp
-            if (data.tipo === 'log' && data.mensagem && data.mensagem.trim().toUpperCase() === 'PING') {
+            // PING pode vir como "PING" ou "PING - Sistema ativo e conectado"
+            const mensagemUpper = (data.mensagem || '').trim().toUpperCase();
+            if (mensagemUpper.includes('PING')) {
               setLastPing(Date.now());
               console.log('[Console WebSocket] PING recebido, atualizando heart-beat');
               return; // Não processar PING como mensagem do console

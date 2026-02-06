@@ -59,34 +59,36 @@
   margin-left: 0.5rem;
 }
 
-.heartbeat-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+.ping-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #858585;
   margin-left: 0.5rem;
-  font-size: 0.75rem;
-  opacity: 0.8;
+  transition: background-color 0.2s ease;
 }
 
-.heartbeat-icon {
-  animation: heartbeat 2s ease-in-out infinite;
-  color: #4caf50;
+.ping-indicator.active {
+  background: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
+  animation: pingPulse 1s ease-out;
 }
 
-@keyframes heartbeat {
-  0%, 100% {
+@keyframes pingPulse {
+  0% {
+    background: #4caf50;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
     transform: scale(1);
-    opacity: 1;
   }
   50% {
+    box-shadow: 0 0 12px rgba(76, 175, 80, 1);
     transform: scale(1.2);
-    opacity: 0.8;
   }
-}
-
-.heartbeat-time {
-  color: #858585;
-  font-size: 0.7rem;
+  100% {
+    background: #858585;
+    box-shadow: 0 0 0px rgba(76, 175, 80, 0);
+    transform: scale(1);
+  }
 }
 
 .console-actions {

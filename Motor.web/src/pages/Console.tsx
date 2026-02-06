@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocketConsole, ConsoleMessage } from '../hooks/useWebSocketConsole';
-import { Terminal, Trash2, Download, Wifi, WifiOff, Heart } from 'lucide-react';
+import { Terminal, Trash2, Download, Wifi, WifiOff } from 'lucide-react';
 import './Console.css';
 
 export default function Console() {
@@ -14,7 +14,9 @@ export default function Console() {
   // Usar useCallback para estabilizar a função e evitar re-renders
   const handleMessage = useCallback((message: ConsoleMessage) => {
     // Filtrar mensagens de PING - não devem aparecer no console
-    if (message.tipo === 'log' && message.mensagem && message.mensagem.trim().toUpperCase() === 'PING') {
+    // PING pode vir como "PING" ou "PING - Sistema ativo e conectado"
+    const mensagemUpper = (message.mensagem || '').trim().toUpperCase();
+    if (mensagemUpper.includes('PING')) {
       return; // Ignorar mensagens de PING
     }
     setMessages((prev) => [...prev, message]);
@@ -24,6 +26,20 @@ export default function Console() {
     plantaSelecionada?.id,
     handleMessage
   );
+
+  // Estado para controlar a animação da bolinha de ping
+  const [pingActive, setPingActive] = useState(false);
+
+  // Quando receber um novo ping, ativar a bolinha por 1 segundo
+  useEffect(() => {
+    if (lastPing) {
+      setPingActive(true);
+      const timer = setTimeout(() => {
+        setPingActive(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [lastPing]);
 
   // Log de debug no console do navegador
   useEffect(() => {
@@ -93,15 +109,6 @@ export default function Console() {
     });
   };
 
-  const formatLastPing = (timestamp: number | null) => {
-    if (!timestamp) return null;
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('pt-BR', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit'
-    });
-  };
 
   return (
     <div className="console-page">
@@ -114,14 +121,7 @@ export default function Console() {
               <>
                 <Wifi size={16} />
                 <span>Conectado</span>
-                {lastPing && (
-                  <div className="heartbeat-indicator">
-                    <Heart size={12} className="heartbeat-icon" />
-                    <span className="heartbeat-time">
-                      {formatLastPing(lastPing)}
-                    </span>
-                  </div>
-                )}
+                <span className={`ping-indicator ${pingActive ? 'active' : ''}`}></span>
               </>
             ) : (
               <>
