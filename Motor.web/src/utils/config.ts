@@ -35,8 +35,6 @@ export function getApiBaseUrl(): string {
     if (envUrl) {
       return envUrl;
     }
-    // Padrão para desenvolvimento
-    return 'http://localhost:5000';
   }
   const envUrl = import.meta.env.VITE_API_URL_PROD;
   if (envUrl) {

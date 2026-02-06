@@ -33,7 +33,8 @@ function inicializarSistema()
     
     -- Criar SocketClient primeiro (sem prints ainda)
     socketClient = SocketClient:new("api.motores.automais.io", 5055)
-    
+    --socketClient = SocketClient:new("192.168.15.187", 5055)
+
     -- Tentar conectar ao socket (PRIMEIRA ação do sistema)
     local socketConnected, socketErr = socketClient:Conectar()
     
