@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocketConsole, ConsoleMessage } from '../hooks/useWebSocketConsole';
 import { Terminal, Trash2, Download, Wifi, WifiOff } from 'lucide-react';
@@ -11,11 +11,14 @@ export default function Console() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  // Usar useCallback para estabilizar a função e evitar re-renders
+  const handleMessage = useCallback((message: ConsoleMessage) => {
+    setMessages((prev) => [...prev, message]);
+  }, []);
+
   const { isConnected } = useWebSocketConsole(
     plantaSelecionada?.id,
-    (message) => {
-      setMessages((prev) => [...prev, message]);
-    }
+    handleMessage
   );
 
   // Log de debug no console do navegador

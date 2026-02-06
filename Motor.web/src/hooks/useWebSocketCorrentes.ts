@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getWebSocketUrl } from '../utils/config';
 
 interface MotorCorrente {
   id: string;
@@ -41,10 +42,11 @@ export function useWebSocketCorrentes(
     // Habilitar reconexão quando houver planta selecionada
     shouldReconnect.current = true;
 
-    // Construir URL do WebSocket
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = import.meta.env.VITE_WS_URL || 'api.motores.automais.io';
-    const wsUrl = `${wsProtocol}//${wsHost}/api/websocket/correntes?plantaId=${plantaId}`;
+    // Usar função inteligente para construir URL do WebSocket
+    const wsUrl = getWebSocketUrl('correntes', plantaId);
+    
+    console.log('[WebSocket Correntes] URL:', wsUrl);
+    console.log('[WebSocket Correntes] Ambiente:', window.location.hostname === 'localhost' ? 'Desenvolvimento' : 'Produção');
 
     const connect = () => {
       if (!shouldReconnect.current) {

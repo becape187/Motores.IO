@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.motores.automais.io/api';
+import { getApiBaseUrl } from '../utils/config';
+
+const API_BASE_URL = getApiBaseUrl();
 
 class ApiService {
   private getToken(): string | null {

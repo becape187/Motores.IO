@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getWebSocketUrl } from '../utils/config';
 
 export interface ConsoleMessage {
   tipo: 'log' | 'error' | 'warn' | 'info';
@@ -17,32 +18,39 @@ export function useWebSocketConsole(
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttempts = useRef(0);
   const shouldReconnect = useRef(true);
+  const isMountedRef = useRef(true);
+  const onMessageRef = useRef(onMessage);
+  const isConnectingRef = useRef(false);
+
+  // Atualizar referência do callback sem causar re-render
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
 
   useEffect(() => {
-    // TESTE: Usar o mesmo endpoint de correntes que funciona
-    // Filtrar mensagens de console na camada de aplicação
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Usar a mesma base URL da API se disponível
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://api.motores.automais.io/api';
-    // Extrair o host da API (remover /api do final se existir)
-    let wsHost = import.meta.env.VITE_WS_URL;
-    if (!wsHost) {
-      // Extrair host da URL da API
-      const url = new URL(apiBaseUrl.replace(/\/api$/, ''));
-      wsHost = url.host;
+    // Verificar se já está conectando para evitar múltiplas conexões
+    if (isConnectingRef.current) {
+      console.log('[Console WebSocket] Já está conectando, ignorando nova tentativa');
+      return;
     }
-    
-    // Usar endpoint de correntes (que sabemos que funciona)
-    const wsUrl = plantaId 
-      ? `${wsProtocol}//${wsHost}/api/websocket/correntes?plantaId=${plantaId}`
-      : `${wsProtocol}//${wsHost}/api/websocket/correntes?plantaId=all`;
 
-    console.log('[Console WebSocket] TESTE: Usando endpoint de correntes:', wsUrl);
-    console.log('[Console WebSocket] Filtrando mensagens de console na camada de aplicação');
+    // Resetar flag de montagem
+    isMountedRef.current = true;
+    shouldReconnect.current = true;
+    isConnectingRef.current = true;
+    
+    // Usar função inteligente para construir URL do WebSocket
+    const finalPlantaId = plantaId || 'all';
+    const wsUrl = getWebSocketUrl('console', finalPlantaId);
+
+    console.log('[Console WebSocket] Conectando ao endpoint de console:', wsUrl);
+    console.log('[Console WebSocket] PlantaId:', finalPlantaId);
+    console.log('[Console WebSocket] Ambiente:', window.location.hostname === 'localhost' ? 'Desenvolvimento' : 'Produção');
 
     const connect = () => {
-      if (!shouldReconnect.current) {
-        console.log('[Console WebSocket] Reconexão desabilitada');
+      // Verificar se ainda está montado e se deve reconectar
+      if (!isMountedRef.current || !shouldReconnect.current) {
+        console.log('[Console WebSocket] Reconexão desabilitada ou componente desmontado');
         return;
       }
 
@@ -54,30 +62,25 @@ export function useWebSocketConsole(
           console.log('[Console WebSocket] ✓ Conectado com sucesso para planta:', plantaId || 'todas');
           setIsConnected(true);
           reconnectAttempts.current = 0;
+          isConnectingRef.current = false;
         };
 
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
             
-            // Filtrar apenas mensagens de console (tipo: log, error, warn, info)
+            // Endpoint de console só recebe mensagens de console
             // Mensagens de console têm: tipo, mensagem, timestamp, nivel, plantaId
-            // Mensagens de correntes têm: tipo: "correntes", motores, plantaId
-            if (data.tipo === 'log' || data.tipo === 'error' || data.tipo === 'warn' || data.tipo === 'info') {
-              // É uma mensagem de console
-              const message: ConsoleMessage = {
-                tipo: data.tipo,
-                mensagem: data.mensagem,
-                timestamp: data.timestamp,
-                nivel: data.nivel || data.tipo,
-                plantaId: data.plantaId
-              };
-              console.log('[Console WebSocket] Mensagem de console recebida:', message);
-              onMessage(message);
-            } else {
-              // É uma mensagem de correntes ou outro tipo, ignorar
-              console.log('[Console WebSocket] Mensagem ignorada (não é console):', data.tipo);
-            }
+            const message: ConsoleMessage = {
+              tipo: data.tipo,
+              mensagem: data.mensagem,
+              timestamp: data.timestamp,
+              nivel: data.nivel || data.tipo,
+              plantaId: data.plantaId
+            };
+            console.log('[Console WebSocket] Mensagem de console recebida:', message);
+            // Usar ref para evitar dependência do callback
+            onMessageRef.current(message);
           } catch (err) {
             console.error('[Console WebSocket] Erro ao processar mensagem:', err);
             console.error('[Console WebSocket] Dados recebidos:', event.data);
@@ -88,34 +91,43 @@ export function useWebSocketConsole(
           console.error('[Console WebSocket] ✗ Erro na conexão:', error);
           console.error('[Console WebSocket] URL tentada:', wsUrl);
           setIsConnected(false);
+          isConnectingRef.current = false;
         };
 
         ws.onclose = (event) => {
           console.log('[Console WebSocket] Conexão fechada. Code:', event.code, 'Reason:', event.reason);
           setIsConnected(false);
+          isConnectingRef.current = false;
           
-          // Tentar reconectar
-          if (shouldReconnect.current) {
+          // Tentar reconectar apenas se ainda estiver montado e flag ativa
+          // E se não foi um fechamento intencional (code 1000)
+          if (isMountedRef.current && shouldReconnect.current && event.code !== 1000) {
             reconnectAttempts.current++;
             const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectAttempts.current, 5)), 30000);
             console.log(`[Console WebSocket] Tentando reconectar em ${delay}ms (tentativa ${reconnectAttempts.current})`);
             
             reconnectTimeoutRef.current = setTimeout(() => {
-              if (shouldReconnect.current) {
+              if (isMountedRef.current && shouldReconnect.current && !isConnectingRef.current) {
+                isConnectingRef.current = true;
                 connect();
               }
             }, delay);
+          } else {
+            console.log('[Console WebSocket] Não reconectando - componente desmontado, flag desabilitada ou fechamento intencional');
           }
         };
       } catch (err) {
         console.error('[Console WebSocket] Erro ao criar conexão:', err);
         setIsConnected(false);
+        isConnectingRef.current = false;
         
-        if (shouldReconnect.current) {
+        if (isMountedRef.current && shouldReconnect.current) {
           reconnectAttempts.current++;
           const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectAttempts.current, 5)), 30000);
+          console.log(`[Console WebSocket] Tentando reconectar após erro em ${delay}ms (tentativa ${reconnectAttempts.current})`);
           reconnectTimeoutRef.current = setTimeout(() => {
-            if (shouldReconnect.current) {
+            if (isMountedRef.current && shouldReconnect.current && !isConnectingRef.current) {
+              isConnectingRef.current = true;
               connect();
             }
           }, delay);
@@ -127,18 +139,36 @@ export function useWebSocketConsole(
 
     // Cleanup
     return () => {
+      console.log('[Console WebSocket] Cleanup: Desabilitando reconexão e fechando conexão');
+      isMountedRef.current = false;
       shouldReconnect.current = false;
+      isConnectingRef.current = false;
+      
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
+      
       if (wsRef.current) {
-        wsRef.current.close();
+        try {
+          // Remover listeners antes de fechar
+          wsRef.current.onopen = null;
+          wsRef.current.onmessage = null;
+          wsRef.current.onerror = null;
+          wsRef.current.onclose = null;
+          
+          if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
+            wsRef.current.close(1000, 'Componente desmontado');
+          }
+        } catch (err) {
+          console.error('[Console WebSocket] Erro ao fechar WebSocket:', err);
+        }
         wsRef.current = null;
       }
+      
       setIsConnected(false);
     };
-  }, [plantaId, onMessage]);
+  }, [plantaId]); // Removido onMessage das dependências - usando ref
 
   return { isConnected };
 }
