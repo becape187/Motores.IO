@@ -35,12 +35,15 @@ export function getApiBaseUrl(): string {
     if (envUrl) {
       return envUrl;
     }
+    // Padrão para desenvolvimento
+    return 'http://localhost:5000';
   }
   const envUrl = import.meta.env.VITE_API_URL_PROD;
   if (envUrl) {
     return envUrl;
   }
-  return '';
+  // Padrão para produção (sem porta, usa 443 para HTTPS)
+  return 'https://api.motores.automais.io';
 }
 
 /**
@@ -53,12 +56,15 @@ export function getWebSocketHost(): string {
     if (envHost) {
       return envHost;
     }
+    // Padrão para desenvolvimento
+    return 'localhost:5000';
   }
   const envHost = import.meta.env.VITE_WS_URL_PROD;
   if (envHost) {
     return envHost;
   }
-  return '';
+  // Padrão para produção (sem porta, usa 443 para WSS)
+  return 'api.motores.automais.io';
 }
 
 /**
