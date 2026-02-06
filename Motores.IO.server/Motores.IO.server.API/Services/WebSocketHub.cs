@@ -33,6 +33,12 @@ public class WebSocketHub : IWebSocketHub
         {
             var connection = kvp.Value;
             
+            // Enviar apenas para conexões de correntes
+            if (connection.ConnectionType != "correntes")
+            {
+                continue; // Pular conexões de console
+            }
+            
             // Filtrar por plantaId se especificado
             if (!string.IsNullOrEmpty(plantaId) && connection.PlantaId != plantaId)
             {
@@ -84,6 +90,14 @@ public class WebSocketHub : IWebSocketHub
         _logger.LogInformation("PlantaId (mensagem): {PlantaId}", consoleMessage?.PlantaId ?? "null");
         _logger.LogInformation("Total de conexões WebSocket: {Count}", _connections.Count);
         
+        // Listar todas as conexões para debug
+        foreach (var kvp in _connections)
+        {
+            var conn = kvp.Value;
+            _logger.LogInformation("  Conexão {ConnectionId}: PlantaId={PlantaId}, Estado={State}", 
+                kvp.Key, conn.PlantaId, conn.WebSocket.State);
+        }
+        
         if (consoleMessage == null || string.IsNullOrEmpty(consoleMessage.Mensagem))
         {
             _logger.LogWarning("Mensagem de console nula ou vazia, abortando broadcast");
@@ -100,18 +114,27 @@ public class WebSocketHub : IWebSocketHub
         var skippedCount = 0;
 
         // Usar plantaId do parâmetro (se fornecido), senão usar da mensagem
-        // Se nenhum for fornecido, enviar para TODAS as conexões (igual BroadcastCorrentesAsync)
+        // Se nenhum for fornecido, enviar para TODAS as conexões de console
         var filterPlantaId = plantaId ?? consoleMessage.PlantaId;
         _logger.LogInformation("PlantaId usado para filtro: {PlantaId}", filterPlantaId ?? "TODAS (sem filtro)");
 
         foreach (var kvp in _connections)
         {
             var connection = kvp.Value;
-            _logger.LogDebug("Verificando conexão {ConnectionId} (planta: {PlantaId}, estado: {State})", 
-                kvp.Key, connection.PlantaId, connection.WebSocket.State);
+            _logger.LogDebug("Verificando conexão {ConnectionId} (tipo: {Type}, planta: {PlantaId}, estado: {State})", 
+                kvp.Key, connection.ConnectionType, connection.PlantaId, connection.WebSocket.State);
             
-            // Filtrar por plantaId se especificado (igual BroadcastCorrentesAsync)
-            // Se filterPlantaId for null/empty, enviar para TODAS as conexões
+            // Enviar apenas para conexões de console
+            if (connection.ConnectionType != "console")
+            {
+                skippedCount++;
+                _logger.LogDebug("Pulando conexão {ConnectionId} (tipo {Type} != 'console')", 
+                    kvp.Key, connection.ConnectionType);
+                continue; // Pular conexões de correntes
+            }
+            
+            // Filtrar por plantaId se especificado
+            // Se filterPlantaId for null/empty, enviar para TODAS as conexões de console
             // Se filterPlantaId for especificado, enviar para conexões "all" OU com mesmo plantaId
             if (!string.IsNullOrEmpty(filterPlantaId))
             {
@@ -124,7 +147,7 @@ public class WebSocketHub : IWebSocketHub
                     continue;
                 }
             }
-            // Se filterPlantaId for null/empty, enviar para TODAS (não pular nenhuma)
+            // Se filterPlantaId for null/empty, enviar para TODAS as conexões de console
             
             if (connection.WebSocket.State == WebSocketState.Open)
             {
@@ -174,16 +197,17 @@ public class WebSocketHub : IWebSocketHub
         return Task.CompletedTask;
     }
 
-    public void AddConnection(string connectionId, WebSocket webSocket, string plantaId)
+    public void AddConnection(string connectionId, WebSocket webSocket, string plantaId, string connectionType = "correntes")
     {
         _connections.TryAdd(connectionId, new WebSocketConnection
         {
             WebSocket = webSocket,
             PlantaId = plantaId,
+            ConnectionType = connectionType,
             ConnectedAt = DateTime.UtcNow
         });
-        _logger.LogInformation("Conexão WebSocket adicionada: {ConnectionId} para planta {PlantaId}", 
-            connectionId, plantaId);
+        _logger.LogInformation("Conexão WebSocket adicionada: {ConnectionId} para planta {PlantaId} (tipo: {Type})", 
+            connectionId, plantaId, connectionType);
     }
 
     public Task RemoveConnectionAsync(string connectionId)
@@ -205,5 +229,6 @@ public class WebSocketConnection
 {
     public WebSocket WebSocket { get; set; } = null!;
     public string PlantaId { get; set; } = string.Empty;
+    public string ConnectionType { get; set; } = "correntes"; // "correntes" ou "console"
     public DateTime ConnectedAt { get; set; }
 }

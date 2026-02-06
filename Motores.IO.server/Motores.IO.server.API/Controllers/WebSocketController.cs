@@ -41,10 +41,10 @@ public class WebSocketController : ControllerBase
         var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
         var connectionId = Guid.NewGuid().ToString();
         
-        // Adicionar conexão ao hub
+        // Adicionar conexão ao hub (tipo: correntes)
         if (_webSocketHub is WebSocketHub hub)
         {
-            hub.AddConnection(connectionId, webSocket, plantaId);
+            hub.AddConnection(connectionId, webSocket, plantaId, "correntes");
         }
 
         _logger.LogInformation("Nova conexão WebSocket estabelecida: {ConnectionId} para planta {PlantaId}", 
@@ -119,11 +119,11 @@ public class WebSocketController : ControllerBase
         var connectionId = Guid.NewGuid().ToString();
         _logger.LogInformation("ConnectionId gerado: {ConnectionId}", connectionId);
         
-        // Adicionar conexão ao hub (marcada como console)
+        // Adicionar conexão ao hub (tipo: console)
         if (_webSocketHub is WebSocketHub hub)
         {
-            hub.AddConnection(connectionId, webSocket, plantaId);
-            _logger.LogInformation("✓ Conexão adicionada ao hub");
+            hub.AddConnection(connectionId, webSocket, plantaId, "console");
+            _logger.LogInformation("✓ Conexão adicionada ao hub (tipo: console)");
         }
         else
         {
