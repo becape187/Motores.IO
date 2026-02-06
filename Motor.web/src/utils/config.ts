@@ -15,9 +15,9 @@ function isDevelopment(): boolean {
       return true;
     }
     // IPs privados (192.168.x.x, 10.x.x.x, 172.16-31.x.x) = desenvolvimento
-    if (hostname.startsWith('192.168.') || 
-        hostname.startsWith('10.') || 
-        (hostname.startsWith('172.') && /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname))) {
+    if (hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      (hostname.startsWith('172.') && /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname))) {
       return true;
     }
   }
@@ -30,18 +30,17 @@ function isDevelopment(): boolean {
  */
 export function getApiBaseUrl(): string {
   // Se tiver variável de ambiente, usar ela
-  const envUrl = import.meta.env.VITE_API_URL;
+  if (isDevelopment()) {
+    const envUrl = import.meta.env.VITE_API_URL_DEV;
+    if (envUrl) {
+      return envUrl;
+    }
+  }
+  const envUrl = import.meta.env.VITE_API_URL_PROD;
   if (envUrl) {
     return envUrl;
   }
-
-  // Se estiver em desenvolvimento, usar localhost
-  if (isDevelopment()) {
-    return 'http://localhost:5000/api';
-  }
-
-  // Produção: usar a API do servidor
-  return 'https://api.motores.automais.io/api';
+  return '';
 }
 
 /**
@@ -49,18 +48,17 @@ export function getApiBaseUrl(): string {
  */
 export function getWebSocketHost(): string {
   // Se tiver variável de ambiente, usar ela
-  const envHost = import.meta.env.VITE_WS_URL;
+  if (isDevelopment()) {
+    const envHost = import.meta.env.VITE_WS_URL_DEV;
+    if (envHost) {
+      return envHost;
+    }
+  }
+  const envHost = import.meta.env.VITE_WS_URL_PROD;
   if (envHost) {
     return envHost;
   }
-
-  // Se estiver em desenvolvimento, usar localhost
-  if (isDevelopment()) {
-    return 'localhost:5000';
-  }
-
-  // Produção: usar o host da API
-  return 'api.motores.automais.io';
+  return '';
 }
 
 /**
