@@ -2,9 +2,13 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-height: 100%;
+  overflow: hidden;
   background: #1e1e1e;
   color: #d4d4d4;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  margin: -32px; /* Compensar padding do page-content */
+  padding: 0;
 }
 
 .console-header {
@@ -55,9 +59,62 @@
   margin-left: 0.5rem;
 }
 
+.heartbeat-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.heartbeat-icon {
+  animation: heartbeat 2s ease-in-out infinite;
+  color: #4caf50;
+}
+
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.heartbeat-time {
+  color: #858585;
+  font-size: 0.7rem;
+}
+
 .console-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.auto-scroll-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #d4d4d4;
+  user-select: none;
+}
+
+.auto-scroll-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #4caf50;
+}
+
+.auto-scroll-checkbox:hover {
+  color: #ffffff;
 }
 
 .btn-icon {
@@ -82,9 +139,12 @@
 .console-messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1rem;
   font-size: 0.875rem;
   line-height: 1.5;
+  min-height: 0;
+  max-height: 100%;
 }
 
 .console-empty {

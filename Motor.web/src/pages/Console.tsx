@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocketConsole, ConsoleMessage } from '../hooks/useWebSocketConsole';
-import { Terminal, Trash2, Download, Wifi, WifiOff } from 'lucide-react';
+import { Terminal, Trash2, Download, Wifi, WifiOff, Heart } from 'lucide-react';
 import './Console.css';
 
 export default function Console() {
@@ -13,10 +13,14 @@ export default function Console() {
 
   // Usar useCallback para estabilizar a função e evitar re-renders
   const handleMessage = useCallback((message: ConsoleMessage) => {
+    // Filtrar mensagens de PING - não devem aparecer no console
+    if (message.tipo === 'log' && message.mensagem && message.mensagem.trim().toUpperCase() === 'PING') {
+      return; // Ignorar mensagens de PING
+    }
     setMessages((prev) => [...prev, message]);
   }, []);
 
-  const { isConnected } = useWebSocketConsole(
+  const { isConnected, lastPing } = useWebSocketConsole(
     plantaSelecionada?.id,
     handleMessage
   );
@@ -89,6 +93,16 @@ export default function Console() {
     });
   };
 
+  const formatLastPing = (timestamp: number | null) => {
+    if (!timestamp) return null;
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('pt-BR', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit'
+    });
+  };
+
   return (
     <div className="console-page">
       <div className="console-header">
@@ -100,6 +114,14 @@ export default function Console() {
               <>
                 <Wifi size={16} />
                 <span>Conectado</span>
+                {lastPing && (
+                  <div className="heartbeat-indicator">
+                    <Heart size={12} className="heartbeat-icon" />
+                    <span className="heartbeat-time">
+                      {formatLastPing(lastPing)}
+                    </span>
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -113,6 +135,14 @@ export default function Console() {
           </div>
         </div>
         <div className="console-actions">
+          <label className="auto-scroll-checkbox">
+            <input
+              type="checkbox"
+              checked={autoScroll}
+              onChange={(e) => setAutoScroll(e.target.checked)}
+            />
+            <span>Auto-scroll</span>
+          </label>
           <button onClick={clearMessages} className="btn-icon" title="Limpar console">
             <Trash2 size={18} />
             Limpar

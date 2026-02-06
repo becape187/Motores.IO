@@ -14,6 +14,7 @@ export function useWebSocketConsole(
   onMessage: (message: ConsoleMessage) => void
 ) {
   const [isConnected, setIsConnected] = useState(false);
+  const [lastPing, setLastPing] = useState<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttempts = useRef(0);
@@ -68,6 +69,13 @@ export function useWebSocketConsole(
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
+            
+            // Verificar se é mensagem de PING - não enviar para o console, apenas atualizar timestamp
+            if (data.tipo === 'log' && data.mensagem && data.mensagem.trim().toUpperCase() === 'PING') {
+              setLastPing(Date.now());
+              console.log('[Console WebSocket] PING recebido, atualizando heart-beat');
+              return; // Não processar PING como mensagem do console
+            }
             
             // Endpoint de console só recebe mensagens de console
             // Mensagens de console têm: tipo, mensagem, timestamp, nivel, plantaId
@@ -170,5 +178,5 @@ export function useWebSocketConsole(
     };
   }, [plantaId]); // Removido onMessage das dependências - usando ref
 
-  return { isConnected };
+  return { isConnected, lastPing };
 }
