@@ -3,12 +3,17 @@
   flex-direction: column;
   height: 100%;
   max-height: 100%;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   background: #1e1e1e;
   color: #d4d4d4;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  margin: -32px; /* Compensar padding do page-content */
+  margin: 0;
   padding: 0;
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0; /* Permite que o container encolha */
 }
 
 .console-header {
@@ -146,7 +151,17 @@
   font-size: 0.875rem;
   line-height: 1.5;
   min-height: 0;
-  max-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  /* Altura será controlada pelo flex: 1 e overflow do container pai */
+}
+
+.console-messages.word-wrap .console-text {
+  word-wrap: break-word;
+  word-break: break-all;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 .console-empty {
@@ -176,6 +191,10 @@
   padding: 0.5rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   word-wrap: break-word;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0; /* Permite que o flex item encolha */
 }
 
 .console-timestamp {
@@ -193,7 +212,13 @@
 
 .console-text {
   flex: 1;
-  white-space: pre-wrap;
+  white-space: pre;
+  overflow-x: auto;
+  word-wrap: normal;
+  word-break: normal;
+  min-width: 0; /* Permite que o flex item encolha */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .console-message-log .console-type {
@@ -233,6 +258,27 @@
 
 .console-planta {
   color: #4caf50;
+}
+
+/* Garantir que o console use toda a área visível sem scroll da página */
+body.console-fullscreen {
+  overflow: hidden;
+}
+
+body.console-fullscreen .page-content {
+  padding: 0;
+  overflow: hidden;
+}
+
+body.console-fullscreen .main-content {
+  height: 100vh;
+  overflow: hidden;
+}
+
+body.console-fullscreen .console-page {
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
 }
 
 /* Scrollbar styling */

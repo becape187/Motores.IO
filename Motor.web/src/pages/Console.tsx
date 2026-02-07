@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocketConsole, ConsoleMessage } from '../hooks/useWebSocketConsole';
+import { useConsoleHistory } from '../hooks/useConsoleHistory';
 import { Terminal, Trash2, Download, Wifi, WifiOff } from 'lucide-react';
 import './Console.css';
 
@@ -8,8 +9,31 @@ export default function Console() {
   const { plantaSelecionada } = useAuth();
   const [messages, setMessages] = useState<ConsoleMessage[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [wordWrap, setWordWrap] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const { loadHistory, clearHistory: clearStoredHistory } = useConsoleHistory();
+  const historyLoadedRef = useRef(false);
+
+  // Carregar histórico ao montar o componente
+  useEffect(() => {
+    if (!historyLoadedRef.current) {
+      const history = loadHistory();
+      if (history.length > 0) {
+        setMessages(history);
+        console.log(`[Console] Histórico carregado: ${history.length} mensagens`);
+      }
+      historyLoadedRef.current = true;
+    }
+  }, [loadHistory]);
+
+  // Garantir que o console ocupe apenas a área visível sem scroll da página
+  useEffect(() => {
+    document.body.classList.add('console-fullscreen');
+    return () => {
+      document.body.classList.remove('console-fullscreen');
+    };
+  }, []);
 
   // Usar useCallback para estabilizar a função e evitar re-renders
   const handleMessage = useCallback((message: ConsoleMessage) => {
@@ -65,6 +89,8 @@ export default function Console() {
 
   const clearMessages = () => {
     setMessages([]);
+    clearStoredHistory();
+    console.log('[Console] Histórico limpo');
   };
 
   const downloadLogs = () => {
@@ -143,6 +169,14 @@ export default function Console() {
             />
             <span>Auto-scroll</span>
           </label>
+          <label className="auto-scroll-checkbox">
+            <input
+              type="checkbox"
+              checked={wordWrap}
+              onChange={(e) => setWordWrap(e.target.checked)}
+            />
+            <span>Quebrar linha</span>
+          </label>
           <button onClick={clearMessages} className="btn-icon" title="Limpar console">
             <Trash2 size={18} />
             Limpar
@@ -155,7 +189,7 @@ export default function Console() {
       </div>
 
       <div 
-        className="console-messages" 
+        className={`console-messages ${wordWrap ? 'word-wrap' : ''}`}
         ref={messagesContainerRef}
         onScroll={handleScroll}
       >

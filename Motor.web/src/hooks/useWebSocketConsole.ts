@@ -9,6 +9,35 @@ export interface ConsoleMessage {
   plantaId?: string;
 }
 
+// Função para salvar mensagem no histórico (pode ser chamada mesmo fora do componente)
+function saveMessageToHistory(message: ConsoleMessage) {
+  try {
+    const CONSOLE_HISTORY_KEY = 'console_history';
+    const MAX_HISTORY_SIZE = 1000;
+    
+    const stored = localStorage.getItem(CONSOLE_HISTORY_KEY);
+    const history: ConsoleMessage[] = stored ? JSON.parse(stored) : [];
+    
+    // Filtrar mensagens de PING antes de salvar
+    const mensagemUpper = (message.mensagem || '').trim().toUpperCase();
+    if (mensagemUpper.includes('PING')) {
+      return; // Não salvar PINGs no histórico
+    }
+    
+    history.push(message);
+    
+    // Limitar tamanho do histórico
+    if (history.length > MAX_HISTORY_SIZE) {
+      const excess = history.length - MAX_HISTORY_SIZE;
+      history.splice(0, excess);
+    }
+    
+    localStorage.setItem(CONSOLE_HISTORY_KEY, JSON.stringify(history));
+  } catch (err) {
+    console.error('[Console WebSocket] Erro ao salvar no histórico:', err);
+  }
+}
+
 export function useWebSocketConsole(
   plantaId: string | undefined,
   onMessage: (message: ConsoleMessage) => void
@@ -89,6 +118,10 @@ export function useWebSocketConsole(
               plantaId: data.plantaId
             };
             console.log('[Console WebSocket] Mensagem de console recebida:', message);
+            
+            // Salvar no histórico (mesmo quando a página do console não está aberta)
+            saveMessageToHistory(message);
+            
             // Usar ref para evitar dependência do callback
             onMessageRef.current(message);
           } catch (err) {

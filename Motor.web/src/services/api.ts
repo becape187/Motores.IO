@@ -327,6 +327,48 @@ class ApiService {
       geradoEm?: string;
     }>(`/plantas/${plantaId}/token`);
   }
+
+  // Métodos para gerenciamento de arquivos
+  async listarArquivos(plantaId: string, path?: string): Promise<any> {
+    return this.request(`/files/${plantaId}/listar`, {
+      method: 'POST',
+      body: JSON.stringify({ path: path || '/flash' }),
+    });
+  }
+
+  async listarBancosDados(plantaId: string): Promise<any> {
+    return this.request(`/files/${plantaId}/listar-bancos`, {
+      method: 'POST',
+    });
+  }
+
+  async lerArquivo(plantaId: string, caminho: string): Promise<any> {
+    return this.request(`/files/${plantaId}/ler`, {
+      method: 'POST',
+      body: JSON.stringify({ caminho }),
+    });
+  }
+
+  async salvarArquivo(plantaId: string, caminho: string, conteudo: string): Promise<any> {
+    return this.request(`/files/${plantaId}/salvar`, {
+      method: 'POST',
+      body: JSON.stringify({ caminho, conteudo }),
+    });
+  }
+
+  async apagarArquivo(plantaId: string, caminho: string): Promise<any> {
+    return this.request(`/files/${plantaId}/apagar`, {
+      method: 'POST',
+      body: JSON.stringify({ caminho }),
+    });
+  }
+
+  async obterInfoArquivo(plantaId: string, caminho: string): Promise<any> {
+    return this.request(`/files/${plantaId}/info`, {
+      method: 'POST',
+      body: JSON.stringify({ caminho }),
+    });
+  }
 }
 
 export const api = new ApiService();

@@ -15,10 +15,12 @@ import {
   Building2,
   ChevronDown,
   Key,
-  Terminal
+  Terminal,
+  File
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
+import ConsoleHistoryListener from './ConsoleHistoryListener';
 import './Layout.css';
 
 interface LayoutProps {
@@ -113,10 +115,14 @@ function Layout({ children, onLogout }: LayoutProps) {
   const advancedMenuItems = user?.perfil === 'global' ? [
     { path: '/tokens', icon: Key, label: 'Tokens de API' },
     { path: '/console', icon: Terminal, label: 'Console' },
+    { path: '/files', icon: File, label: 'Arquivos' },
   ] : [];
 
   return (
     <div className="layout">
+      {/* Componente invisível para manter histórico do console sempre atualizado */}
+      <ConsoleHistoryListener />
+      
       {/* Overlay para mobile */}
       {isSidebarOpen && (
         <div 
