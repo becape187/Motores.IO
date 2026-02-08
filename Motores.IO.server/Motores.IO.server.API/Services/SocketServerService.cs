@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,10 @@ public class SocketServerService : BackgroundService, ISocketServerService
     private readonly IServiceProvider _serviceProvider;
     private TcpListener? _tcpListener;
     private readonly List<TcpClient> _connectedClients = new();
+    private readonly Dictionary<string, TcpClient> _plantaClients = new(); // Mapeia plantaId -> TcpClient
+    private readonly Dictionary<string, TaskCompletionSource<FileCommandResponseDto>> _pendingCommands = new(); // Mapeia requestId -> TaskCompletionSource
     private readonly object _clientsLock = new();
+    private readonly object _commandsLock = new();
     private int _port;
 
     public SocketServerService(
@@ -43,7 +47,10 @@ public class SocketServerService : BackgroundService, ISocketServerService
         {
             _tcpListener = new TcpListener(IPAddress.Any, _port);
             _tcpListener.Start();
-            _logger.LogInformation("Socket Server iniciado na porta {Port}", _port);
+            _logger.LogInformation("=== SOCKET SERVER INICIADO ===");
+            _logger.LogInformation("Porta: {Port}", _port);
+            _logger.LogInformation("Endereço: {Address} (aceita conexões de qualquer interface)", IPAddress.Any);
+            _logger.LogInformation("Aguardando conexões TCP na porta {Port}...", _port);
 
             // Aceitar conexões em loop
             while (!cancellationToken.IsCancellationRequested)
@@ -59,6 +66,18 @@ public class SocketServerService : BackgroundService, ISocketServerService
                     {
                         _connectedClients.Add(tcpClient);
                     }
+                    
+                    // Aguardar mensagem de identificação da planta (timeout de 5 segundos)
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await Task.Delay(5000, cancellationToken); // Aguardar 5 segundos
+                            // Se não recebeu identificação, remover da lista após timeout
+                            // (será tratado no HandleClientAsync quando desconectar)
+                        }
+                        catch { }
+                    }, cancellationToken);
 
                     // Processar cliente em thread separada
                     _ = Task.Run(() => HandleClientAsync(tcpClient, cancellationToken), cancellationToken);
@@ -165,10 +184,41 @@ public class SocketServerService : BackgroundService, ISocketServerService
         }
         finally
         {
-            // Remover cliente da lista
+            // Remover cliente da lista e limpar comandos pendentes
             lock (_clientsLock)
             {
                 _connectedClients.Remove(client);
+                
+                // Remover cliente do mapeamento de plantas
+                var plantasParaRemover = _plantaClients
+                    .Where(kvp => kvp.Value == client)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+                
+                foreach (var plantaId in plantasParaRemover)
+                {
+                    _plantaClients.Remove(plantaId);
+                }
+            }
+            
+            // Cancelar comandos pendentes deste cliente
+            lock (_commandsLock)
+            {
+                var commandsToCancel = _pendingCommands
+                    .Where(kvp => !kvp.Value.Task.IsCompleted)
+                    .ToList();
+                
+                foreach (var kvp in commandsToCancel)
+                {
+                    kvp.Value.SetResult(new FileCommandResponseDto
+                    {
+                        Sucesso = false,
+                        Erro = "Cliente desconectado",
+                        Acao = "",
+                        RequestId = kvp.Key
+                    });
+                    _pendingCommands.Remove(kvp.Key);
+                }
             }
 
             // Fechar conexão
@@ -191,9 +241,14 @@ public class SocketServerService : BackgroundService, ISocketServerService
         if (string.IsNullOrEmpty(message))
             return;
 
-        _logger.LogInformation("=== MENSAGEM RECEBIDA ===");
-        _logger.LogInformation("Conteúdo: {Message}", message);
-        _logger.LogInformation("Tamanho: {Length} bytes", message.Length);
+        // Log apenas para mensagens importantes (evitar poluição com atualizações de motores)
+        var isImportantMessage = message == "PING" || message == "KEEPALIVE" || 
+                                 message.Contains("\"acao\"") || message.Contains("\"tipo\":\"identificacao\"");
+        
+        if (isImportantMessage)
+        {
+            _logger.LogDebug("Mensagem recebida: {Message}", message);
+        }
 
         // Processar comandos especiais
         if (message == "PING")
@@ -210,10 +265,68 @@ public class SocketServerService : BackgroundService, ISocketServerService
             return;
         }
 
-        // Tentar processar como JSON
+            // Verificar se é mensagem de identificação de planta
+            try
+            {
+                var identMessage = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(message, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                if (identMessage != null && identMessage.ContainsKey("tipo") && 
+                    identMessage["tipo"].GetString() == "identificacao" &&
+                    identMessage.ContainsKey("plantaId"))
+                {
+                    var plantaId = identMessage["plantaId"].GetString();
+                    if (!string.IsNullOrEmpty(plantaId))
+                    {
+                        lock (_clientsLock)
+                        {
+                            _plantaClients[plantaId] = client;
+                            _logger.LogInformation("Cliente identificado como planta: {PlantaId}", plantaId);
+                        }
+                        await SendResponseAsync(client, "OK\n");
+                        return;
+                    }
+                }
+            }
+            catch
+            {
+                // Não é mensagem de identificação, continuar processamento normal
+            }
+
+            // Verificar se é resposta de comando de arquivo
+            try
+            {
+                var fileResponse = JsonSerializer.Deserialize<FileCommandResponseDto>(message, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (fileResponse != null && !string.IsNullOrEmpty(fileResponse.RequestId))
+                {
+                    // É uma resposta de comando de arquivo
+                    lock (_commandsLock)
+                    {
+                        if (_pendingCommands.TryGetValue(fileResponse.RequestId, out var tcs))
+                        {
+                            tcs.SetResult(fileResponse);
+                            _pendingCommands.Remove(fileResponse.RequestId);
+                            _logger.LogDebug("Resposta de comando de arquivo recebida: {RequestId}, Sucesso: {Sucesso}", 
+                                fileResponse.RequestId, fileResponse.Sucesso);
+                            return;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Não é resposta de comando de arquivo, continuar
+            }
+
+            // Tentar processar como JSON (mensagens da IHM)
         try
         {
-            _logger.LogInformation("Tentando deserializar JSON...");
             var socketMessage = JsonSerializer.Deserialize<SocketMessageDto>(message, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -221,40 +334,30 @@ public class SocketServerService : BackgroundService, ISocketServerService
 
             if (socketMessage == null)
             {
+                // Tentar processar como comando de arquivo enviado pelo servidor (não deve acontecer aqui)
                 _logger.LogWarning("Mensagem JSON inválida ou nula: {Message}", message);
                 await SendResponseAsync(client, "ERROR: JSON inválido\n");
                 return;
             }
 
-            _logger.LogInformation("JSON deserializado com sucesso:");
-            _logger.LogInformation("  Tipo: {Tipo}", socketMessage.Tipo);
-            _logger.LogInformation("  ID: {Id}", socketMessage.Id);
-            _logger.LogInformation("  Nome: {Nome}", socketMessage.Nome);
-            _logger.LogInformation("  Status: {Status}", socketMessage.Status);
-            _logger.LogInformation("  Corrente Atual: {CorrenteAtual}", socketMessage.CorrenteAtual);
-            _logger.LogInformation("  Horímetro: {Horimetro}", socketMessage.Horimetro);
-
-            // Processar mensagem de motor
+            // Processar mensagem de motor (sem logs excessivos)
             if (socketMessage.Tipo == "motor" && !string.IsNullOrEmpty(socketMessage.Id))
             {
-                _logger.LogInformation("Processando dados do motor ID: {Id}", socketMessage.Id);
+                // Removido log para evitar poluição (mais de 20 por segundo)
                 var success = await ProcessMotorDataAsync(socketMessage, cancellationToken);
                 // Enviar confirmação de recebimento
                 if (success)
                 {
-                    _logger.LogInformation("✓ Motor processado com sucesso, enviando OK");
                     await SendResponseAsync(client, "OK\n");
                 }
                 else
                 {
-                    _logger.LogWarning("✗ Erro ao processar motor, enviando ERROR");
                     await SendResponseAsync(client, "ERROR\n");
                 }
             }
-            // Processar mensagem de array de correntes
+            // Processar mensagem de array de correntes (sem logs excessivos)
             else if (socketMessage.Tipo == "correntes")
             {
-                _logger.LogInformation("Processando array de correntes");
                 try
                 {
                     var correntesDto = JsonSerializer.Deserialize<CorrentesArrayDto>(message, new JsonSerializerOptions
@@ -269,7 +372,6 @@ public class SocketServerService : BackgroundService, ISocketServerService
                     }
                     else
                     {
-                        _logger.LogWarning("Array de correntes vazio ou inválido");
                         await SendResponseAsync(client, "ERROR: Array vazio\n");
                     }
                 }
@@ -328,7 +430,7 @@ public class SocketServerService : BackgroundService, ISocketServerService
 
     private async Task ProcessCorrentesArrayAsync(CorrentesArrayDto correntesDto, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Processando array de {Count} correntes", correntesDto.Motores?.Count ?? 0);
+        // Removido log para evitar poluição (mais de 20 por segundo)
         
         if (correntesDto.Motores == null || correntesDto.Motores.Count == 0)
             return;
@@ -375,27 +477,21 @@ public class SocketServerService : BackgroundService, ISocketServerService
             using var scope = _serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // Tentar converter ID para Guid
-            _logger.LogInformation("Tentando converter ID '{Id}' para GUID...", message.Id);
+            // Tentar converter ID para Guid (sem logs excessivos)
             if (!Guid.TryParse(message.Id, out var motorId))
             {
-                _logger.LogWarning("✗ ID de motor inválido (não é um GUID válido): {Id}", message.Id);
+                _logger.LogWarning("ID de motor inválido: {Id}", message.Id);
                 return false;
             }
-            _logger.LogInformation("✓ ID convertido para GUID: {MotorId}", motorId);
 
-            // Buscar motor no banco
-            _logger.LogInformation("Buscando motor no banco de dados...");
+            // Buscar motor no banco (sem logs excessivos)
             var motor = await dbContext.Motores.FindAsync(new object[] { motorId }, cancellationToken);
 
             if (motor == null)
             {
-                _logger.LogWarning("✗ Motor não encontrado no banco de dados com ID: {Id} (GUID: {MotorId})", 
-                    message.Id, motorId);
-                _logger.LogWarning("Verifique se o motor foi cadastrado na API com este GUID");
+                _logger.LogWarning("Motor não encontrado: {Id}", motorId);
                 return false;
             }
-            _logger.LogInformation("✓ Motor encontrado: {Nome} (ID: {Id})", motor.Nome, motorId);
 
             // Atualizar dados do motor
             var hasChanges = false;
@@ -422,9 +518,7 @@ public class SocketServerService : BackgroundService, ISocketServerService
             {
                 motor.DataAtualizacao = DateTime.UtcNow;
                 await dbContext.SaveChangesAsync(cancellationToken);
-
-                _logger.LogInformation("Motor {Id} atualizado via socket: Status={Status}, Horimetro={Horimetro}",
-                    motorId, message.Status, message.Horimetro);
+                // Removido log para evitar poluição (mais de 20 por segundo)
             }
 
             // Criar registro de histórico
@@ -520,6 +614,89 @@ public class SocketServerService : BackgroundService, ISocketServerService
         lock (_clientsLock)
         {
             return _connectedClients.Count(c => c.Connected);
+        }
+    }
+
+    public async Task<FileCommandResponseDto?> SendCommandToPlantaAsync(string plantaId, FileCommandDto command, CancellationToken cancellationToken = default)
+    {
+        TcpClient? client = null;
+        
+        lock (_clientsLock)
+        {
+            if (_plantaClients.TryGetValue(plantaId, out var plantaClient) && plantaClient.Connected)
+            {
+                client = plantaClient;
+            }
+        }
+
+        if (client == null)
+        {
+            _logger.LogWarning("Nenhum cliente conectado para planta {PlantaId}", plantaId);
+            return new FileCommandResponseDto
+            {
+                Sucesso = false,
+                Erro = "IHM não conectada",
+                Acao = command.Acao,
+                RequestId = command.RequestId
+            };
+        }
+
+        try
+        {
+            // Criar TaskCompletionSource para aguardar resposta
+            var tcs = new TaskCompletionSource<FileCommandResponseDto>();
+            
+            lock (_commandsLock)
+            {
+                _pendingCommands[command.RequestId] = tcs;
+            }
+
+            _logger.LogInformation("Enviando comando de arquivo para planta {PlantaId}: {Acao} (RequestId: {RequestId})", 
+                plantaId, command.Acao, command.RequestId);
+
+            // Enviar comando
+            var commandJson = JsonSerializer.Serialize(command);
+            _logger.LogDebug("Comando JSON: {CommandJson}", commandJson);
+            await SendResponseAsync(client, commandJson + "\n");
+            _logger.LogDebug("Comando enviado via socket para planta {PlantaId}", plantaId);
+
+            // Aguardar resposta com timeout de 10 segundos
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+            try
+            {
+                var response = await tcs.Task.WaitAsync(linkedCts.Token);
+                _logger.LogInformation("Resposta recebida para comando {RequestId}: Sucesso={Sucesso}", 
+                    command.RequestId, response.Sucesso);
+                return response;
+            }
+            catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested)
+            {
+                lock (_commandsLock)
+                {
+                    _pendingCommands.Remove(command.RequestId);
+                }
+                _logger.LogWarning("Timeout ao aguardar resposta do comando {RequestId}", command.RequestId);
+                return new FileCommandResponseDto
+                {
+                    Sucesso = false,
+                    Erro = "Timeout ao aguardar resposta",
+                    Acao = command.Acao,
+                    RequestId = command.RequestId
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao enviar comando para planta {PlantaId}", plantaId);
+            return new FileCommandResponseDto
+            {
+                Sucesso = false,
+                Erro = ex.Message,
+                Acao = command.Acao,
+                RequestId = command.RequestId
+            };
         }
     }
 

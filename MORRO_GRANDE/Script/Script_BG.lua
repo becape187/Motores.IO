@@ -7,6 +7,8 @@ local motorSync
 local apiClient
 local sqliteDB
 local motorCurrentReader
+local fileManager
+local fileManagerHandler
 local conta = 0
 local sistemaInicializado = false
 local inicioms 
@@ -14,7 +16,7 @@ local inicioms
 -- UUID da planta
 local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874"
 
--- Função de inicializaço que pode ser chamada manualmente (ex: por botão)
+-- Função de inicializaçoque pode ser chamada manualmente (ex:por botão)
 function inicializarSistema()
     -- IMPORTANTE: Verificar se já está inicializado SEM usar print (ainda não temos Logger)
     if sistemaInicializado then
@@ -32,11 +34,21 @@ function inicializarSistema()
     we_bas_setint("@W_HDW300",10)
     
     -- Criar SocketClient primeiro (sem prints ainda)
+    -- Porta 5055 é onde o SocketServerService escuta conexões TCP simples
     socketClient = SocketClient:new("api.motores.automais.io", 5055)
     --socketClient = SocketClient:new("192.168.15.187", 5055)
 
     -- Tentar conectar ao socket (PRIMEIRA ação do sistema)
     local socketConnected, socketErr = socketClient:Conectar()
+    
+    -- Enviar identificação da planta após conectar
+    if socketConnected then
+        local identMessage = json.encode({
+            tipo = "identificacao",
+            plantaId = PLANTA_UUID
+        })
+        socketClient:EnviarMensagem(identMessage)
+    end
     
     -- ============================================
     -- SEGUNDA COISA: Inicializar Logger IMEDIATAMENTE
@@ -61,7 +73,7 @@ function inicializarSistema()
     -- Inicializar banco de dados local
     print("[Init] Inicializando banco de dados local...")
     -- Usar "udisk:" para disco USB ou caminho relativo conforme documentação
-    sqliteDB = SQLiteDB:new("sdcard:motores.db")
+    sqliteDB = SQLiteDB:new("udisk:motores.db")
     we_bas_setint("@W_HDW300",11)
     local dbConnected, dbErr = sqliteDB:Conectar()
     we_bas_setint("@W_HDW300",12)
@@ -117,7 +129,20 @@ function inicializarSistema()
     we_bas_setint("@W_HDW300",21)
     motorCurrentReader = MotorCurrentReader:new(motorSync, socketClient)
     print("[Init] ✓ MotorCurrentReader inicializado")
+    
+    -- Inicializar FileManager e FileManagerHandler
+    print("[Init] Inicializando FileManager...")
     we_bas_setint("@W_HDW300",22)
+    fileManager = FileManager:new("/flash")
+    fileManagerHandler = FileManagerHandler:new(fileManager, socketClient)
+    
+    -- Configurar callback para processar comandos de arquivo
+    socketClient:SetCommandHandlerCallback(function(comando)
+        return fileManagerHandler:ProcessarComando(comando)
+    end)
+    print("[Init] ✓ FileManager inicializado")
+    
+    we_bas_setint("@W_HDW300",23)
     sistemaInicializado = true
     print("[Init] === INICIALIZAÇÃO CONCLUÍDA ===")
 
@@ -140,7 +165,6 @@ end
 
 function we_bg_poll()
     if we_bas_gettickcount() > (inicioms + 5000) and sistemaInicializado == false then
-        we_bas_setint("@W_HDW300",10)
         inicializarSistema()
     end
     

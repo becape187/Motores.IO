@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocketConsole, ConsoleMessage } from '../hooks/useWebSocketConsole';
 
@@ -11,7 +10,7 @@ export default function ConsoleHistoryListener() {
   const { plantaSelecionada } = useAuth();
 
   // Callback que apenas salva no histórico (não precisa fazer nada mais)
-  const handleMessage = (message: ConsoleMessage) => {
+  const handleMessage = (_message: ConsoleMessage) => {
     // A função saveMessageToHistory já é chamada automaticamente
     // no useWebSocketConsole, então não precisamos fazer nada aqui
     // Este componente apenas mantém o WebSocket conectado

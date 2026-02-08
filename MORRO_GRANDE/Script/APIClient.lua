@@ -1,4 +1,4 @@
--- Cs= AIClientpra consult
+-- Cs= AICientpra consult
 APIClient = {}
 APIClient.__index = APIClient
 

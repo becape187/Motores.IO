@@ -65,7 +65,7 @@ export function useConsoleHistoryAutoSave() {
   useEffect(() => {
     // Esta função será chamada sempre que uma mensagem chegar
     // Mesmo quando a página do console não está aberta
-    const handleStorageMessage = (event: StorageEvent) => {
+    const handleStorageMessage = (_event: StorageEvent) => {
       // Não fazer nada aqui, apenas garantir que o listener existe
       // As mensagens serão salvas diretamente no hook useWebSocketConsole
     };

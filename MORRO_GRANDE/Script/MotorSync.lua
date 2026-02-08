@@ -1,4 +1,4 @@
--- Case MooSync para sinconização bidirecional entre API e banco loc
+-- Cse MooSync para sinconização bidirecional entre API e banco loc
 MotorSync = {}
 MotorSync.__index = MotorSync
 

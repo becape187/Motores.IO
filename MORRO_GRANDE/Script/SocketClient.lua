@@ -1,4 +1,4 @@
--- Clss ScketClient para comunicação via socke
+-- ClssSkeClient para comunicação via socke
 SocketClient = {}
 SocketClient.__index = SocketClient
 
@@ -27,52 +27,47 @@ function SocketClient:new(host, port)
     obj.ConnectionCheckInterval = 5000   -- Verificar conexão a cada 5 segundos (5000ms)
     obj.PoolingInterval = 10000          -- Enviar keep-alive a cada 10 segundos (10000ms)
     obj.DataSendInterval = 30000          -- Enviar dados do motor a cada 30 segundos (30000ms)
+    obj.SendProcessInterval = 100         -- Processar envios pendentes a cada 100ms
+    obj.ErrorCheckInterval = 1000        -- Verificar erros de envio a cada 1 segundo
     
     -- Callback para obter dados do motor (será configurado externamente)
     obj.GetMotorDataCallback = nil
     
+    -- Callback para processar comandos recebidos (será configurado externamente)
+    obj.CommandHandlerCallback = nil
+    
     -- Inicializar variáveis de controle de tempo (usando we_bas_gettickcount() que retorna milissegundos)
     local currentTime = we_bas_gettickcount()
+    
+    -- Sistema de fila para envios assíncronos
+    obj.SendQueue = {}                    -- Fila de mensagens para enviar
+    obj.PendingSends = {}                  -- Envios pendentes com timestamp e status
+    obj.LastSendProcessTime = currentTime  -- Última vez que processou envios
+    obj.LastErrorCheckTime = currentTime  -- Última vez que verificou erros
     obj.LastConnectionCheckTime = currentTime
     obj.LastPoolingTime = currentTime
     obj.LastDataSendTime = currentTime
+    obj.LastCommandCheckTime = currentTime
+    obj.CommandCheckInterval = 50  -- Verificar comandos a cada 50ms (alta frequência para comandos)
     
     return obj
 end
 
--- Função para conectar ao socket (usando API do PIStudio)
+-- Função para conectar ao socket
 function SocketClient:Conectar()
-    -- Conforme documentação do PIStudio: local socket = require("socket")
-    -- https://docs.we-con.com.cn/bin/view/PIStudio/09%20Lua%20Editor/Lua%20Script/#HSocketbasicfunction
-    
-    if not socket or not socket.tcp then
-        return false, "Módulo socket não foi carregado corretamente"
-    end
-    
-    -- Criar socket TCP
     self.Socket = socket.tcp()
+    self.Socket:settimeout(5)
     
-    if not self.Socket then
-        return false, "Não foi possível criar socket TCP"
-    end
-    
-    -- Configurar timeout (conforme API do PIStudio: tcp:settimeout())
-    self.Socket:settimeout(5) -- timeout de 5 segundos
-    
-    -- Conectar ao servidor
-    -- Conforme documentação: tcp:connect(address, port) retorna success, err
-    -- success = 1 se sucesso, nil se falha
     local success, err = self.Socket:connect(self.Host, self.Port)
     
-    -- tcp:connect() retorna 1 se sucesso, nil se falha
     if success == 1 then
         self.Connected = true
         self.ReconnectAttempts = 0
-        print("Socket conectado com sucesso em " .. self.Host .. ":" .. self.Port)
+        print("[Socket] ✓ Conectado: " .. self.Host .. ":" .. self.Port)
         return true
     else
         self.Connected = false
-        print("Erro ao conectar socket: " .. tostring(err))
+        print("[Socket] ✗ Erro ao conectar: " .. tostring(err))
         return false, err
     end
 end
@@ -89,124 +84,122 @@ end
 
 -- Função para verificar se está conectado
 function SocketClient:EstaConectado()
-    -- Verificação simples: apenas verifica se o socket existe e está marcado como conectado
-    -- Não faz ping para evitar recursão e problemas de stack overflow
-    -- O ping será feito apenas quando necessário (ex: no FazerPooling)
-    if not self.Socket or not self.Connected then
-        return false
-    end
-    
-    -- Retorna true se socket existe e está marcado como conectado
-    -- A verificação real da conexão será feita quando tentar enviar dados
-    return true
+    return self.Connected
 end
 
--- Função para fazer pooling e manter conexão ativa
+-- Função para fazer pooling (mantida para compatibilidade)
 function SocketClient:FazerPooling()
-    -- Verificação simples: apenas verifica se socket existe antes de enviar
-    if not self.Socket or not self.Connected then
-        print("Socket desconectado, tentando reconectar...")
-        self:Conectar()
-        return
-    end
-    
-    -- Envia mensagem de keep-alive
-    -- tcp:send() retorna: sent (número de bytes ou nil), err, last_byte
-    local sent, err = self.Socket:send("KEEPALIVE\n")
-    if not sent then
-        print("Erro ao enviar keep-alive: " .. tostring(err))
-        self.Connected = false
-        self:Conectar()
-    else
-        -- Opcionalmente, verificar resposta do servidor (timeout curto)
-        -- Usar verificação direta do socket para evitar recursão
-        if self.Socket and self.Connected then
-            local resposta, errResp = self:ReceberMensagem(1) -- timeout de 1 segundo
-            if resposta then
-                resposta = string.gsub(resposta, "\n", "") -- Remove quebra de linha
-                if resposta ~= "OK" then
-                    print("Resposta inesperada do servidor no keep-alive: " .. tostring(resposta))
-                end
-            end
-            -- Se não recebeu resposta, continua normalmente (compatibilidade)
-        end
-    end
+    self:EnviarMensagem("KEEPALIVE")
 end
 
--- Função para enviar mensagem
+-- Função para adicionar mensagem à fila de envio (não-bloqueante)
 function SocketClient:EnviarMensagem(mensagem)
-    -- Verificação simples sem recursão: apenas verifica se socket existe
-    if not self.Socket or not self.Connected then
-        local connected = self:Conectar()
-        if not connected then
-            return false, "Não foi possível conectar ao socket"
-        end
-    end
+    -- Adicionar à fila de envio (não bloqueia o fluxo principal)
+    local sendId = #self.SendQueue + 1
+    local currentTime = we_bas_gettickcount()
     
     -- Adiciona quebra de linha se não tiver
     if not string.match(mensagem, "\n$") then
         mensagem = mensagem .. "\n"
     end
     
-    -- tcp:send() retorna: sent (número de bytes ou nil), err, last_byte
-    local sent, err = self.Socket:send(mensagem)
+    table.insert(self.SendQueue, {
+        id = sendId,
+        mensagem = mensagem,
+        timestamp = currentTime,
+        tentativas = 0,
+        maxTentativas = 3
+    })
     
-    if sent then
-        return true
-    else
-        print("[Socket] ✗ Erro ao enviar: " .. tostring(err))
-        self.Connected = false
-        return false, "Erro ao enviar mensagem: " .. tostring(err)
+    -- Marcar como pendente
+    self.PendingSends[sendId] = {
+        status = "pending",
+        timestamp = currentTime,
+        mensagem = mensagem
+    }
+    
+    return true  -- Retorna imediatamente (envio será processado assincronamente)
+end
+
+-- Função para processar envios pendentes
+function SocketClient:ProcessarEnvios()
+    if not self.Connected then
+        self:Conectar()
+        return
+    end
+    
+    local processadas = 0
+    local maxPorCiclo = 5
+    
+    for i = #self.SendQueue, 1, -1 do
+        if processadas >= maxPorCiclo then
+            break
+        end
+        
+        local item = self.SendQueue[i]
+        local sent, err = self.Socket:send(item.mensagem)
+        
+        if sent then
+            self.PendingSends[item.id] = {
+                status = "sent",
+                timestamp = we_bas_gettickcount()
+            }
+            table.remove(self.SendQueue, i)
+            processadas = processadas + 1
+        else
+            item.tentativas = item.tentativas + 1
+            
+            if item.tentativas >= item.maxTentativas then
+                self.PendingSends[item.id] = {
+                    status = "error",
+                    timestamp = we_bas_gettickcount(),
+                    erro = tostring(err)
+                }
+                table.remove(self.SendQueue, i)
+                self.Connected = false
+            end
+            
+            processadas = processadas + 1
+        end
+    end
+end
+
+-- Função para verificar e tratar erros de envio (chamada assincronamente)
+function SocketClient:VerificarErrosEnvio()
+    local currentTime = we_bas_gettickcount()
+    local timeoutErro = 5000  -- 5 segundos para considerar erro antigo
+    
+    -- Limpar erros antigos
+    for id, pending in pairs(self.PendingSends) do
+        if pending.status == "error" then
+            if currentTime - pending.timestamp > timeoutErro then
+                -- Erro antigo, remover
+                self.PendingSends[id] = nil
+            end
+        elseif pending.status == "sent" then
+            if currentTime - pending.timestamp > timeoutErro then
+                -- Envio antigo bem-sucedido, remover
+                self.PendingSends[id] = nil
+            end
+        end
     end
 end
 
 -- Função para receber mensagem
 function SocketClient:ReceberMensagem(timeout)
-    -- Verificação simples sem recursão: apenas verifica se socket existe
-    if not self.Socket or not self.Connected then
-        return nil, "Socket não está conectado"
-    end
-    
-    -- Salvar timeout atual e configurar novo se necessário
-    local old_timeout = nil
-    if self.Socket.gettimeout then
-        old_timeout = self.Socket:gettimeout()
-    end
-    
     if timeout then
         self.Socket:settimeout(timeout)
     end
     
-    -- Receber mensagem (conforme API do PIStudio: tcp:receive())
-    -- O formato pode ser receive() ou receive("*l") para receber linha
-    local mensagem, err
-    
-    -- Tentar receber uma linha (até encontrar \n)
-    if self.Socket.receive then
-        -- No PIStudio, receive() pode aceitar padrão "*l" para linha ou número de bytes
-        mensagem, err = self.Socket:receive("*l")
-        
-        -- Se não funcionar, tentar sem parâmetro
-        if not mensagem and err then
-            mensagem, err = self.Socket:receive()
-        end
-    else
-        return nil, "Método receive não disponível no socket"
-    end
-    
-    -- Restaurar timeout anterior
-    if timeout and old_timeout then
-        self.Socket:settimeout(old_timeout)
-    end
+    local mensagem, err = self.Socket:receive("*l")
     
     if mensagem then
         return mensagem
     else
         if err ~= "timeout" then
-            print("[Socket] ✗ Erro ao receber mensagem: " .. tostring(err))
             self.Connected = false
         end
-        return nil, err == "timeout" and "Timeout ao receber mensagem" or "Erro ao receber mensagem: " .. tostring(err)
+        return nil, err
     end
 end
 
@@ -228,9 +221,10 @@ function SocketClient:EnviarCorrentesArray(correntesArray, plantaId)
     
     local success, err = self:EnviarMensagem(mensagem)
     
-    if not success then
-        print("[Socket] ✗ Erro ao enviar correntes: " .. tostring(err))
-    end
+    -- Não logar erro a cada tentativa para evitar poluição
+    -- if not success then
+    --     print("[Socket] ✗ Erro ao enviar correntes: " .. tostring(err))
+    -- end
     
     return success, err
 end
@@ -296,71 +290,121 @@ function SocketClient:SetMotorDataCallback(callback)
     self.GetMotorDataCallback = callback
 end
 
+-- Função para configurar callback de comandos recebidos
+function SocketClient:SetCommandHandlerCallback(callback)
+    self.CommandHandlerCallback = callback
+end
+
+-- Função para verificar se há dados disponíveis usando socket.select
+function SocketClient:VerificarDadosDisponiveis()
+    local recvt = {self.Socket}
+    local recvt_ready = socket.select(recvt, nil, 0)
+    return recvt_ready and #recvt_ready > 0
+end
+
+-- Função para processar mensagens recebidas (alta prioridade)
+function SocketClient:ProcessarRecebimentos()
+    -- Processar TODAS as mensagens disponíveis imediatamente (sem limite)
+    while self:VerificarDadosDisponiveis() do
+        local mensagem = self:ReceberMensagem(0.01)
+        
+        if not mensagem then
+            break
+        end
+        
+        -- Ignorar mensagens simples de controle
+        if mensagem ~= "OK" and mensagem ~= "PONG" and mensagem ~= "ERROR" then
+            print("[Socket] MSG RECEBIDO: " .. mensagem)
+            local comando = json.decode(mensagem)
+            
+            -- Normalizar acao: se vazia mas tem Path, assumir "listar"
+            if comando then
+                if (not comando.acao or comando.acao == "") and comando.Path then
+                    comando.acao = "listar"
+                    print("[Socket] Acao vazia detectada, assumindo 'listar' para Path: " .. tostring(comando.Path))
+                end
+                
+                -- Normalizar campo path (pode vir como Path ou path)
+                if not comando.path and comando.Path then
+                    comando.path = comando.Path
+                end
+            end
+            
+            if comando and comando.acao and comando.acao ~= "" then
+                print("[Socket] Processando comando: " .. comando.acao .. " (RequestId: " .. tostring(comando.requestId or "sem ID") .. ")")
+                local resultado = self.CommandHandlerCallback(comando)
+                if resultado then
+                    if not resultado.requestId then
+                        resultado.requestId = comando.requestId
+                    end
+                    -- Enviar resposta imediatamente (não via fila para respostas de comandos)
+                    local respostaJson = json.encode(resultado)
+                    self.Socket:send(respostaJson .. "\n")
+                    print("[Socket] Resposta enviada para comando: " .. comando.acao)
+                else
+                    print("[Socket] ⚠ Comando processado mas não retornou resultado")
+                end
+            else
+                print("[Socket] ⚠ Comando recebido sem ação válida: " .. tostring(comando and comando.acao or "nil"))
+            end
+        end
+    end
+end
+
 -- Função principal de loop - deve ser chamada periodicamente (ex: no we_bg_poll)
+-- Agora separada em: recebimentos, envios, conexão, e dados periódicos
 function SocketClient:Loop()
-    -- Obter tempo atual em milissegundos usando função nativa da IHM
     local currentTime = we_bas_gettickcount()
     
-    -- Verificar e manter conexão
+    -- 1. PROCESSAR RECEBIMENTOS (ALTA PRIORIDADE - sempre verificar primeiro)
+    -- Processar recebimentos com alta frequência para comandos chegarem rápido
+    if currentTime - self.LastCommandCheckTime >= self.CommandCheckInterval then
+        self.LastCommandCheckTime = currentTime
+        if self.Connected then
+            self:ProcessarRecebimentos()
+        end
+    end
+    
+    -- 2. PROCESSAR ENVIOS PENDENTES (assíncrono, não bloqueia)
+    if currentTime - self.LastSendProcessTime >= self.SendProcessInterval then
+        self.LastSendProcessTime = currentTime
+        self:ProcessarEnvios()
+    end
+    
+    -- 3. VERIFICAR ERROS DE ENVIO (assíncrono, limpeza)
+    if currentTime - self.LastErrorCheckTime >= self.ErrorCheckInterval then
+        self.LastErrorCheckTime = currentTime
+        self:VerificarErrosEnvio()
+    end
+    
+    -- 4. VERIFICAR E MANTER CONEXÃO
     if currentTime - self.LastConnectionCheckTime >= self.ConnectionCheckInterval then
         self.LastConnectionCheckTime = currentTime
-        
-        -- Verificar se está conectado
         if not self:EstaConectado() then
             self:Conectar()
         end
     end
     
-    -- Enviar keep-alive/pooling
+    -- 5. ENVIAR KEEP-ALIVE (via fila, não bloqueia)
     if currentTime - self.LastPoolingTime >= self.PoolingInterval then
         self.LastPoolingTime = currentTime
-        
-        -- Verificar se está conectado antes de enviar
         if self:EstaConectado() then
-            -- Fazer pooling (keep-alive)
-            self:FazerPooling()
-        else
-            -- Se não estiver conectado, tentar conectar
-            local connected = self:Conectar()
-            if connected then
-                self:FazerPooling()
-            end
+            self:EnviarMensagem("KEEPALIVE")
         end
     end
     
-    -- Enviar dados do motor
+    -- 6. ENVIAR DADOS DO MOTOR (via fila, não bloqueia)
     if currentTime - self.LastDataSendTime >= self.DataSendInterval then
         self.LastDataSendTime = currentTime
         
-        -- Verificar se callback está configurado
         if not self.GetMotorDataCallback then
             return
         end
         
-        -- Obter dados do motor através do callback
         local motor = self.GetMotorDataCallback()
-        if not motor then
-            return
-        end
-        
-        -- Verificar se está conectado antes de enviar
-        if self:EstaConectado() then
-            -- Enviar dados do motor via socket
-            local success, err = self:EnviarDadosMotor(motor)
-            if not success then
-                print("[Socket] ✗ Erro ao enviar dados do motor: " .. tostring(err))
-                -- Se falhou, marcar como desconectado
-                self.Connected = false
-            end
-        else
-            -- Se não estiver conectado, tentar conectar
-            local connected = self:Conectar()
-            if connected then
-                local success, err = self:EnviarDadosMotor(motor)
-                if not success then
-                    print("[Socket] ✗ Erro ao enviar dados do motor: " .. tostring(err))
-                end
-            end
+        if motor then
+            -- Enviar via fila (não bloqueia)
+            self:EnviarDadosMotor(motor)
         end
     end
 end

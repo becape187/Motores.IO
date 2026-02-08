@@ -1,4 +1,4 @@
--- ss SLiteDBpar iteragir com SQLite (API nativa do PIStudio)
+-- ss LiteDBpar iteragir com SQLite (API nativa do PIStudio)
 -- Conforme documentação: https://docs.we-con.com.cn/bin/view/PIStudio/09%20Lua%20Editor/Lua%20Script/#HLuaSqlitemodule
 SQLiteDB = {}
 SQLiteDB.__index = SQLiteDB
@@ -9,7 +9,7 @@ function SQLiteDB:new(dbPath)
     setmetatable(obj, SQLiteDB)
     
     -- Usar "udisk:" prefix para arquivos no disco USB ou caminho relativo
-    obj.DBPath = dbPath or "sdcard:motores.db"
+    obj.DBPath = dbPath or "udisk:motores.db"
     obj.Env = nil  -- Ambiente luasql_sqlite3
     obj.DB = nil   -- Conexão do banco
     obj.Connected = false
@@ -482,28 +482,8 @@ function SQLiteDB:InserirOuAtualizarMotor(motor, timestampUnix)
         return false, "Falha ao executar SQL"
     end
     
-    print("[SQLite] ✓ Motor salvo com sucesso: " .. motor.Nome .. " (GUID: " .. motor.GUID .. ")")
-    print("[SQLite] --- DADOS COMPLETOS DO MOTOR SALVO ---")
-    print("[SQLite]   ID: " .. tostring(motor.ID or "nil"))
-    print("[SQLite]   GUID: " .. tostring(motor.GUID or "nil"))
-    print("[SQLite]   Nome: " .. tostring(motor.Nome or "nil"))
-    print("[SQLite]   Potência: " .. tostring(motor.Potencia or 0.0) .. " W")
-    print("[SQLite]   Tensão: " .. tostring(motor.Tensao or 0.0) .. " V")
-    print("[SQLite]   Registro ModBus: " .. tostring(motor.RegistroModBus or "nil"))
-    print("[SQLite]   Registro Local: " .. tostring(motor.RegistroLocal or "nil"))
-    print("[SQLite]   Corrente Atual: " .. tostring(motor.CorrenteAtual or 0.0) .. " A")
-    print("[SQLite]   Corrente Nominal: " .. tostring(motor.CorrenteNominal or 0.0) .. " A")
-    print("[SQLite]   Percentual Corrente Máxima: " .. tostring(motor.PercentualCorrenteMaxima or 0.0) .. "%")
-    print("[SQLite]   Histerese: " .. tostring(motor.Histerese or 0.0) .. "%")
-    print("[SQLite]   Status: " .. tostring(motor.Status and "ligado" or "desligado"))
-    print("[SQLite]   Horímetro: " .. tostring(motor.Horimetro or 0.0) .. " h")
-    print("[SQLite]   Habilitado: " .. tostring(motor.Habilitado and "sim" or "não"))
-    print("[SQLite]   Posição X: " .. tostring(motor.PosicaoX or 0.0))
-    print("[SQLite]   Posição Y: " .. tostring(motor.PosicaoY or 0.0))
-    print("[SQLite]   Horímetro Próxima Manutenção: " .. tostring(motor.HorimetroProximaManutencao or "nil"))
-    print("[SQLite]   Data Estimada Próxima Manutenção: " .. tostring(motor.DataEstimadaProximaManutencao or "nil"))
-    print("[SQLite]   Data Criação: " .. tostring(motor.DataCriacao or "nil"))
-    print("[SQLite] ========================================")
+    -- Log simplificado (dados completos removidos para evitar poluição)
+    print("[SQLite] ✓ Motor salvo: " .. motor.Nome .. " (GUID: " .. motor.GUID .. ")")
     return true
 end
 

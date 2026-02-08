@@ -77,27 +77,13 @@ public class WebSocketHub : IWebSocketHub
             _connections.TryRemove(connectionId, out _);
         }
 
-        _logger.LogInformation("Correntes retransmitidas para {Count} conexões WebSocket (planta: {PlantaId})", 
-            sentCount, plantaId ?? "todas");
+        // Removido log para evitar poluição (mais de 20 por segundo)
+        // _logger.LogInformation("Correntes retransmitidas para {Count} conexões WebSocket (planta: {PlantaId})", 
+        //     sentCount, plantaId ?? "todas");
     }
 
     public async Task BroadcastConsoleAsync(ConsoleMessageDto consoleMessage, string? plantaId = null)
     {
-        _logger.LogInformation("=== BROADCAST CONSOLE INICIADO ===");
-        _logger.LogInformation("Mensagem: {Mensagem}", consoleMessage?.Mensagem ?? "null");
-        _logger.LogInformation("Tipo: {Tipo}", consoleMessage?.Tipo ?? "null");
-        _logger.LogInformation("PlantaId (parâmetro): {PlantaId}", plantaId ?? "null");
-        _logger.LogInformation("PlantaId (mensagem): {PlantaId}", consoleMessage?.PlantaId ?? "null");
-        _logger.LogInformation("Total de conexões WebSocket: {Count}", _connections.Count);
-        
-        // Listar todas as conexões para debug
-        foreach (var kvp in _connections)
-        {
-            var conn = kvp.Value;
-            _logger.LogInformation("  Conexão {ConnectionId}: PlantaId={PlantaId}, Estado={State}", 
-                kvp.Key, conn.PlantaId, conn.WebSocket.State);
-        }
-        
         if (consoleMessage == null || string.IsNullOrEmpty(consoleMessage.Mensagem))
         {
             _logger.LogWarning("Mensagem de console nula ou vazia, abortando broadcast");
@@ -106,8 +92,6 @@ public class WebSocketHub : IWebSocketHub
         
         var json = JsonSerializer.Serialize(consoleMessage);
         var bytes = Encoding.UTF8.GetBytes(json);
-        _logger.LogDebug("JSON serializado: {Json}", json);
-        _logger.LogDebug("Tamanho: {Size} bytes", bytes.Length);
 
         var connectionsToRemove = new List<string>();
         var sentCount = 0;
@@ -116,20 +100,15 @@ public class WebSocketHub : IWebSocketHub
         // Usar plantaId do parâmetro (se fornecido), senão usar da mensagem
         // Se nenhum for fornecido, enviar para TODAS as conexões de console
         var filterPlantaId = plantaId ?? consoleMessage.PlantaId;
-        _logger.LogInformation("PlantaId usado para filtro: {PlantaId}", filterPlantaId ?? "TODAS (sem filtro)");
 
         foreach (var kvp in _connections)
         {
             var connection = kvp.Value;
-            _logger.LogDebug("Verificando conexão {ConnectionId} (tipo: {Type}, planta: {PlantaId}, estado: {State})", 
-                kvp.Key, connection.ConnectionType, connection.PlantaId, connection.WebSocket.State);
             
             // Enviar apenas para conexões de console
             if (connection.ConnectionType != "console")
             {
                 skippedCount++;
-                _logger.LogDebug("Pulando conexão {ConnectionId} (tipo {Type} != 'console')", 
-                    kvp.Key, connection.ConnectionType);
                 continue; // Pular conexões de correntes
             }
             
@@ -142,8 +121,6 @@ public class WebSocketHub : IWebSocketHub
                 if (connection.PlantaId != "all" && connection.PlantaId != filterPlantaId)
                 {
                     skippedCount++;
-                    _logger.LogDebug("Pulando conexão {ConnectionId} (planta {ConnectionPlanta} != {FilterPlanta} e != 'all')", 
-                        kvp.Key, connection.PlantaId, filterPlantaId);
                     continue;
                 }
             }
@@ -153,7 +130,6 @@ public class WebSocketHub : IWebSocketHub
             {
                 try
                 {
-                    _logger.LogDebug("Enviando para conexão {ConnectionId}...", kvp.Key);
                     await connection.WebSocket.SendAsync(
                         new ArraySegment<byte>(bytes),
                         WebSocketMessageType.Text,
@@ -161,19 +137,15 @@ public class WebSocketHub : IWebSocketHub
                         CancellationToken.None);
                     
                     sentCount++;
-                    _logger.LogInformation("✓ Mensagem enviada para conexão {ConnectionId} (planta: {PlantaId})", 
-                        kvp.Key, connection.PlantaId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "✗ Erro ao enviar mensagem de console para conexão {ConnectionId}", kvp.Key);
+                    _logger.LogWarning(ex, "Erro ao enviar mensagem de console para conexão {ConnectionId}", kvp.Key);
                     connectionsToRemove.Add(kvp.Key);
                 }
             }
             else
             {
-                _logger.LogDebug("Conexão {ConnectionId} não está aberta (estado: {State})", 
-                    kvp.Key, connection.WebSocket.State);
                 connectionsToRemove.Add(kvp.Key);
             }
         }
@@ -182,12 +154,9 @@ public class WebSocketHub : IWebSocketHub
         foreach (var connectionId in connectionsToRemove)
         {
             _connections.TryRemove(connectionId, out _);
-            _logger.LogDebug("Conexão {ConnectionId} removida", connectionId);
         }
 
-        _logger.LogInformation("=== BROADCAST CONSOLE CONCLUÍDO ===");
-        _logger.LogInformation("Enviadas: {SentCount}, Puladas: {SkippedCount}, Removidas: {RemovedCount}", 
-            sentCount, skippedCount, connectionsToRemove.Count);
+        // Log apenas em caso de erro ou para debug (removido log normal para evitar poluição)
     }
 
     public Task AddConnectionAsync(string connectionId, string plantaId)
