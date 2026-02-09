@@ -64,12 +64,18 @@ function Dashboard() {
   }, [plantaSelecionada, getMotors]);
 
   // WebSocket para atualização em tempo real das correntes
-  const handleCorrentesUpdate = useCallback((correntesMap: Map<string, number>) => {
+  const handleCorrentesUpdate = useCallback((correntesMap: Map<string, import('../hooks/useWebSocketCorrentes').MotorCorrenteData>) => {
     setMotors(prevMotors => 
       prevMotors.map(motor => {
-        const novaCorrente = correntesMap.get(motor.id);
-        if (novaCorrente !== undefined) {
-          return { ...motor, correnteAtual: novaCorrente };
+        const dadosCorrente = correntesMap.get(motor.id);
+        if (dadosCorrente !== undefined) {
+          return { 
+            ...motor, 
+            correnteAtual: dadosCorrente.correnteAtual,
+            correnteMedia: dadosCorrente.correnteMedia,
+            correnteMaxima: dadosCorrente.correnteMaxima,
+            correnteMinima: dadosCorrente.correnteMinima,
+          };
         }
         return motor;
       })
