@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Search, Filter, ArrowLeft, Cog, Loader } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Search, Filter, ArrowLeft, Cog, Loader, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
@@ -83,12 +83,18 @@ function Motors() {
   };
 
   // WebSocket para atualização em tempo real das correntes
-  const handleCorrentesUpdate = useCallback((correntesMap: Map<string, number>) => {
+  const handleCorrentesUpdate = useCallback((correntesMap: Map<string, import('../hooks/useWebSocketCorrentes').MotorCorrenteData>) => {
     setMotors(prevMotors => 
       prevMotors.map(motor => {
-        const novaCorrente = correntesMap.get(motor.id);
-        if (novaCorrente !== undefined) {
-          const updatedMotor = { ...motor, correnteAtual: novaCorrente };
+        const dadosCorrente = correntesMap.get(motor.id);
+        if (dadosCorrente !== undefined) {
+          const updatedMotor = { 
+            ...motor, 
+            correnteAtual: dadosCorrente.correnteAtual,
+            correnteMedia: dadosCorrente.correnteMedia,
+            correnteMaxima: dadosCorrente.correnteMaxima,
+            correnteMinima: dadosCorrente.correnteMinima,
+          };
           // Atualizar motor selecionado se for o mesmo
           setSelectedMotor(prev => prev && prev.id === motor.id ? updatedMotor : prev);
           return updatedMotor;
@@ -98,7 +104,7 @@ function Motors() {
     );
   }, []);
 
-  useWebSocketCorrentes(
+  const { isConnected: wsConnected } = useWebSocketCorrentes(
     plantaSelecionada?.id,
     handleCorrentesUpdate
   );
@@ -168,7 +174,8 @@ function Motors() {
           registroLocal: newMotor.registroLocal,
           status: newMotor.status as Motor['status'],
           horimetro: Number(newMotor.horimetro),
-          correnteAtual: Number(newMotor.correnteAtual || 0),
+          // Converter correnteAtual: dividir por 100 (ex: 2153 -> 21.5)
+          correnteAtual: (Number(newMotor.correnteAtual || 0)) / 100,
           posicaoX: newMotor.posicaoX ? Number(newMotor.posicaoX) : undefined,
           posicaoY: newMotor.posicaoY ? Number(newMotor.posicaoY) : undefined,
           habilitado: newMotor.habilitado !== undefined ? newMotor.habilitado : true,
@@ -208,7 +215,8 @@ function Motors() {
           registroLocal: updatedMotor.registroLocal,
           status: updatedMotor.status as Motor['status'],
           horimetro: Number(updatedMotor.horimetro),
-          correnteAtual: Number(updatedMotor.correnteAtual || 0),
+          // Converter correnteAtual: dividir por 100 (ex: 2153 -> 21.5)
+          correnteAtual: (Number(updatedMotor.correnteAtual || 0)) / 100,
           posicaoX: updatedMotor.posicaoX ? Number(updatedMotor.posicaoX) : undefined,
           posicaoY: updatedMotor.posicaoY ? Number(updatedMotor.posicaoY) : undefined,
           habilitado: updatedMotor.habilitado !== undefined ? updatedMotor.habilitado : true,
@@ -303,6 +311,20 @@ function Motors() {
       )}
       <div className="motors-header">
         <div className="header-actions">
+          {/* Indicador de status do WebSocket de Correntes */}
+          <div className={`connection-status ${wsConnected ? 'connected' : 'disconnected'}`}>
+            {wsConnected ? (
+              <>
+                <Wifi size={16} />
+                <span>Correntes em tempo real</span>
+              </>
+            ) : (
+              <>
+                <WifiOff size={16} />
+                <span>Correntes desconectado</span>
+              </>
+            )}
+          </div>
           <div className="search-box">
             <Search size={20} />
             <input
@@ -378,8 +400,11 @@ function Motors() {
                           </div>
                           <div className="detail-item">
                             <span className="detail-label">Corrente:</span>
-                            <span className="detail-value">
-                              {motor.correnteAtual.toFixed(1)}A
+                            <span className="detail-value" style={{ fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
+                              Inst: {motor.correnteAtual.toFixed(1)}A
+                              {motor.correnteMedia !== undefined && ` média: ${motor.correnteMedia.toFixed(1)}A`}
+                              {motor.correnteMaxima !== undefined && ` max: ${motor.correnteMaxima.toFixed(1)}A`}
+                              {motor.correnteMinima !== undefined && ` min: ${motor.correnteMinima.toFixed(1)}A`}
                             </span>
                           </div>
                         </div>

@@ -4,6 +4,9 @@ import { getWebSocketUrl } from '../utils/config';
 interface MotorCorrente {
   id: string;
   correnteAtual: number;
+  correnteMedia?: number;
+  correnteMaxima?: number;
+  correnteMinima?: number;
 }
 
 interface CorrentesMessage {
@@ -13,9 +16,16 @@ interface CorrentesMessage {
   timestamp: number;
 }
 
+export interface MotorCorrenteData {
+  correnteAtual: number;
+  correnteMedia?: number;
+  correnteMaxima?: number;
+  correnteMinima?: number;
+}
+
 export function useWebSocketCorrentes(
   plantaId: string | undefined,
-  onCorrentesUpdate: (correntes: Map<string, number>) => void
+  onCorrentesUpdate: (correntes: Map<string, MotorCorrenteData>) => void
 ) {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -89,8 +99,9 @@ export function useWebSocketCorrentes(
           if (timeSinceLastMessage > 5000) {
             console.log('[WebSocket Correntes] ⚠️ Sem mensagens há mais de 5 segundos, reconectando...');
             // Fechar conexão atual para forçar reconexão
+            // Usar código 3000 (customizado) para indicar timeout
             if (wsRef.current) {
-              wsRef.current.close();
+              wsRef.current.close(3000, 'Timeout: sem mensagens há mais de 5 segundos');
             }
             return;
           }
@@ -131,10 +142,17 @@ export function useWebSocketCorrentes(
             const message: CorrentesMessage = JSON.parse(event.data);
             
             if (message.tipo === 'correntes' && message.motores) {
-              // Criar um Map com UUID -> correnteAtual
-              const correntesMap = new Map<string, number>();
+              // Criar um Map com UUID -> dados de corrente
+              // Converter valores: dividir por 100 (ex: 2153 -> 21.5)
+              const correntesMap = new Map<string, MotorCorrenteData>();
               message.motores.forEach((motor) => {
-                correntesMap.set(motor.id, motor.correnteAtual);
+                const dados: MotorCorrenteData = {
+                  correnteAtual: motor.correnteAtual / 100,
+                  correnteMedia: motor.correnteMedia ? motor.correnteMedia / 100 : undefined,
+                  correnteMaxima: motor.correnteMaxima ? motor.correnteMaxima / 100 : undefined,
+                  correnteMinima: motor.correnteMinima ? motor.correnteMinima / 100 : undefined,
+                };
+                correntesMap.set(motor.id, dados);
               });
               
               // Chamar callback para atualizar estado

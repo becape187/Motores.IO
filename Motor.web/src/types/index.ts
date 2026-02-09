@@ -11,6 +11,9 @@ export type Motor = {
   status: 'ligado' | 'desligado' | 'alerta' | 'alarme' | 'pendente';
   horimetro: number;
   correnteAtual: number; // Dinâmico, recebido via socket futuramente
+  correnteMedia?: number; // Média dos últimos 60 segundos
+  correnteMaxima?: number; // Máximo registrado
+  correnteMinima?: number; // Mínimo registrado
   posicaoX?: number;
   posicaoY?: number;
   habilitado: boolean; // Para esconder do mapa, alarmes, etc

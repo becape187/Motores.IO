@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, TrendingUp, AlertCircle, Power, Edit2 } from 'lucide-react';
+import { Activity, TrendingUp, AlertCircle, Power, Edit2, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
@@ -76,7 +76,7 @@ function Dashboard() {
     );
   }, []);
 
-  useWebSocketCorrentes(
+  const { isConnected: wsConnected } = useWebSocketCorrentes(
     plantaSelecionada?.id,
     handleCorrentesUpdate
   );
@@ -327,6 +327,22 @@ function Dashboard() {
         <div className="section-header">
           <h2>Planta Baixa da Pedreira</h2>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Indicador de status do WebSocket de Correntes */}
+            {plantaSelecionada && (
+              <div className={`connection-status ${wsConnected ? 'connected' : 'disconnected'}`}>
+                {wsConnected ? (
+                  <>
+                    <Wifi size={16} />
+                    <span>Correntes em tempo real</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff size={16} />
+                    <span>Correntes desconectado</span>
+                  </>
+                )}
+              </div>
+            )}
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
