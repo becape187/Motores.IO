@@ -73,13 +73,13 @@ function MotorCurrentReader:AtualizarCorrentes()
                     }
                     
                     -- Adicionar média, máximo e mínimo apenas se não forem nil
-                    if media and media > 0 then
+                    if media ~= nil then
                         dadosCorrente.correnteMedia = media
                     end
-                    if maximo then
+                    if maximo ~= nil then
                         dadosCorrente.correnteMaxima = maximo
                     end
-                    if minimo then
+                    if minimo ~= nil then
                         dadosCorrente.correnteMinima = minimo
                     end
                     

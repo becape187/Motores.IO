@@ -1,6 +1,6 @@
 Script_BG_limits = 11
 
--- Variáeis locis do módu
+-- Variáei locis do módu
 local socketClient
 local logger
 local motorSync
@@ -117,10 +117,10 @@ function inicializarSistema()
             we_bas_setint("@W_HDW300",19)
             if #motores > 0 then
                 we_bas_setint("@W_HDW300",20)
-                --return motores[1] -- Retorna o primeiro motor (ajuste conforme necessário)
+                return motores[1] -- Retorna o primeiro motor (ajuste conforme necessário)
             end
         end
-        --return nil
+        return nil
     end)
     print("[Init] ✓ SocketClient configurado")
     

@@ -179,7 +179,127 @@ function SQLiteDB:CriarTabelas()
     end
     
     print("[SQLite] ✓ Tabelas criadas/verificadas com sucesso")
+    
+    -- Verificar se a tabela dados foi criada corretamente
+    local checkCursor = self.DB:execute("SELECT name FROM sqlite_master WHERE type='table' AND name='dados'")
+    if checkCursor then
+        local row = checkCursor:fetch()
+        if row then
+            print("[SQLite] ✓ Tabela 'dados' confirmada no banco")
+        else
+            print("[SQLite] ⚠ AVISO: Tabela 'dados' não encontrada após criação!")
+            print("[SQLite] Tentando criar novamente...")
+            -- Tentar criar novamente
+            local retryResult = self.DB:execute(sql_dados)
+            if retryResult then
+                print("[SQLite] ✓ Tabela 'dados' criada na segunda tentativa")
+            else
+                print("[SQLite] ✗ Erro ao criar tabela 'dados' na segunda tentativa")
+            end
+        end
+        if checkCursor.close then
+            checkCursor:close()
+        end
+    end
+    
+    -- Listar todas as tabelas e número de linhas
+    self:ListarTabelasEQuantidade()
+    
     return true
+end
+
+-- Função para listar todas as tabelas e quantidade de linhas
+function SQLiteDB:ListarTabelasEQuantidade()
+    if not self.Connected then
+        print("[SQLite] ⚠ Banco não conectado, não é possível listar tabelas")
+        return
+    end
+    
+    print("[SQLite] === LISTAGEM DE TABELAS DO BANCO ===")
+    
+    -- Buscar todas as tabelas (excluindo tabelas do sistema SQLite)
+    local sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+    local cursor = self.DB:execute(sql)
+    
+    if not cursor then
+        print("[SQLite] ✗ Erro ao buscar lista de tabelas")
+        return
+    end
+    
+    local tabelas = {}
+    local row = cursor:fetch()
+    
+    -- Coletar nomes das tabelas
+    while row do
+        local nomeTabela
+        if type(row) == "table" then
+            nomeTabela = row[1] or row.name
+        elseif type(row) == "string" then
+            nomeTabela = row
+        end
+        
+        if nomeTabela then
+            table.insert(tabelas, nomeTabela)
+        end
+        
+        row = cursor:fetch()
+    end
+    
+    if cursor.close then
+        cursor:close()
+    end
+    
+    -- Para cada tabela, contar o número de linhas
+    for _, nomeTabela in ipairs(tabelas) do
+        local countSql = string.format("SELECT COUNT(*) FROM %s", nomeTabela)
+        local countCursor = self.DB:execute(countSql)
+        
+        if countCursor then
+            local countRow = countCursor:fetch()
+            local count = 0
+            
+            if countRow then
+                if type(countRow) == "table" then
+                    count = countRow[1] or countRow["COUNT(*)"] or 0
+                elseif type(countRow) == "number" then
+                    count = countRow
+                end
+            end
+            
+            print(string.format("[SQLite]   Tabela: %s | Linhas: %d", nomeTabela, count))
+            
+            if countCursor.close then
+                countCursor:close()
+            end
+        else
+            print(string.format("[SQLite]   Tabela: %s | Erro ao contar linhas", nomeTabela))
+        end
+    end
+    
+    print("[SQLite] === FIM DA LISTAGEM ===")
+end
+
+-- Função para verificar se a tabela dados existe
+function SQLiteDB:VerificarTabelaDados()
+    if not self.Connected then
+        return false, "Banco de dados não está conectado"
+    end
+    
+    local sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='dados'"
+    local cursor = self.DB:execute(sql)
+    
+    if not cursor then
+        return false, "Erro ao verificar tabela"
+    end
+    
+    local row = cursor:fetch()
+    local exists = row ~= nil
+    
+    if cursor.close then
+        cursor:close()
+    end
+    
+    return exists
 end
 
 -- Função para inserir ou atualizar motor
