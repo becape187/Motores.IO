@@ -142,6 +142,20 @@ function SQLiteDB:CriarTabelas()
         )
     ]]
     
+    -- Tabela de dados (médias, máximos e mínimos a cada minuto)
+    local sql_dados = [[
+        CREATE TABLE IF NOT EXISTS dados (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            motor_id INTEGER,
+            motor_guid TEXT,
+            media REAL NOT NULL,
+            corrente_maxima REAL,
+            corrente_minima REAL,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (motor_id) REFERENCES motores(id)
+        )
+    ]]
+    
     -- Usando db:execute() conforme API do PIStudio
     -- Para CREATE TABLE, execute() não retorna cursor, apenas executa
     -- Conforme documentação: db:execute() para comandos DDL/DML
@@ -150,15 +164,17 @@ function SQLiteDB:CriarTabelas()
     local result2 = self.DB:execute(sql_historico)
     local result3 = self.DB:execute(sql_eventos)
     local result4 = self.DB:execute(sql_index)
+    local result5 = self.DB:execute(sql_dados)
     
     -- Verificar se todas as execuções foram bem-sucedidas
     -- No luasql_sqlite3, execute() retorna true/nil ou número de linhas
-    if not result1 or not result2 or not result3 or not result4 then
+    if not result1 or not result2 or not result3 or not result4 or not result5 then
         print("[SQLite] ✗ Erro ao criar tabelas")
         print("[SQLite]   SQL motores: " .. (result1 and "OK" or "FALHOU"))
         print("[SQLite]   SQL histórico: " .. (result2 and "OK" or "FALHOU"))
         print("[SQLite]   SQL eventos: " .. (result3 and "OK" or "FALHOU"))
         print("[SQLite]   SQL índice: " .. (result4 and "OK" or "FALHOU"))
+        print("[SQLite]   SQL dados: " .. (result5 and "OK" or "FALHOU"))
         return false
     end
     
@@ -577,6 +593,48 @@ function SQLiteDB:RegistrarEvento(motorId, tipo, descricao)
         return true
     else
         return false, "Erro ao registrar evento"
+    end
+end
+
+-- Função para registrar dados de corrente (média, máximo e mínimo a cada minuto)
+function SQLiteDB:RegistrarDadosCorrente(motorId, motorGuid, media, correnteMaxima, correnteMinima)
+    if not self.Connected then
+        return false, "Banco de dados não está conectado"
+    end
+    
+    -- Preparar valores (pode ser NULL se não houver máximo/mínimo)
+    local correnteMaximaValue = "NULL"
+    if correnteMaxima ~= nil then
+        correnteMaximaValue = string.format("%.2f", correnteMaxima)
+    end
+    
+    local correnteMinimaValue = "NULL"
+    if correnteMinima ~= nil then
+        correnteMinimaValue = string.format("%.2f", correnteMinima)
+    end
+    
+    local motorGuidValue = "NULL"
+    if motorGuid then
+        motorGuidValue = self:escapeString(motorGuid)
+    end
+    
+    local sql = string.format(
+        "INSERT INTO dados (motor_id, motor_guid, media, corrente_maxima, corrente_minima) VALUES (%s, %s, %.2f, %s, %s)",
+        motorId and tostring(motorId) or "NULL",
+        motorGuidValue,
+        media or 0.0,
+        correnteMaximaValue,
+        correnteMinimaValue
+    )
+    
+    local success = self.DB:execute(sql)
+    
+    if success then
+        print("[SQLite] ✓ Dados de corrente registrados para motor ID: " .. tostring(motorId))
+        return true
+    else
+        print("[SQLite] ✗ Erro ao registrar dados de corrente")
+        return false, "Erro ao registrar dados de corrente"
     end
 end
 

@@ -120,14 +120,14 @@ function inicializarSistema()
                 --return motores[1] -- Retorna o primeiro motor (ajuste conforme necessário)
             end
         end
-        return nil
+        --return nil
     end)
     print("[Init] ✓ SocketClient configurado")
     
-    -- Inicializar MotorCurrentReader (passar socketClient para enviar dados)
+    -- Inicializar MotorCurrentReader (passar socketClient para enviar dados e sqliteDB para registrar)
     print("[Init] Inicializando MotorCurrentReader...")
     we_bas_setint("@W_HDW300",21)
-    motorCurrentReader = MotorCurrentReader:new(motorSync, socketClient)
+    motorCurrentReader = MotorCurrentReader:new(motorSync, socketClient, sqliteDB)
     print("[Init] ✓ MotorCurrentReader inicializado")
     
     -- Inicializar FileManager e FileManagerHandler

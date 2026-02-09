@@ -4,14 +4,15 @@ MotorCurrentReader = {}
 MotorCurrentReader.__index = MotorCurrentReader
 
 -- Construtor
-function MotorCurrentReader:new(motorSync, socketClient)
+function MotorCurrentReader:new(motorSync, socketClient, sqliteDB)
     local obj = {}
     setmetatable(obj, MotorCurrentReader)
     
     obj.MotorSync = motorSync -- Referência ao MotorSync que mantém os motores em memória
     obj.SocketClient = socketClient -- Referência ao SocketClient para enviar dados
+    obj.SQLiteDB = sqliteDB -- Referência ao SQLiteDB para registrar dados
     obj.LastUpdateTime = 0
-    obj.UpdateInterval = 1 -- 1 segundo em milissegundos (pode ser ajustado)
+    obj.UpdateInterval = 1000 -- 1 segundo em milissegundos (pode ser ajustado)
     obj.Enabled = true
     
     return obj
@@ -52,14 +53,37 @@ function MotorCurrentReader:AtualizarCorrentes()
                 
                 -- Atualizar a corrente atual do motor
                 motor:setCorrenteAtual(correnteAtual)
+                
+                -- Adicionar amostra para monitoramento (a cada 1 segundo)
+                motor:adicionarAmostraCorrente(correnteAtual)
+                
                 atualizados = atualizados + 1
                 
                 -- Adicionar ao array de correntes para envio via socket
+                -- Incluir valor instantâneo, média, máximo e mínimo
                 if motor.GUID then
-                    table.insert(correntesArray, {
+                    local media = motor:getCorrenteMedia()
+                    local maximo = motor:getCorrenteMaxima()
+                    local minimo = motor:getCorrenteMinima()
+                    
+                    -- Criar objeto de dados de corrente
+                    local dadosCorrente = {
                         id = motor.GUID,
-                        correnteAtual = correnteAtual
-                    })
+                        correnteAtual = correnteAtual  -- Valor instantâneo
+                    }
+                    
+                    -- Adicionar média, máximo e mínimo apenas se não forem nil
+                    if media and media > 0 then
+                        dadosCorrente.correnteMedia = media
+                    end
+                    if maximo then
+                        dadosCorrente.correnteMaxima = maximo
+                    end
+                    if minimo then
+                        dadosCorrente.correnteMinima = minimo
+                    end
+                    
+                    table.insert(correntesArray, dadosCorrente)
                 end
             else
                 -- Não conseguiu ler o registro
@@ -73,6 +97,16 @@ function MotorCurrentReader:AtualizarCorrentes()
         -- Obter plantaId do MotorSync
         local plantaId = self.MotorSync and self.MotorSync.PlantaUUID or nil
         self.SocketClient:EnviarCorrentesArray(correntesArray, plantaId)
+    end
+    
+    -- Verificar se deve registrar dados no banco (a cada minuto)
+    if self.SQLiteDB then
+        for guid, motorData in pairs(motoresMemoria) do
+            local motor = motorData.motor
+            if motor then
+                motor:verificarRegistroBanco(self.SQLiteDB)
+            end
+        end
     end
 end
 

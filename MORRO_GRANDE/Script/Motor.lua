@@ -27,6 +27,18 @@ function Motor:new(id, nome, registroModBus, registroLocal, correnteNominal)
     obj.DataEstimadaProximaManutencao = nil
     obj.DataCriacao = nil
     
+    -- Sistema de monitoramento de corrente (buffer circular)
+    obj.AmostrasCorrente = {} -- Array fixo de 60 posições para buffer circular
+    for i = 1, 60 do
+        obj.AmostrasCorrente[i] = nil -- Inicializar todas as posições como nil
+    end
+    obj.IndiceAmostra = 0 -- Ponteiro rotativo (0 a 59)
+    obj.TotalAmostras = 0 -- Contador de amostras válidas (até 60)
+    obj.CorrenteMaxima = nil -- Corrente máxima registrada
+    obj.CorrenteMinima = nil -- Corrente mínima registrada
+    obj.UltimaAmostraTime = 0 -- Timestamp da última amostra
+    obj.UltimoRegistroBancoTime = we_bas_gettickcount() -- Timestamp do último registro no banco (inicializa com tempo atual)
+    
     return obj
 end
 
@@ -87,6 +99,121 @@ function Motor:adicionarHoras(horas)
     if horas and horas > 0 then
         self.Horimetro = self.Horimetro + horas
     end
+end
+
+-- Método para adicionar amostra de corrente (chamado a cada 1 segundo)
+-- Usa buffer circular rotativo para manter sempre os últimos 60 segundos
+function Motor:adicionarAmostraCorrente(corrente)
+    local currentTime = we_bas_gettickcount()
+    
+    -- Verificar se passou 1 segundo desde a última amostra
+    if currentTime - self.UltimaAmostraTime >= 1000 then
+        -- Incrementar índice rotativo (1 a 60)
+        -- Usa módulo para garantir rotação: quando chega em 60, volta para 1
+        self.IndiceAmostra = ((self.IndiceAmostra) % 60) + 1
+        
+        -- Armazenar amostra na posição atual do buffer circular
+        -- Sobrescreve a posição mais antiga quando o buffer está cheio
+        self.AmostrasCorrente[self.IndiceAmostra] = corrente
+        
+        -- Incrementar contador de amostras válidas (até máximo de 60)
+        if self.TotalAmostras < 60 then
+            self.TotalAmostras = self.TotalAmostras + 1
+        end
+        
+        -- Verificar e atualizar corrente máxima e mínima
+        self:verificarCorrenteMaximaMinima(corrente)
+        
+        self.UltimaAmostraTime = currentTime
+    end
+end
+
+-- Método para verificar e atualizar corrente máxima e mínima
+function Motor:verificarCorrenteMaximaMinima(corrente)
+    -- Verificar se a corrente está no range válido (maior que 400 e menor que 65535)
+    if corrente > 400 and corrente < 65535 then
+        -- Verificar corrente máxima
+        if self.CorrenteMaxima == nil or corrente > self.CorrenteMaxima then
+            self.CorrenteMaxima = corrente
+        end
+        
+        -- Verificar corrente mínima
+        if self.CorrenteMinima == nil or corrente < self.CorrenteMinima then
+            self.CorrenteMinima = corrente
+        end
+    end
+end
+
+-- Método para calcular média das amostras (buffer circular)
+function Motor:calcularMediaCorrente()
+    if self.TotalAmostras == 0 then
+        return 0.0
+    end
+    
+    local soma = 0.0
+    local contador = 0
+    
+    -- Percorrer todas as 60 posições do buffer circular
+    -- Somar apenas as posições que têm valor válido (não nil)
+    for i = 1, 60 do
+        local valor = self.AmostrasCorrente[i]
+        if valor ~= nil then
+            soma = soma + valor
+            contador = contador + 1
+        end
+    end
+    
+    if contador == 0 then
+        return 0.0
+    end
+    
+    -- Retornar média baseada no número de amostras válidas
+    -- Se completou 60 amostras, sempre será 60, senão será o número atual
+    return soma / contador
+end
+
+-- Método para obter corrente média (getter)
+function Motor:getCorrenteMedia()
+    return self:calcularMediaCorrente()
+end
+
+-- Método para obter corrente máxima registrada
+function Motor:getCorrenteMaxima()
+    return self.CorrenteMaxima or nil
+end
+
+-- Método para obter corrente mínima registrada
+function Motor:getCorrenteMinima()
+    return self.CorrenteMinima or nil
+end
+
+-- Método para verificar se deve registrar no banco (após 1 minuto)
+function Motor:verificarRegistroBanco(sqliteDB)
+    if not sqliteDB then
+        return false
+    end
+    
+    local currentTime = we_bas_gettickcount()
+    
+    -- Verificar se passou 1 minuto (60000 ms) desde o último registro
+    if currentTime - self.UltimoRegistroBancoTime >= 60000 then
+        -- Calcular média das amostras
+        local media = self:calcularMediaCorrente()
+        
+        -- Registrar no banco de dados
+        if sqliteDB:RegistrarDadosCorrente(self.ID, self.GUID, media, self.CorrenteMaxima, self.CorrenteMinima) then
+            -- Resetar máximo e mínimo após registrar
+            self.CorrenteMaxima = nil
+            self.CorrenteMinima = nil
+            -- Não limpar o buffer circular - ele continua rotativo
+            -- Apenas resetar o contador se necessário (mas mantém as últimas amostras)
+            -- O buffer continuará sendo sobrescrito naturalmente
+            self.UltimoRegistroBancoTime = currentTime
+            return true
+        end
+    end
+    
+    return false
 end
 
 
