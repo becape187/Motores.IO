@@ -21,7 +21,7 @@ function FileManager:new(basePath)
     return obj
 end
 
--- Função para verificar se path é especial da IHM (sdcard:, udisk:, /flash, etc.)
+-- Função para verficar se path é especial da IHM (sdcard:, udisk:, /flash, etc.)
 local function isSpecialPath(path)
     if not path then
         return false

@@ -43,7 +43,7 @@ function MotorCurrentReader:AtualizarCorrentes()
         
         if motor and motor.RegistroLocal and motor.RegistroLocal ~= "" then
             local registro = motor.RegistroLocal
-            local valorRegistro = we_bas_getint(registro)
+            local valorRegistro = we_bas_getword(registro)
             
             -- Verificar se conseguiu ler (nil indica erro, mas 0 é um valor válido)
             if valorRegistro ~= nil then

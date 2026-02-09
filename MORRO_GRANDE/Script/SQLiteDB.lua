@@ -1,5 +1,5 @@
--- ss LiteDBpar iteragir com SQLite (API nativa do PIStudio)
--- Conforme documentação: https://docs.we-con.com.cn/bin/view/PIStudio/09%20Lua%20Editor/Lua%20Script/#HLuaSqlitemodule
+-- ss LteDBpar iteragir com SQLite (API nativa do PIStudio)
+-- Conforme documetação: https://docs.we-con.com.cn/bin/view/PIStudio/09%20Lua%20Editor/Lua%20Script/#HLuaSqlitemodule
 SQLiteDB = {}
 SQLiteDB.__index = SQLiteDB
 
@@ -9,7 +9,10 @@ function SQLiteDB:new(dbPath)
     setmetatable(obj, SQLiteDB)
     
     -- Usar "udisk:" prefix para arquivos no disco USB ou caminho relativo
-    obj.DBPath = dbPath or "udisk:motores.db"
+    -- "sdcard" é o padrão caso não venha na inicialização do Script no BG.
+    -- Se vier o path via construtor, (leia-se inicialização) a classe utiliza
+    -- do construtor.
+    obj.DBPath = dbPath or "sdcard:motores.db"
     obj.Env = nil  -- Ambiente luasql_sqlite3
     obj.DB = nil   -- Conexão do banco
     obj.Connected = false

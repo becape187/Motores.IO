@@ -18,7 +18,7 @@ local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874"
 
 -- Função de inicializaçoque pode ser chamada manualmente (ex:por botão)
 function inicializarSistema()
-    -- IMPORTANTE: Verificar se já está inicializado SEM usar print (ainda não temos Logger)
+    -- IMPORTNTE: Verificar se já está inicializado SEM usar print (ainda não temos Logger)
     if sistemaInicializado then
         -- Usar print original aqui pois Logger ainda não foi inicializado
         -- Mas isso só acontece se já estiver inicializado, então é raro
@@ -73,7 +73,7 @@ function inicializarSistema()
     -- Inicializar banco de dados local
     print("[Init] Inicializando banco de dados local...")
     -- Usar "udisk:" para disco USB ou caminho relativo conforme documentação
-    sqliteDB = SQLiteDB:new("udisk:motores.db")
+    sqliteDB = SQLiteDB:new("sdcard:motores.db")
     we_bas_setint("@W_HDW300",11)
     local dbConnected, dbErr = sqliteDB:Conectar()
     we_bas_setint("@W_HDW300",12)
@@ -117,7 +117,7 @@ function inicializarSistema()
             we_bas_setint("@W_HDW300",19)
             if #motores > 0 then
                 we_bas_setint("@W_HDW300",20)
-                return motores[1] -- Retorna o primeiro motor (ajuste conforme necessário)
+                --return motores[1] -- Retorna o primeiro motor (ajuste conforme necessário)
             end
         end
         return nil

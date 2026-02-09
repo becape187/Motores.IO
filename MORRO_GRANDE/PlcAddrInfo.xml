@@ -22,6 +22,7 @@
 			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:10:0:25600" Len="1" Fast="0" />
 			<Add Addr="HDW_W_0000300" Len="1" Fast="0" />
 			<Add Addr="HDW_W_0000305" Len="2" Fast="0" />
+			<Add Addr="HDW_W_0000103" Len="1" Fast="0" />
 		</WordAddr>
 	</AddrInfo>
 </project>

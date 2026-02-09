@@ -82,7 +82,7 @@ function SocketClient:Desconectar()
     end
 end
 
--- Função para verificar se está conectado
+-- Funço para verificar se está conectado
 function SocketClient:EstaConectado()
     return self.Connected
 end

@@ -29,7 +29,7 @@ function APIClient:new(baseURL, apiToken)
         url = "http" .. string.sub(url, 6)
     end
     
-    -- Garantir que comece com http://
+    -- Garanti que comece com http://
     if string.sub(url, 1, 4) ~= "http" then
         url = "http://" .. url
     end
