@@ -24,4 +24,13 @@ public class MotorCorrenteDto
 
     [JsonPropertyName("correnteAtual")]
     public decimal CorrenteAtual { get; set; }
+
+    [JsonPropertyName("correnteMedia")]
+    public decimal? CorrenteMedia { get; set; }
+
+    [JsonPropertyName("correnteMaxima")]
+    public decimal? CorrenteMaxima { get; set; }
+
+    [JsonPropertyName("correnteMinima")]
+    public decimal? CorrenteMinima { get; set; }
 }
