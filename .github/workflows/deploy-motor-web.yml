@@ -14,8 +14,44 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout code with retry
+        run: |
+          set +e
+          MAX_ATTEMPTS=5
+          ATTEMPT=1
+          WAIT_TIME=30
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Tentativa $ATTEMPT de $MAX_ATTEMPTS..."
+            
+            # Limpar workspace antes de cada tentativa (exceto a primeira)
+            if [ $ATTEMPT -gt 1 ]; then
+              echo "Aguardando ${WAIT_TIME} segundos antes da próxima tentativa..."
+              sleep $WAIT_TIME
+              echo "Limpando workspace..."
+              find . -mindepth 1 -maxdepth 1 ! -name '.' -exec rm -rf {} + 2>/dev/null || true
+            fi
+            
+            # Tentar clonar o repositório
+            git clone --depth 1 --single-branch --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git temp_repo 2>&1
+            CLONE_EXIT_CODE=$?
+            
+            if [ $CLONE_EXIT_CODE -eq 0 ]; then
+              echo "Clone bem-sucedido! Movendo arquivos para workspace..."
+              mv temp_repo/* temp_repo/.[^.]* . 2>/dev/null || mv temp_repo/* . 2>/dev/null || true
+              rm -rf temp_repo
+              git config --global --add safe.directory ${{ github.workspace }}
+              echo "Checkout bem-sucedido na tentativa $ATTEMPT!"
+              exit 0
+            else
+              echo "Tentativa $ATTEMPT falhou. Código de erro: $CLONE_EXIT_CODE"
+              rm -rf temp_repo 2>/dev/null || true
+              ATTEMPT=$((ATTEMPT + 1))
+            fi
+          done
+          
+          echo "Todas as tentativas falharam!"
+          exit 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
