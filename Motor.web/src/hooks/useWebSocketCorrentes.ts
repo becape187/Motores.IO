@@ -7,6 +7,7 @@ interface MotorCorrente {
   correnteMedia?: number;
   correnteMaxima?: number;
   correnteMinima?: number;
+  status?: string;
 }
 
 interface CorrentesMessage {
@@ -21,6 +22,7 @@ export interface MotorCorrenteData {
   correnteMedia?: number;
   correnteMaxima?: number;
   correnteMinima?: number;
+  status?: string;
 }
 
 export function useWebSocketCorrentes(
@@ -151,6 +153,7 @@ export function useWebSocketCorrentes(
                   correnteMedia: motor.correnteMedia ? motor.correnteMedia / 100 : undefined,
                   correnteMaxima: motor.correnteMaxima ? motor.correnteMaxima / 100 : undefined,
                   correnteMinima: motor.correnteMinima ? motor.correnteMinima / 100 : undefined,
+                  status: motor.status,
                 };
                 correntesMap.set(motor.id, dados);
               });

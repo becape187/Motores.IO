@@ -94,6 +94,7 @@ function Motors() {
             correnteMedia: dadosCorrente.correnteMedia,
             correnteMaxima: dadosCorrente.correnteMaxima,
             correnteMinima: dadosCorrente.correnteMinima,
+            status: dadosCorrente.status as Motor['status'] || motor.status,
           };
           // Atualizar motor selecionado se for o mesmo
           setSelectedMotor(prev => prev && prev.id === motor.id ? updatedMotor : prev);

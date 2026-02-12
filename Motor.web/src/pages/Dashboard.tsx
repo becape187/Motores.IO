@@ -75,6 +75,7 @@ function Dashboard() {
             correnteMedia: dadosCorrente.correnteMedia,
             correnteMaxima: dadosCorrente.correnteMaxima,
             correnteMinima: dadosCorrente.correnteMinima,
+            status: dadosCorrente.status as Motor['status'] || motor.status,
           };
         }
         return motor;
