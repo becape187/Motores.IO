@@ -33,4 +33,7 @@ public class MotorCorrenteDto
 
     [JsonPropertyName("correnteMinima")]
     public decimal? CorrenteMinima { get; set; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
 }
