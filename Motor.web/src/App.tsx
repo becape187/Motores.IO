@@ -12,6 +12,7 @@ import Users from './pages/Users';
 import PlantaTokens from './pages/PlantaTokens';
 import Console from './pages/Console';
 import Files from './pages/Files';
+import Database from './pages/Database';
 import './App.css';
 
 function AppRoutes() {
@@ -40,6 +41,7 @@ function AppRoutes() {
                 <Route path="/tokens" element={<PlantaTokens />} />
                 <Route path="/console" element={<Console />} />
                 <Route path="/files" element={<Files />} />
+                <Route path="/database" element={<Database />} />
               </Routes>
             </Layout>
           ) : (

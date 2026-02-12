@@ -16,7 +16,8 @@ import {
   ChevronDown,
   Key,
   Terminal,
-  File
+  File,
+  Database
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
@@ -116,6 +117,7 @@ function Layout({ children, onLogout }: LayoutProps) {
     { path: '/tokens', icon: Key, label: 'Tokens de API' },
     { path: '/console', icon: Terminal, label: 'Console' },
     { path: '/files', icon: File, label: 'Arquivos' },
+    { path: '/database', icon: Database, label: 'Banco de Dados' },
   ] : [];
 
   return (
