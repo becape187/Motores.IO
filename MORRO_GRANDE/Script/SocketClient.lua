@@ -285,6 +285,36 @@ function SocketClient:EnviarDadosMotor(motor)
     end
 end
 
+-- Função para enviar histórico de motor completo (média, inst, max, min) para API
+function SocketClient:EnviarHistoricoMotor(dadosHistorico)
+    if not dadosHistorico or not dadosHistorico.id then
+        return false, "Dados de histórico inválidos"
+    end
+    
+    -- Criar mensagem com tipo "historico" para diferenciar de "motor"
+    local data = {
+        tipo = "historico",
+        id = dadosHistorico.id,
+        correnteAtual = dadosHistorico.correnteAtual or 0.0,
+        correnteMedia = dadosHistorico.correnteMedia,
+        correnteMaxima = dadosHistorico.correnteMaxima,
+        correnteMinima = dadosHistorico.correnteMinima,
+        status = dadosHistorico.status or "desligado",
+        timestamp = dadosHistorico.timestamp or os.time()
+    }
+    
+    local mensagem = json.encode(data)
+    
+    local success, err = self:EnviarMensagem(mensagem)
+    
+    if not success then
+        print("[Socket] ✗ Erro ao enviar histórico: " .. tostring(err))
+        return false, err
+    end
+    
+    return true
+end
+
 -- Função para configurar callback de dados do motor
 function SocketClient:SetMotorDataCallback(callback)
     self.GetMotorDataCallback = callback

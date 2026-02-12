@@ -9,6 +9,7 @@ local sqliteDB
 local motorCurrentReader
 local fileManager
 local fileManagerHandler
+local databaseHandler
 local conta = 0
 local sistemaInicializado = false
 local inicioms 
@@ -112,11 +113,11 @@ function inicializarSistema()
         -- Buscar motor da memória do MotorSync pelo GUID
         -- Você pode ajustar isso para buscar o motor correto
         if motorSync then
-            we_bas_setint("@W_HDW300",18)
+            --we_bas_setint("@W_HDW300",18)
             local motores = motorSync:ObterTodosMotores()
-            we_bas_setint("@W_HDW300",19)
+            --we_bas_setint("@W_HDW300",19)
             if #motores > 0 then
-                we_bas_setint("@W_HDW300",20)
+                --we_bas_setint("@W_HDW300",20)
                 return motores[1] -- Retorna o primeiro motor (ajuste conforme necessário)
             end
         end
@@ -136,11 +137,21 @@ function inicializarSistema()
     fileManager = FileManager:new("/flash")
     fileManagerHandler = FileManagerHandler:new(fileManager, socketClient)
     
-    -- Configurar callback para processar comandos de arquivo
+    -- Inicializar DatabaseHandler
+    print("[Init] Inicializando DatabaseHandler...")
+    databaseHandler = DatabaseHandler:new(sqliteDB, socketClient)
+    
+    -- Configurar callback para processar comandos (arquivo e database)
     socketClient:SetCommandHandlerCallback(function(comando)
-        return fileManagerHandler:ProcessarComando(comando)
+        -- Verificar tipo de comando
+        if comando.tipo == "database" then
+            return databaseHandler:ProcessarComando(comando)
+        else
+            -- Comandos sem tipo ou outros tipos vão para FileManagerHandler
+            return fileManagerHandler:ProcessarComando(comando)
+        end
     end)
-    print("[Init] ✓ FileManager inicializado")
+    print("[Init] ✓ FileManager e DatabaseHandler inicializados")
     
     we_bas_setint("@W_HDW300",23)
     sistemaInicializado = true

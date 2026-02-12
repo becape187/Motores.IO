@@ -1,4 +1,4 @@
--- Cse MooSync para sinconização bidirecional entre API e banco loc
+-- Cs MooSync para sinconização bidirecional entre API e banco loc
 MotorSync = {}
 MotorSync.__index = MotorSync
 
@@ -12,7 +12,7 @@ function MotorSync:new(apiClient, sqliteDB, plantaUUID)
     obj.PlantaUUID = plantaUUID
     obj.MotoresMemoria = {} -- Tabela em memória: [GUID] = {motor, ultimaAtualizacao}
     obj.LastSyncTime = 0
-    obj.SyncInterval = 300000 -- 20 segundos em milissegundos
+    obj.SyncInterval = 5000 -- 20 segundos em milissegundos
     obj.Inicializado = false
     
     return obj
@@ -167,6 +167,7 @@ function MotorSync:Sincronizar()
             criadosLocal, atualizadosLocal, atualizadosAPI))
     end
     
+    self.SyncInterval = 600000
     return true
 end
 

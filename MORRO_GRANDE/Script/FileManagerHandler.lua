@@ -1,5 +1,5 @@
 -- Hander para processar comandos de arquivo recebidos via socket
--- Integra FileMaager com SocketClient para comunicação bidirecional
+-- Intgra FileMaager com SocketClient para comunicação bidirecional
 FileManagerHandler = {}
 FileManagerHandler.__index = FileManagerHandler
 

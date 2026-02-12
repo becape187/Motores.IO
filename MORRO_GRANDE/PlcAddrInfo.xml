@@ -1,23 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project filever="1.0">
-	<WordAddr>
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:16:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:13:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:12:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:11:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_2:0:4:10:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_2:0:4:11:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_2:0:4:8:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:14:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:18:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:19:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:15:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:9:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:17:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:21:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:20:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:8:0:25600" Len="1" Fast="0" />
-		<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:10:0:25600" Len="1" Fast="0" />
-		<Add Addr="HDW_W_0000300" Len="1" Fast="0" />
-	</WordAddr>
+	<AddrInfo ScrnNo="2" HasNoPlcAddr="1">
+		<HMIAddr />
+		<WordAddr>
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:16:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:13:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:12:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:11:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_2:0:4:10:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_2:0:4:11:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_2:0:4:8:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:14:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:18:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:19:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:15:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:9:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:17:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:21:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:20:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:8:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:10:0:25600" Len="1" Fast="0" />
+			<Add Addr="HDW_W_0000300" Len="1" Fast="0" />
+			<Add Addr="HDW_W_0000310" Len="1" Fast="0" />
+		</WordAddr>
+	</AddrInfo>
 </project>

@@ -42,10 +42,18 @@ function Motor:new(id, nome, registroModBus, registroLocal, correnteNominal)
     return obj
 end
 
--- Método para definir a corrente atual
+-- Método para definir a corrent atual
 function Motor:setCorrenteAtual(valor)
     if valor and valor >= 0 then
         self.CorrenteAtual = valor
+        
+        -- Atualizar status baseado na corrente: se maior que 2A (200 em centésimos), motor está ligado
+        if valor > 200 then
+            self.Status = true  -- Ligado
+        else
+            self.Status = false -- Desligado
+        end
+        
         return true
     else
         return false, "Corrente inválida"
@@ -131,7 +139,7 @@ end
 -- Método para verificar e atualizar corrente máxima e mínima
 function Motor:verificarCorrenteMaximaMinima(corrente)
     -- Verificar se a corrente está no range válido (maior que 400 e menor que 65535)
-    if corrente > 400 and corrente < 65535 then
+    if corrente > 400 and corrente < 60000 then
         -- Verificar corrente máxima
         if self.CorrenteMaxima == nil or corrente > self.CorrenteMaxima then
             self.CorrenteMaxima = corrente
@@ -188,7 +196,7 @@ function Motor:getCorrenteMinima()
 end
 
 -- Método para verificar se deve registrar no banco (após 1 minuto)
-function Motor:verificarRegistroBanco(sqliteDB)
+function Motor:verificarRegistroBanco(sqliteDB, socketClient)
     if not sqliteDB then
         return false
     end
@@ -199,9 +207,25 @@ function Motor:verificarRegistroBanco(sqliteDB)
     if currentTime - self.UltimoRegistroBancoTime >= 60000 then
         -- Calcular média das amostras
         local media = self:calcularMediaCorrente()
+        local correnteInstantanea = self.CorrenteAtual or 0.0
+        local correnteMaxima = self.CorrenteMaxima
+        local correnteMinima = self.CorrenteMinima
         
-        -- Registrar no banco de dados
-        if sqliteDB:RegistrarDadosCorrente(self.ID, self.GUID, media, self.CorrenteMaxima, self.CorrenteMinima) then
+        -- Registrar no banco de dados local
+        if sqliteDB:RegistrarDadosCorrente(self.ID, self.GUID, media, correnteMaxima, correnteMinima) then
+            -- Enviar para a API via socket (se disponível)
+            if socketClient and self.GUID then
+                socketClient:EnviarHistoricoMotor({
+                    id = self.GUID,
+                    correnteAtual = correnteInstantanea,
+                    correnteMedia = media,
+                    correnteMaxima = correnteMaxima,
+                    correnteMinima = correnteMinima,
+                    status = self.Status and "ligado" or "desligado",
+                    timestamp = os.time()
+                })
+            end
+            
             -- Resetar máximo e mínimo após registrar
             self.CorrenteMaxima = nil
             self.CorrenteMinima = nil

@@ -1,4 +1,4 @@
--- ss LteDBpar iteragir com SQLite (API nativa do PIStudio)
+-- ss teDBpar iteragir com SQLite (API nativa do PIStudio)
 -- Conforme documetação: https://docs.we-con.com.cn/bin/view/PIStudio/09%20Lua%20Editor/Lua%20Script/#HLuaSqlitemodule
 SQLiteDB = {}
 SQLiteDB.__index = SQLiteDB
@@ -722,40 +722,265 @@ function SQLiteDB:RegistrarDadosCorrente(motorId, motorGuid, media, correnteMaxi
         return false, "Banco de dados não está conectado"
     end
     
-    -- Preparar valores (pode ser NULL se não houver máximo/mínimo)
-    local correnteMaximaValue = "NULL"
-    if correnteMaxima ~= nil then
-        correnteMaximaValue = string.format("%.2f", correnteMaxima)
+    -- Validar e preparar valores para SQL
+    local mediaValue = 0.0
+    if media ~= nil and type(media) == "number" then
+        mediaValue = media
     end
     
-    local correnteMinimaValue = "NULL"
-    if correnteMinima ~= nil then
-        correnteMinimaValue = string.format("%.2f", correnteMinima)
+    -- Construir SQL de forma segura
+    local campos = {}
+    local valores = {}
+    
+    -- motor_id (pode ser NULL)
+    if motorId and motorId ~= "" then
+        table.insert(campos, "motor_id")
+        table.insert(valores, tostring(motorId))
+    else
+        table.insert(campos, "motor_id")
+        table.insert(valores, "NULL")
     end
     
-    local motorGuidValue = "NULL"
-    if motorGuid then
-        motorGuidValue = self:escapeString(motorGuid)
+    -- motor_guid (pode ser NULL)
+    if motorGuid and motorGuid ~= "" then
+        table.insert(campos, "motor_guid")
+        table.insert(valores, self:escapeString(motorGuid))
+    else
+        table.insert(campos, "motor_guid")
+        table.insert(valores, "NULL")
     end
     
-    local sql = string.format(
-        "INSERT INTO dados (motor_id, motor_guid, media, corrente_maxima, corrente_minima) VALUES (%s, %s, %.2f, %s, %s)",
-        motorId and tostring(motorId) or "NULL",
-        motorGuidValue,
-        media or 0.0,
-        correnteMaximaValue,
-        correnteMinimaValue
-    )
+    -- media (sempre tem valor, não pode ser NULL)
+    table.insert(campos, "media")
+    table.insert(valores, string.format("%.2f", mediaValue))
     
+    -- corrente_maxima (pode ser NULL)
+    if correnteMaxima ~= nil and type(correnteMaxima) == "number" then
+        table.insert(campos, "corrente_maxima")
+        table.insert(valores, string.format("%.2f", correnteMaxima))
+    else
+        table.insert(campos, "corrente_maxima")
+        table.insert(valores, "NULL")
+    end
+    
+    -- corrente_minima (pode ser NULL)
+    if correnteMinima ~= nil and type(correnteMinima) == "number" then
+        table.insert(campos, "corrente_minima")
+        table.insert(valores, string.format("%.2f", correnteMinima))
+    else
+        table.insert(campos, "corrente_minima")
+        table.insert(valores, "NULL")
+    end
+    
+    -- Construir SQL
+    local camposStr = table.concat(campos, ", ")
+    local valoresStr = table.concat(valores, ", ")
+    local sql = string.format("INSERT INTO dados (%s) VALUES (%s)", camposStr, valoresStr)
+    
+    -- Executar SQL
     local success = self.DB:execute(sql)
     
     if success then
-        print("[SQLite] ✓ Dados de corrente registrados para motor ID: " .. tostring(motorId))
+        print("[SQLite] ✓ Dados de corrente registrados para motor ID: " .. tostring(motorId or "N/A"))
         return true
     else
         print("[SQLite] ✗ Erro ao registrar dados de corrente")
+        print("[SQLite]   SQL: " .. sql)
+        print("[SQLite]   motorId: " .. tostring(motorId or "nil"))
+        print("[SQLite]   media: " .. tostring(mediaValue))
+        print("[SQLite]   max: " .. tostring(correnteMaxima or "nil"))
+        print("[SQLite]   min: " .. tostring(correnteMinima or "nil"))
         return false, "Erro ao registrar dados de corrente"
     end
+end
+
+-- Função para obter caminho do banco de dados
+function SQLiteDB:ObterCaminhoBanco()
+    return self.DBPath
+end
+
+-- Função para listar tabelas com quantidade de linhas (retorna tabela Lua)
+function SQLiteDB:ListarTabelasComQuantidade()
+    if not self.Connected then
+        print("[SQLite] ⚠ Banco não conectado")
+        return {}
+    end
+    
+    local resultado = {}
+    
+    -- Buscar todas as tabelas (excluindo tabelas do sistema SQLite)
+    local sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+    local cursor = self.DB:execute(sql)
+    
+    if not cursor then
+        print("[SQLite] ✗ Erro ao buscar lista de tabelas")
+        return {}
+    end
+    
+    local tabelas = {}
+    local row = cursor:fetch()
+    
+    -- Coletar nomes das tabelas
+    while row do
+        local nomeTabela
+        if type(row) == "table" then
+            nomeTabela = row[1] or row.name
+        elseif type(row) == "string" then
+            nomeTabela = row
+        end
+        
+        if nomeTabela then
+            table.insert(tabelas, nomeTabela)
+        end
+        
+        row = cursor:fetch()
+    end
+    
+    if cursor.close then
+        cursor:close()
+    end
+    
+    -- Para cada tabela, contar o número de linhas e adicionar ao resultado
+    for _, nomeTabela in ipairs(tabelas) do
+        local countSql = string.format("SELECT COUNT(*) FROM %s", nomeTabela)
+        local countCursor = self.DB:execute(countSql)
+        
+        local count = 0
+        if countCursor then
+            local countRow = countCursor:fetch()
+            if countRow then
+                if type(countRow) == "table" then
+                    count = countRow[1] or countRow["COUNT(*)"] or 0
+                elseif type(countRow) == "number" then
+                    count = countRow
+                end
+            end
+            
+            if countCursor.close then
+                countCursor:close()
+            end
+        end
+        
+        table.insert(resultado, {
+            nome = nomeTabela,
+            linhas = count
+        })
+    end
+    
+    return resultado
+end
+
+-- Função para consultar tabela com paginação
+function SQLiteDB:ConsultarTabela(nomeTabela, pagina, tamanhoPagina)
+    if not self.Connected then
+        return nil, "Banco de dados não está conectado"
+    end
+    
+    if not nomeTabela or nomeTabela == "" then
+        return nil, "Nome da tabela não especificado"
+    end
+    
+    -- Validar e ajustar parâmetros de paginação
+    pagina = pagina or 1
+    tamanhoPagina = tamanhoPagina or 50
+    
+    if pagina < 1 then
+        pagina = 1
+    end
+    if tamanhoPagina < 1 then
+        tamanhoPagina = 50
+    end
+    
+    -- Calcular offset
+    local offset = (pagina - 1) * tamanhoPagina
+    
+    -- Primeiro, contar total de linhas
+    local countSql = string.format("SELECT COUNT(*) FROM %s", nomeTabela)
+    local countCursor = self.DB:execute(countSql)
+    
+    local totalLinhas = 0
+    if countCursor then
+        local countRow = countCursor:fetch()
+        if countRow then
+            if type(countRow) == "table" then
+                totalLinhas = countRow[1] or countRow["COUNT(*)"] or 0
+            elseif type(countRow) == "number" then
+                totalLinhas = countRow
+            end
+        end
+        if countCursor.close then
+            countCursor:close()
+        end
+    end
+    
+    -- Executar query SELECT * com LIMIT e OFFSET
+    local sql = string.format("SELECT * FROM %s LIMIT %d OFFSET %d", nomeTabela, tamanhoPagina, offset)
+    local cursor = self.DB:execute(sql)
+    
+    if not cursor then
+        return nil, "Erro ao executar query: " .. sql
+    end
+    
+    -- Obter nomes das colunas (primeira linha)
+    local primeiraLinha = cursor:fetch()
+    local colunas = {}
+    local dados = {}
+    
+    if primeiraLinha then
+        -- Obter nomes das colunas
+        if type(primeiraLinha) == "table" then
+            -- Se retornar como tabela, obter chaves
+            for chave, _ in pairs(primeiraLinha) do
+                if type(chave) == "string" then
+                    table.insert(colunas, chave)
+                end
+            end
+            
+            -- Se não encontrou colunas por nome, tentar por índice numérico
+            if #colunas == 0 then
+                -- Tentar obter colunas da query
+                local infoSql = string.format("PRAGMA table_info(%s)", nomeTabela)
+                local infoCursor = self.DB:execute(infoSql)
+                if infoCursor then
+                    local infoRow = infoCursor:fetch()
+                    while infoRow do
+                        if type(infoRow) == "table" then
+                            local nomeColuna = infoRow.name or infoRow[2]
+                            if nomeColuna then
+                                table.insert(colunas, nomeColuna)
+                            end
+                        end
+                        infoRow = infoCursor:fetch()
+                    end
+                    if infoCursor.close then
+                        infoCursor:close()
+                    end
+                end
+            end
+            
+            -- Adicionar primeira linha aos dados
+            table.insert(dados, primeiraLinha)
+        end
+        
+        -- Processar demais linhas
+        local linha = cursor:fetch()
+        while linha do
+            table.insert(dados, linha)
+            linha = cursor:fetch()
+        end
+    end
+    
+    if cursor.close then
+        cursor:close()
+    end
+    
+    return {
+        dados = dados,
+        colunas = colunas,
+        totalLinhas = totalLinhas,
+        pagina = pagina,
+        tamanhoPagina = tamanhoPagina
+    }
 end
 
 -- Função para fechar conexão

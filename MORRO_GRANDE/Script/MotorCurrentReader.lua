@@ -1,8 +1,8 @@
--- l MtorCu=rrentReader para ler correntes dos motores da IHM
+-- l MtorCurrentReader para ler correntes dos motores da IHM
 -- Lê os alrs dos registros locais e atualiza a corrente atual de cada motor em memória
 MotorCurrentReader = {}
 MotorCurrentReader.__index = MotorCurrentReader
-
+local send = 0
 -- Construtor
 function MotorCurrentReader:new(motorSync, socketClient, sqliteDB)
     local obj = {}
@@ -69,7 +69,8 @@ function MotorCurrentReader:AtualizarCorrentes()
                     -- Criar objeto de dados de corrente
                     local dadosCorrente = {
                         id = motor.GUID,
-                        correnteAtual = correnteAtual  -- Valor instantâneo
+                        correnteAtual = correnteAtual,  -- Valor instantâneo
+                        status = motor.Status and "ligado" or "desligado"  -- Status do motor
                     }
                     
                     -- Adicionar média, máximo e mínimo apenas se não forem nil
@@ -97,6 +98,9 @@ function MotorCurrentReader:AtualizarCorrentes()
         -- Obter plantaId do MotorSync
         local plantaId = self.MotorSync and self.MotorSync.PlantaUUID or nil
         self.SocketClient:EnviarCorrentesArray(correntesArray, plantaId)
+    else
+        we_bas_setword("@HDW310",send)
+        send = send +1
     end
     
     -- Verificar se deve registrar dados no banco (a cada minuto)
@@ -104,7 +108,7 @@ function MotorCurrentReader:AtualizarCorrentes()
         for guid, motorData in pairs(motoresMemoria) do
             local motor = motorData.motor
             if motor then
-                motor:verificarRegistroBanco(self.SQLiteDB)
+                motor:verificarRegistroBanco(self.SQLiteDB, self.SocketClient)
             end
         end
     end
