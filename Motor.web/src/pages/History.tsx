@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
-import { Calendar, Download, Filter } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Calendar, Download, Filter, Loader } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { mockMotors, mockHistory } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
+import { useMotorsCache } from '../contexts/MotorsCacheContext';
+import { api } from '../services/api';
+import { Motor } from '../types';
 import './History.css';
 
 const CHART_COLORS = [
@@ -17,14 +20,100 @@ const CHART_COLORS = [
 
 type TimeFilter = '24h' | '7d' | '30d' | 'custom';
 
+interface HistoricoMotor {
+  id: string;
+  motorId: string;
+  timestamp: string;
+  corrente: number;
+  tensao: number;
+  temperatura: number;
+  status: string;
+}
+
 function History() {
-  const [selectedMotors, setSelectedMotors] = useState<string[]>([mockMotors[0].id]);
-  const [motorColors, setMotorColors] = useState<Record<string, string>>({
-    [mockMotors[0].id]: CHART_COLORS[0],
-  });
+  const { plantaSelecionada } = useAuth();
+  const { getMotors } = useMotorsCache();
+  const [motors, setMotors] = useState<Motor[]>([]);
+  const [historico, setHistorico] = useState<HistoricoMotor[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedMotors, setSelectedMotors] = useState<string[]>([]);
+  const [motorColors, setMotorColors] = useState<Record<string, string>>({});
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('24h');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+
+  // Carregar motores ao montar componente ou trocar planta
+  useEffect(() => {
+    const loadMotors = async () => {
+      if (!plantaSelecionada) {
+        setMotors([]);
+        setSelectedMotors([]);
+        return;
+      }
+
+      try {
+        const motorsData = await getMotors(plantaSelecionada.id, { useCache: true });
+        setMotors(motorsData);
+        
+        // Selecionar primeiro motor por padrão se houver motores
+        if (motorsData.length > 0 && selectedMotors.length === 0) {
+          const firstMotorId = motorsData[0].id;
+          setSelectedMotors([firstMotorId]);
+          setMotorColors({
+            [firstMotorId]: CHART_COLORS[0],
+          });
+        }
+      } catch (err: any) {
+        setError(err.message || 'Erro ao carregar motores');
+        console.error('Erro ao carregar motores:', err);
+      }
+    };
+
+    loadMotors();
+  }, [plantaSelecionada, getMotors]);
+
+  // Carregar histórico quando mudar filtros ou motores selecionados
+  useEffect(() => {
+    const loadHistorico = async () => {
+      if (!plantaSelecionada || selectedMotors.length === 0) {
+        setHistorico([]);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { start, end } = getDateRange();
+        
+        // Buscar histórico para cada motor selecionado
+        const promises = selectedMotors.map(motorId =>
+          api.getHistorico(motorId, start, end)
+        );
+        
+        const results = await Promise.all(promises);
+        
+        // Combinar todos os resultados
+        const allHistorico: HistoricoMotor[] = results.flat();
+        
+        // Converter timestamp string para Date e ordenar
+        const historicoComData = allHistorico.map(h => ({
+          ...h,
+          timestampDate: new Date(h.timestamp),
+        })).sort((a, b) => b.timestampDate.getTime() - a.timestampDate.getTime());
+        
+        setHistorico(historicoComData.map(({ timestampDate, ...rest }) => rest));
+      } catch (err: any) {
+        setError(err.message || 'Erro ao carregar histórico');
+        console.error('Erro ao carregar histórico:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHistorico();
+  }, [plantaSelecionada, selectedMotors, timeFilter, customStartDate, customEndDate]);
 
   const handleMotorToggle = (motorId: string) => {
     if (selectedMotors.includes(motorId)) {
@@ -69,41 +158,46 @@ function History() {
   };
 
   const filteredHistory = useMemo(() => {
-    const { start, end } = getDateRange();
-    return mockHistory.filter(h => {
-      const inTimeRange = h.timestamp >= start && h.timestamp <= end;
-      const inSelectedMotors = selectedMotors.includes(h.motorId);
-      return inTimeRange && inSelectedMotors;
+    return historico.filter(h => {
+      const timestamp = new Date(h.timestamp);
+      const { start, end } = getDateRange();
+      return timestamp >= start && timestamp <= end;
     });
-  }, [selectedMotors, timeFilter, customStartDate, customEndDate]);
+  }, [historico, timeFilter, customStartDate, customEndDate]);
 
   const chartData = useMemo(() => {
     const groupedByTime = filteredHistory.reduce((acc, item) => {
-      const timeKey = format(item.timestamp, 'yyyy-MM-dd HH:mm');
+      const timestamp = new Date(item.timestamp);
+      const timeKey = format(timestamp, 'yyyy-MM-dd HH:mm');
       if (!acc[timeKey]) {
-        acc[timeKey] = { timestamp: timeKey, date: item.timestamp };
+        acc[timeKey] = { timestamp: timeKey, date: timestamp };
       }
-      const motor = mockMotors.find(m => m.id === item.motorId);
+      const motor = motors.find(m => m.id === item.motorId);
       if (motor) {
-        acc[timeKey][`motor_${item.motorId}`] = item.corrente;
+        // Converter corrente de centésimos para amperes (ex: 2153 -> 21.53)
+        const correnteAmperes = Number(item.corrente) / 100;
+        acc[timeKey][`motor_${item.motorId}`] = correnteAmperes;
       }
       return acc;
     }, {} as Record<string, any>);
 
-    return Object.values(groupedByTime).sort((a: any, b: any) => a.date - b.date);
-  }, [filteredHistory]);
+    return Object.values(groupedByTime).sort((a: any, b: any) => a.date.getTime() - b.date.getTime());
+  }, [filteredHistory, motors]);
 
   const exportData = () => {
     const csvContent = [
       ['Timestamp', 'Motor', 'Corrente (A)', 'Tensão (V)', 'Temperatura (°C)', 'Status'].join(','),
       ...filteredHistory.map(h => {
-        const motor = mockMotors.find(m => m.id === h.motorId);
+        const motor = motors.find(m => m.id === h.motorId);
+        const timestamp = new Date(h.timestamp);
+        // Converter corrente de centésimos para amperes
+        const correnteAmperes = Number(h.corrente) / 100;
         return [
-          format(h.timestamp, 'dd/MM/yyyy HH:mm:ss'),
+          format(timestamp, 'dd/MM/yyyy HH:mm:ss'),
           motor?.nome || h.motorId,
-          h.corrente.toFixed(2),
-          h.tensao.toFixed(2),
-          h.temperatura.toFixed(2),
+          correnteAmperes.toFixed(2),
+          Number(h.tensao).toFixed(1),
+          Number(h.temperatura).toFixed(1),
           h.status,
         ].join(',');
       }),
@@ -116,45 +210,72 @@ function History() {
     link.click();
   };
 
+  if (!plantaSelecionada) {
+    return (
+      <div className="history-page fade-in">
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Selecione uma planta para visualizar o histórico</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="history-page fade-in">
+      {error && (
+        <div className="error-message" style={{ margin: '1rem', padding: '1rem', background: '#fee', color: '#c33', borderRadius: '8px' }}>
+          {error}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="history-header">
         <div className="motor-selector">
           <h3>Selecione os Motores</h3>
-          <div className="motor-chips">
-            {mockMotors.map((motor) => {
-              const isSelected = selectedMotors.includes(motor.id);
-              return (
-                <div
-                  key={motor.id}
-                  className={`motor-chip ${isSelected ? 'selected' : ''}`}
-                  onClick={() => handleMotorToggle(motor.id)}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => {}}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <span className="chip-label">{motor.nome}</span>
-                  {isSelected && (
-                    <input
-                      type="color"
-                      value={motorColors[motor.id]}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleColorChange(motor.id, e.target.value);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="color-picker"
-                      title="Escolher cor"
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          {loading && motors.length === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem' }}>
+              <Loader className="spin" size={20} />
+              <span>Carregando motores...</span>
+            </div>
+          ) : (
+            <div className="motor-chips">
+              {motors.length === 0 ? (
+                <p style={{ padding: '1rem', color: '#666' }}>Nenhum motor cadastrado</p>
+              ) : (
+                motors.map((motor) => {
+                  const isSelected = selectedMotors.includes(motor.id);
+                  return (
+                    <div
+                      key={motor.id}
+                      className={`motor-chip ${isSelected ? 'selected' : ''}`}
+                      onClick={() => handleMotorToggle(motor.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <span className="chip-label">{motor.nome}</span>
+                      {isSelected && (
+                        <input
+                          type="color"
+                          value={motorColors[motor.id] || CHART_COLORS[0]}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleColorChange(motor.id, e.target.value);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="color-picker"
+                          title="Escolher cor"
+                        />
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
 
         <div className="time-filters">
@@ -209,7 +330,7 @@ function History() {
           )}
         </div>
 
-        <button className="btn-export" onClick={exportData}>
+        <button className="btn-export" onClick={exportData} disabled={filteredHistory.length === 0}>
           <Download size={20} />
           Exportar CSV
         </button>
@@ -219,10 +340,34 @@ function History() {
       <div className="chart-section">
         <div className="chart-header">
           <h3>Gráfico de Corrente</h3>
-          <span className="data-points">{chartData.length} pontos de dados</span>
+          {loading ? (
+            <span className="data-points">
+              <Loader className="spin" size={16} style={{ display: 'inline-block', marginRight: '0.5rem' }} />
+              Carregando...
+            </span>
+          ) : (
+            <span className="data-points">{chartData.length} pontos de dados</span>
+          )}
         </div>
         <div className="chart-container">
-          {selectedMotors.length > 0 ? (
+          {loading ? (
+            <div className="no-data">
+              <Loader className="spin" size={64} />
+              <h3>Carregando dados...</h3>
+            </div>
+          ) : selectedMotors.length === 0 ? (
+            <div className="no-data">
+              <Filter size={64} />
+              <h3>Nenhum motor selecionado</h3>
+              <p>Selecione pelo menos um motor para visualizar o gráfico</p>
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="no-data">
+              <Filter size={64} />
+              <h3>Nenhum dado encontrado</h3>
+              <p>Não há registros de histórico para o período selecionado</p>
+            </div>
+          ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
@@ -253,14 +398,14 @@ function History() {
                   }}
                   formatter={(value: any, name?: string) => {
                     const motorId = (name || '').replace('motor_', '');
-                    const motor = mockMotors.find(m => m.id === motorId);
+                    const motor = motors.find(m => m.id === motorId);
                     return [`${Number(value).toFixed(1)}A`, motor?.nome || motorId];
                   }}
                 />
                 <Legend
                   formatter={(value) => {
                     const motorId = value.replace('motor_', '');
-                    const motor = mockMotors.find(m => m.id === motorId);
+                    const motor = motors.find(m => m.id === motorId);
                     return motor?.nome || motorId;
                   }}
                 />
@@ -269,7 +414,7 @@ function History() {
                     key={motorId}
                     type="monotone"
                     dataKey={`motor_${motorId}`}
-                    stroke={motorColors[motorId]}
+                    stroke={motorColors[motorId] || CHART_COLORS[0]}
                     strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 6 }}
@@ -277,12 +422,6 @@ function History() {
                 ))}
               </LineChart>
             </ResponsiveContainer>
-          ) : (
-            <div className="no-data">
-              <Filter size={64} />
-              <h3>Nenhum motor selecionado</h3>
-              <p>Selecione pelo menos um motor para visualizar o gráfico</p>
-            </div>
           )}
         </div>
       </div>
@@ -291,55 +430,77 @@ function History() {
       <div className="history-table-section">
         <div className="table-header">
           <h3>Histórico Detalhado</h3>
-          <span className="record-count">{filteredHistory.length} registros</span>
+          {loading ? (
+            <span className="record-count">
+              <Loader className="spin" size={14} style={{ display: 'inline-block', marginRight: '0.5rem' }} />
+              Carregando...
+            </span>
+          ) : (
+            <span className="record-count">{filteredHistory.length} registros</span>
+          )}
         </div>
         <div className="table-wrapper">
-          <table className="history-table">
-            <thead>
-              <tr>
-                <th>Data/Hora</th>
-                <th>Motor</th>
-                <th>Corrente</th>
-                <th>Tensão</th>
-                <th>Temperatura</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredHistory
-                .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-                .slice(0, 100)
-                .map((record, index) => {
-                  const motor = mockMotors.find(m => m.id === record.motorId);
-                  return (
-                    <tr key={index}>
-                      <td className="timestamp">
-                        {format(record.timestamp, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
-                      </td>
-                      <td>
-                        <span
-                          className="motor-indicator"
-                          style={{ background: motorColors[record.motorId] }}
-                        ></span>
-                        {motor?.nome || record.motorId}
-                      </td>
-                      <td className="value">{record.corrente.toFixed(2)} A</td>
-                      <td className="value">{record.tensao.toFixed(1)} V</td>
-                      <td className="value">{record.temperatura.toFixed(1)} °C</td>
-                      <td>
-                        <span className={`status-indicator status-${record.status}`}>
-                          {record.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-          {filteredHistory.length > 100 && (
-            <div className="table-footer">
-              Mostrando os 100 registros mais recentes de {filteredHistory.length}
+          {loading ? (
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
+              <Loader className="spin" size={32} />
+              <p style={{ marginTop: '1rem' }}>Carregando histórico...</p>
             </div>
+          ) : filteredHistory.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+              <p>Nenhum registro encontrado para o período selecionado</p>
+            </div>
+          ) : (
+            <>
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Data/Hora</th>
+                    <th>Motor</th>
+                    <th>Corrente</th>
+                    <th>Tensão</th>
+                    <th>Temperatura</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredHistory
+                    .slice(0, 100)
+                    .map((record, index) => {
+                      const motor = motors.find(m => m.id === record.motorId);
+                      const timestamp = new Date(record.timestamp);
+                      // Converter corrente de centésimos para amperes
+                      const correnteAmperes = Number(record.corrente) / 100;
+                      return (
+                        <tr key={record.id || index}>
+                          <td className="timestamp">
+                            {format(timestamp, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+                          </td>
+                          <td>
+                            <span
+                              className="motor-indicator"
+                              style={{ background: motorColors[record.motorId] || CHART_COLORS[0] }}
+                            ></span>
+                            {motor?.nome || record.motorId}
+                          </td>
+                          <td className="value">{correnteAmperes.toFixed(2)} A</td>
+                          <td className="value">{Number(record.tensao).toFixed(1)} V</td>
+                          <td className="value">{Number(record.temperatura).toFixed(1)} °C</td>
+                          <td>
+                            <span className={`status-indicator status-${record.status.toLowerCase()}`}>
+                              {record.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+              {filteredHistory.length > 100 && (
+                <div className="table-footer">
+                  Mostrando os 100 registros mais recentes de {filteredHistory.length}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
