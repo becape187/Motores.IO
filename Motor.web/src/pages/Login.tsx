@@ -121,7 +121,6 @@ function Login() {
 
         <div className="login-footer">
           <p>© 2026 Pedreira Monitoring System</p>
-          <p className="demo-credentials">Demo: admin@pedreira.com / admin123</p>
         </div>
       </div>
 
