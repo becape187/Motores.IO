@@ -340,8 +340,23 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 return;
             }
 
+            // Processar mensagem de histórico (sem logs excessivos)
+            if (socketMessage.Tipo == "historico" && !string.IsNullOrEmpty(socketMessage.Id))
+            {
+                // Removido log para evitar poluição (mais de 20 por segundo)
+                var success = await ProcessHistoricoMotorAsync(socketMessage, cancellationToken);
+                // Enviar confirmação de recebimento
+                if (success)
+                {
+                    await SendResponseAsync(client, "OK\n");
+                }
+                else
+                {
+                    await SendResponseAsync(client, "ERROR\n");
+                }
+            }
             // Processar mensagem de motor (sem logs excessivos)
-            if (socketMessage.Tipo == "motor" && !string.IsNullOrEmpty(socketMessage.Id))
+            else if (socketMessage.Tipo == "motor" && !string.IsNullOrEmpty(socketMessage.Id))
             {
                 // Removido log para evitar poluição (mais de 20 por segundo)
                 var success = await ProcessMotorDataAsync(socketMessage, cancellationToken);
@@ -553,6 +568,66 @@ public class SocketServerService : BackgroundService, ISocketServerService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao processar dados do motor {Id}", message.Id);
+            return false;
+        }
+    }
+
+    private async Task<bool> ProcessHistoricoMotorAsync(SocketMessageDto message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // Tentar converter ID para Guid
+            if (!Guid.TryParse(message.Id, out var motorId))
+            {
+                _logger.LogWarning("ID de motor inválido para histórico: {Id}", message.Id);
+                return false;
+            }
+
+            // Buscar motor no banco
+            var motor = await dbContext.Motores.FindAsync(new object[] { motorId }, cancellationToken);
+
+            if (motor == null)
+            {
+                _logger.LogWarning("Motor não encontrado para histórico: {Id}", motorId);
+                return false;
+            }
+
+            // Converter timestamp Unix para DateTime UTC
+            DateTime timestampUtc;
+            if (message.Timestamp.HasValue)
+            {
+                timestampUtc = DateTimeOffset.FromUnixTimeSeconds(message.Timestamp.Value).UtcDateTime;
+            }
+            else
+            {
+                timestampUtc = DateTime.UtcNow;
+            }
+
+            // Criar registro de histórico com todos os campos
+            var historico = new HistoricoMotor
+            {
+                MotorId = motorId,
+                Corrente = message.CorrenteAtual ?? motor.CorrenteNominal, // Corrente instantânea
+                CorrenteMedia = message.CorrenteMedia,
+                CorrenteMaxima = message.CorrenteMaxima,
+                CorrenteMinima = message.CorrenteMinima,
+                Tensao = motor.Tensao, // Usar tensão do motor
+                Temperatura = 0, // Valor padrão
+                Status = message.Status ?? motor.Status,
+                Timestamp = timestampUtc
+            };
+
+            dbContext.HistoricosMotores.Add(historico);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao processar histórico do motor {Id}", message.Id);
             return false;
         }
     }

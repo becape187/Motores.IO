@@ -16,6 +16,13 @@ public class HistoricoMotor
 
     public string Status { get; set; } = string.Empty;
 
+    // Novos campos para histórico detalhado
+    public decimal? CorrenteMedia { get; set; }
+
+    public decimal? CorrenteMaxima { get; set; }
+
+    public decimal? CorrenteMinima { get; set; }
+
     // Relacionamento
     public virtual Motor Motor { get; set; } = null!;
 }

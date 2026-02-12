@@ -126,6 +126,15 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(50);
             
+            entity.Property(e => e.CorrenteMedia)
+                .HasColumnType("decimal(10,2)");
+            
+            entity.Property(e => e.CorrenteMaxima)
+                .HasColumnType("decimal(10,2)");
+            
+            entity.Property(e => e.CorrenteMinima)
+                .HasColumnType("decimal(10,2)");
+            
             entity.HasOne(e => e.Motor)
                 .WithMany(m => m.Historicos)
                 .HasForeignKey(e => e.MotorId)
