@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Calendar, Download, Filter, Loader } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, subWeeks, subMonths } from 'date-fns';
@@ -42,6 +42,7 @@ function History() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('24h');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+  const [autoUpdate, setAutoUpdate] = useState(false);
 
   // Carregar motores ao montar componente ou trocar planta
   useEffect(() => {
@@ -73,47 +74,84 @@ function History() {
     loadMotors();
   }, [plantaSelecionada, getMotors]);
 
-  // Carregar histórico quando mudar filtros ou motores selecionados
-  useEffect(() => {
-    const loadHistorico = async () => {
-      if (!plantaSelecionada || selectedMotors.length === 0) {
-        setHistorico([]);
-        return;
-      }
+  const getDateRange = useCallback((): { start: Date; end: Date } => {
+    const now = new Date();
+    switch (timeFilter) {
+      case '24h':
+        return { start: subDays(now, 1), end: now };
+      case '7d':
+        return { start: subWeeks(now, 1), end: now };
+      case '30d':
+        return { start: subMonths(now, 1), end: now };
+      case 'custom':
+        return {
+          start: customStartDate ? new Date(customStartDate) : subDays(now, 1),
+          end: customEndDate ? new Date(customEndDate) : now,
+        };
+      default:
+        return { start: subDays(now, 1), end: now };
+    }
+  }, [timeFilter, customStartDate, customEndDate]);
 
+  // Função para carregar histórico (reutilizável)
+  const loadHistorico = useCallback(async (silent = false) => {
+    if (!plantaSelecionada || selectedMotors.length === 0) {
+      setHistorico([]);
+      return;
+    }
+
+    if (!silent) {
       setLoading(true);
-      setError(null);
+    }
+    setError(null);
 
-      try {
-        const { start, end } = getDateRange();
-        
-        // Buscar histórico para cada motor selecionado
-        const promises = selectedMotors.map(motorId =>
-          api.getHistorico(motorId, start, end)
-        );
-        
-        const results = await Promise.all(promises);
-        
-        // Combinar todos os resultados
-        const allHistorico: HistoricoMotor[] = results.flat();
-        
-        // Converter timestamp string para Date e ordenar
-        const historicoComData = allHistorico.map(h => ({
-          ...h,
-          timestampDate: new Date(h.timestamp),
-        })).sort((a, b) => b.timestampDate.getTime() - a.timestampDate.getTime());
-        
-        setHistorico(historicoComData.map(({ timestampDate, ...rest }) => rest));
-      } catch (err: any) {
-        setError(err.message || 'Erro ao carregar histórico');
-        console.error('Erro ao carregar histórico:', err);
-      } finally {
+    try {
+      const { start, end } = getDateRange();
+      
+      // Buscar histórico para cada motor selecionado
+      const promises = selectedMotors.map(motorId =>
+        api.getHistorico(motorId, start, end)
+      );
+      
+      const results = await Promise.all(promises);
+      
+      // Combinar todos os resultados
+      const allHistorico: HistoricoMotor[] = results.flat();
+      
+      // Converter timestamp string para Date e ordenar
+      const historicoComData = allHistorico.map(h => ({
+        ...h,
+        timestampDate: new Date(h.timestamp),
+      })).sort((a, b) => b.timestampDate.getTime() - a.timestampDate.getTime());
+      
+      setHistorico(historicoComData.map(({ timestampDate, ...rest }) => rest));
+    } catch (err: any) {
+      setError(err.message || 'Erro ao carregar histórico');
+      console.error('Erro ao carregar histórico:', err);
+    } finally {
+      if (!silent) {
         setLoading(false);
       }
-    };
+    }
+  }, [plantaSelecionada, selectedMotors, getDateRange]);
 
+  // Carregar histórico quando mudar filtros ou motores selecionados
+  useEffect(() => {
     loadHistorico();
-  }, [plantaSelecionada, selectedMotors, timeFilter, customStartDate, customEndDate]);
+  }, [loadHistorico]);
+
+  // Auto-update: atualizar histórico a cada 1 minuto quando habilitado
+  useEffect(() => {
+    if (!autoUpdate || !plantaSelecionada || selectedMotors.length === 0) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      loadHistorico(true); // Atualização silenciosa (sem mostrar loading)
+    }, 60000); // 1 minuto
+
+    return () => clearInterval(interval);
+  }, [autoUpdate, plantaSelecionada, selectedMotors, loadHistorico]);
 
   const handleMotorToggle = (motorId: string) => {
     if (selectedMotors.includes(motorId)) {
@@ -138,24 +176,6 @@ function History() {
     });
   };
 
-  const getDateRange = (): { start: Date; end: Date } => {
-    const now = new Date();
-    switch (timeFilter) {
-      case '24h':
-        return { start: subDays(now, 1), end: now };
-      case '7d':
-        return { start: subWeeks(now, 1), end: now };
-      case '30d':
-        return { start: subMonths(now, 1), end: now };
-      case 'custom':
-        return {
-          start: customStartDate ? new Date(customStartDate) : subDays(now, 1),
-          end: customEndDate ? new Date(customEndDate) : now,
-        };
-      default:
-        return { start: subDays(now, 1), end: now };
-    }
-  };
 
   const filteredHistory = useMemo(() => {
     return historico.filter(h => {
@@ -250,12 +270,6 @@ function History() {
                       className={`motor-chip ${isSelected ? 'selected' : ''}`}
                       onClick={() => handleMotorToggle(motor.id)}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => {}}
-                        onClick={(e) => e.stopPropagation()}
-                      />
                       <span className="chip-label">{motor.nome}</span>
                       {isSelected && (
                         <input
@@ -279,7 +293,20 @@ function History() {
         </div>
 
         <div className="time-filters">
-          <h3>Período</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0 }}>Período</h3>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={autoUpdate}
+                onChange={(e) => setAutoUpdate(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-dark)' }}>
+                Auto-atualizar (1 min)
+              </span>
+            </label>
+          </div>
           <div className="filter-buttons">
             <button
               className={`filter-btn ${timeFilter === '24h' ? 'active' : ''}`}
