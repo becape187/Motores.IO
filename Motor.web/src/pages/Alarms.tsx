@@ -1,30 +1,93 @@
-import { useState } from 'react';
-import { AlertTriangle, CheckCircle, Info, XCircle, Bell, BellOff, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertTriangle, CheckCircle, Info, XCircle, Bell, BellOff, Trash2, Loader } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { mockAlarms } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
 import { Alarme } from '../types';
 import './Alarms.css';
 
 function Alarms() {
-  const [alarms, setAlarms] = useState<Alarme[]>(mockAlarms);
+  const { plantaSelecionada } = useAuth();
+  const [alarms, setAlarms] = useState<Alarme[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  const handleAcknowledge = (alarmId: string) => {
-    setAlarms(alarms.map(alarm =>
-      alarm.id === alarmId ? { ...alarm, reconhecido: true } : alarm
-    ));
-  };
+  // Carregar alarmes ao montar componente ou trocar planta
+  useEffect(() => {
+    const loadAlarms = async () => {
+      if (!plantaSelecionada) {
+        setAlarms([]);
+        return;
+      }
 
-  const handleDelete = (alarmId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este alarme?')) {
-      setAlarms(alarms.filter(alarm => alarm.id !== alarmId));
+      setLoading(true);
+      setError(null);
+      try {
+        const alarmes = await api.getAlarmes();
+        // Converter dados da API para o formato esperado
+        const alarmesFormatados: Alarme[] = alarmes.map((alarme: any) => ({
+          id: alarme.id,
+          tipo: alarme.tipo || 'info',
+          mensagem: alarme.mensagem || alarme.descricao || 'Sem descrição',
+          motorId: alarme.motorId || '',
+          motorNome: alarme.motorNome || alarme.motor?.nome || 'Motor desconhecido',
+          timestamp: new Date(alarme.timestamp || alarme.dataCriacao || new Date()),
+          reconhecido: alarme.reconhecido || false,
+        }));
+        setAlarms(alarmesFormatados);
+      } catch (err: any) {
+        setError(err.message || 'Erro ao carregar alarmes');
+        console.error('Erro ao carregar alarmes:', err);
+        setAlarms([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAlarms();
+  }, [plantaSelecionada]);
+
+  const handleAcknowledge = async (alarmId: string) => {
+    try {
+      // TODO: Implementar endpoint para reconhecer alarme
+      // await api.reconhecerAlarme(alarmId);
+      
+      // Atualizar localmente por enquanto
+      setAlarms(alarms.map(alarm =>
+        alarm.id === alarmId ? { ...alarm, reconhecido: true } : alarm
+      ));
+    } catch (err: any) {
+      console.error('Erro ao reconhecer alarme:', err);
     }
   };
 
-  const handleAcknowledgeAll = () => {
-    setAlarms(alarms.map(alarm => ({ ...alarm, reconhecido: true })));
+  const handleDelete = async (alarmId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este alarme?')) {
+      try {
+        // TODO: Implementar endpoint para deletar alarme
+        // await api.deleteAlarme(alarmId);
+        
+        // Remover localmente por enquanto
+        setAlarms(alarms.filter(alarm => alarm.id !== alarmId));
+      } catch (err: any) {
+        console.error('Erro ao excluir alarme:', err);
+      }
+    }
+  };
+
+  const handleAcknowledgeAll = async () => {
+    try {
+      // TODO: Implementar endpoint para reconhecer todos os alarmes
+      // await api.reconhecerTodosAlarmes();
+      
+      // Atualizar localmente por enquanto
+      setAlarms(alarms.map(alarm => ({ ...alarm, reconhecido: true })));
+    } catch (err: any) {
+      console.error('Erro ao reconhecer todos os alarmes:', err);
+    }
   };
 
   const getAlarmIcon = (tipo: string) => {
@@ -68,15 +131,37 @@ function Alarms() {
     alerta: alarms.filter(a => a.tipo === 'alerta' && !a.reconhecido).length,
   };
 
+  if (!plantaSelecionada) {
+    return (
+      <div className="alarms-page fade-in">
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Selecione uma planta para visualizar os alarmes</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="alarms-page fade-in">
+      {error && (
+        <div className="error-message" style={{ margin: '1rem', padding: '1rem', background: '#fee', color: '#c33', borderRadius: '8px' }}>
+          {error}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="alarm-stats">
         <div className="stat-item stat-total">
           <Bell size={28} />
           <div className="stat-info">
             <span className="stat-label">Total de Alarmes</span>
-            <span className="stat-value">{stats.total}</span>
+            {loading ? (
+              <span className="stat-value">
+                <Loader className="spin" size={16} style={{ display: 'inline-block' }} />
+              </span>
+            ) : (
+              <span className="stat-value">{stats.total}</span>
+            )}
           </div>
         </div>
         <div className="stat-item stat-pending">
@@ -133,11 +218,20 @@ function Alarms() {
 
       {/* Alarms List */}
       <div className="alarms-list">
-        {filteredAlarms.length === 0 ? (
+        {loading ? (
+          <div className="no-alarms">
+            <Loader className="spin" size={64} />
+            <h3>Carregando alarmes...</h3>
+          </div>
+        ) : filteredAlarms.length === 0 ? (
           <div className="no-alarms">
             <BellOff size={64} />
             <h3>Nenhum alarme encontrado</h3>
-            <p>Não há alarmes que correspondam aos filtros selecionados</p>
+            <p>
+              {alarms.length === 0 
+                ? 'Não há alarmes registrados no sistema'
+                : 'Não há alarmes que correspondam aos filtros selecionados'}
+            </p>
           </div>
         ) : (
           filteredAlarms
