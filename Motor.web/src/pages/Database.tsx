@@ -9,6 +9,11 @@ interface TabelaInfo {
   linhas: number;
 }
 
+interface ListarTabelasResult {
+  tabelas: TabelaInfo[];
+  caminhoBanco?: string;
+}
+
 interface LinhaTabela {
   [key: string]: any;
 }
@@ -16,6 +21,7 @@ interface LinhaTabela {
 export default function Database() {
   const { plantaSelecionada } = useAuth();
   const [tabelas, setTabelas] = useState<TabelaInfo[]>([]);
+  const [caminhoBanco, setCaminhoBanco] = useState<string>('');
   const [tabelaSelecionada, setTabelaSelecionada] = useState<string | null>(null);
   const [dados, setDados] = useState<LinhaTabela[]>([]);
   const [colunas, setColunas] = useState<string[]>([]);
@@ -41,9 +47,14 @@ export default function Database() {
     setLoading(true);
     setError(null);
     try {
-      const resultado = await listarTabelas();
+      const resultado = await listarTabelas() as ListarTabelasResult;
       if (resultado && resultado.tabelas) {
         setTabelas(resultado.tabelas);
+        if (resultado.caminhoBanco) {
+          setCaminhoBanco(resultado.caminhoBanco);
+        }
+      } else {
+        setError('Nenhuma tabela encontrada');
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar tabelas');
@@ -105,10 +116,18 @@ export default function Database() {
   return (
     <div className="database-page fade-in">
       <div className="database-header">
-        <h2>
-          <DatabaseIcon size={24} />
-          Banco de Dados Local da IHM
-        </h2>
+        <div>
+          <h2>
+            <DatabaseIcon size={24} />
+            Banco de Dados Local da IHM
+          </h2>
+          {caminhoBanco && (
+            <p className="database-path">
+              <span className="path-label">Caminho:</span>
+              <span className="path-value">{caminhoBanco}</span>
+            </p>
+          )}
+        </div>
         <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
           {isConnected ? (
             <>

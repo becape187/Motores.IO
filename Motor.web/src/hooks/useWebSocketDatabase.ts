@@ -6,6 +6,11 @@ interface TabelaInfo {
   linhas: number;
 }
 
+interface ListarTabelasResult {
+  tabelas: TabelaInfo[];
+  caminhoBanco?: string;
+}
+
 interface QueryResult {
   dados: any[];
   colunas: string[];
@@ -99,7 +104,7 @@ export function useWebSocketDatabase(plantaId: string | undefined) {
     }
   }, [connect]);
 
-  const listarTabelas = useCallback(async (): Promise<{ tabelas: TabelaInfo[] }> => {
+  const listarTabelas = useCallback(async (): Promise<ListarTabelasResult> => {
     return await sendCommand('listarTabelas');
   }, [sendCommand]);
 
