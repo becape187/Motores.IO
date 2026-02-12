@@ -20,6 +20,7 @@ function Users() {
   const [showDetails, setShowDetails] = useState(false);
   const [plantasDisponiveis, setPlantasDisponiveis] = useState<Array<{id: string; nome: string; codigo?: string}>>([]);
   const [plantasSelecionadas, setPlantasSelecionadas] = useState<string[]>([]);
+  const [loadingPlantas, setLoadingPlantas] = useState(false);
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
 
@@ -84,19 +85,46 @@ function Users() {
 
   // Carregar plantas disponíveis quando entrar em modo de edição/criação ou quando mudar o cliente selecionado
   useEffect(() => {
-    if ((isEditing || isAdding) && (userLogado?.perfil === 'admin' || userLogado?.perfil === 'global')) {
-      // Se for global e tiver cliente selecionado, buscar plantas do cliente
-      if (userLogado.perfil === 'global' && clienteSelecionado) {
-        api.getPlantasDisponiveis(clienteSelecionado.id).then(setPlantasDisponiveis).catch(console.error);
-      } else if (userLogado.perfil !== 'global') {
-        // Se não for global, buscar plantas disponíveis normalmente
-        api.getPlantasDisponiveis().then(setPlantasDisponiveis).catch(console.error);
-      } else {
-        // Se for global mas não tiver cliente selecionado, limpar plantas
+    const carregarPlantas = async () => {
+      // Só carregar plantas se estiver editando/adicionando e o usuário tiver permissão
+      if (!(isEditing || isAdding)) {
         setPlantasDisponiveis([]);
+        setLoadingPlantas(false);
+        return;
       }
-    }
-  }, [isEditing, isAdding, userLogado, clienteSelecionado]);
+
+      if (!userLogado || (userLogado.perfil !== 'admin' && userLogado.perfil !== 'global')) {
+        setPlantasDisponiveis([]);
+        setLoadingPlantas(false);
+        return;
+      }
+
+      setLoadingPlantas(true);
+      try {
+        // Se for global e tiver cliente selecionado, buscar plantas do cliente
+        if (userLogado.perfil === 'global') {
+          if (clienteSelecionado?.id) {
+            const plantas = await api.getPlantasDisponiveis(clienteSelecionado.id);
+            setPlantasDisponiveis(plantas || []);
+          } else {
+            // Se for global mas não tiver cliente selecionado, limpar plantas
+            setPlantasDisponiveis([]);
+          }
+        } else {
+          // Se não for global (é admin), buscar plantas disponíveis normalmente
+          const plantas = await api.getPlantasDisponiveis();
+          setPlantasDisponiveis(plantas || []);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar plantas:', err);
+        setPlantasDisponiveis([]);
+      } finally {
+        setLoadingPlantas(false);
+      }
+    };
+
+    carregarPlantas();
+  }, [isEditing, isAdding, userLogado?.perfil, clienteSelecionado?.id]);
 
   const handleAddNew = () => {
     setIsAdding(true);
@@ -575,7 +603,7 @@ function Users() {
                     <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
                       Selecione as plantas que este usuário poderá acessar
                     </p>
-                    {loading ? (
+                    {loadingPlantas ? (
                       <p>Carregando plantas...</p>
                     ) : plantasDisponiveis.length === 0 ? (
                       <p style={{ color: '#e74c3c' }}>

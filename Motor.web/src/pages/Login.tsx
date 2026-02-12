@@ -120,7 +120,7 @@ function Login() {
         </form>
 
         <div className="login-footer">
-          <p>© 2026 Pedreira Monitoring System</p>
+          <p>© 2026 Automais | Becape Automação</p>
         </div>
       </div>
 
