@@ -57,14 +57,7 @@ function History() {
         const motorsData = await getMotors(plantaSelecionada.id, { useCache: true });
         setMotors(motorsData);
         
-        // Selecionar primeiro motor por padrão se houver motores
-        if (motorsData.length > 0 && selectedMotors.length === 0) {
-          const firstMotorId = motorsData[0].id;
-          setSelectedMotors([firstMotorId]);
-          setMotorColors({
-            [firstMotorId]: CHART_COLORS[0],
-          });
-        }
+        // Não selecionar nenhum motor por padrão - usuário deve selecionar manualmente
       } catch (err: any) {
         setError(err.message || 'Erro ao carregar motores');
         console.error('Erro ao carregar motores:', err);
