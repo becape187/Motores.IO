@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Search, Filter, ArrowLeft, Cog, Loader, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Filter, Cog, Loader, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
@@ -17,7 +17,6 @@ function Motors() {
   const [selectedMotor, setSelectedMotor] = useState<Motor | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showDetails, setShowDetails] = useState(false);
   
@@ -75,6 +74,10 @@ function Motors() {
   };
 
   const handleCancel = () => {
+    if (isAdding) {
+      handleBackToList();
+      return;
+    }
     setIsEditing(false);
     setIsAdding(false);
     if (selectedMotor) {
@@ -269,12 +272,9 @@ function Motors() {
   };
 
 
-  const filteredMotors = motors.filter(motor => {
-    const matchesSearch = motor.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         motor.id.includes(searchTerm);
-    const matchesFilter = filterStatus === 'all' || motor.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
+  const filteredMotors = motors.filter(motor =>
+    filterStatus === 'all' || motor.status === filterStatus
+  );
 
   if (loading) {
     return (
@@ -311,40 +311,33 @@ function Motors() {
         </div>
       )}
       <div className="motors-header">
-        <div className="header-actions">
-          {/* Indicador de status do WebSocket de Correntes */}
-          <div className={`connection-status ${wsConnected ? 'connected' : 'disconnected'}`}>
-            {wsConnected ? (
-              <>
-                <Wifi size={16} />
-                <span>Correntes em tempo real</span>
-              </>
-            ) : (
-              <>
-                <WifiOff size={16} />
-                <span>Correntes desconectado</span>
-              </>
-            )}
-          </div>
-          <div className="search-box">
-            <Search size={20} />
-            <input
-              type="text"
-              placeholder="Buscar motor..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="filter-box">
-            <Filter size={20} />
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-              <option value="all">Todos Status</option>
-              <option value="ligado">Ligado</option>
-              <option value="desligado">Desligado</option>
-              <option value="alerta">Alerta</option>
-              <option value="alarme">Alarme</option>
-              <option value="pendente">Pendente</option>
-            </select>
+        <div className="header-actions motors-header-left">
+          {/* Status da corrente em cima, filtro embaixo */}
+          <div className="motors-status-and-filter">
+            <div className={`connection-status ${wsConnected ? 'connected' : 'disconnected'}`} title={wsConnected ? 'Correntes em tempo real' : 'Correntes desconectado'}>
+              {wsConnected ? (
+                <>
+                  <Wifi size={16} aria-hidden />
+                  <span>Correntes em tempo real</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff size={16} aria-hidden />
+                  <span>Correntes desconectado</span>
+                </>
+              )}
+            </div>
+            <div className="filter-box">
+              <Filter size={20} />
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                <option value="all">Todos Status</option>
+                <option value="ligado">Ligado</option>
+                <option value="desligado">Desligado</option>
+                <option value="alerta">Alerta</option>
+                <option value="alarme">Alarme</option>
+                <option value="pendente">Pendente</option>
+              </select>
+            </div>
           </div>
         </div>
         <button className="btn-primary" onClick={handleAddNew}>
@@ -421,10 +414,6 @@ function Motors() {
           {selectedMotor || isAdding ? (
             <>
               <div className="details-header">
-                <button className="btn-back" onClick={handleBackToList}>
-                  <ArrowLeft size={20} />
-                  Voltar
-                </button>
                 <h3>{isAdding ? 'Novo Motor' : isEditing ? 'Editar Motor' : 'Detalhes do Motor'}</h3>
                 {!isAdding && !isEditing && (
                   <div className="header-actions">

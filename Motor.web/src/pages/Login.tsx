@@ -54,11 +54,11 @@ function Login() {
               <Lock size={40} />
             </div>
           </div>
-          <h1>Sistema de Monitoramento</h1>
-          <p>Pedreira - Controle de Motores</p>
+          <h1>Monitoramento de Motores</h1>
+          <p>Sigil e Morro Grande</p>
         </div>
 
-        <form className="login-form" onSubmit={handleSubmit} autoComplete="off">
+        <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <div className={`input-wrapper ${email || emailFocused ? 'no-icon' : ''}`}>
               {!(email || emailFocused) && <User className="input-icon" size={20} />}
@@ -70,7 +70,7 @@ function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 onFocus={() => setEmailFocused(true)}
                 onBlur={() => setEmailFocused(false)}
-                autoComplete="off"
+                autoComplete="email"
                 required
                 aria-label="E-mail"
               />
@@ -89,7 +89,7 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 onFocus={() => setPasswordFocused(true)}
                 onBlur={() => setPasswordFocused(false)}
-                autoComplete="new-password"
+                autoComplete="current-password"
                 required
                 aria-label="Senha"
               />

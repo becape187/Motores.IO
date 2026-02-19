@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
 :root {
   --primary-color: #496263;
   --secondary-color: #347e26;
@@ -26,10 +31,14 @@ body {
   background-color: var(--background-color);
   color: var(--text-dark);
   line-height: 1.6;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 #root {
   min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* Scrollbar personalizado */

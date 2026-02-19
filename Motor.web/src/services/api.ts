@@ -150,12 +150,20 @@ class ApiService {
 
   // Atualizar apenas posição do motor
   async updateMotorPosicao(id: string, posicao: {
-    posicaoX?: number;
-    posicaoY?: number;
+    posicaoX?: number | null;
+    posicaoY?: number | null;
   }) {
     return this.request<void>(`/motors/${id}/posicao`, {
       method: 'PATCH',
       body: JSON.stringify(posicao),
+    });
+  }
+
+  // Remover motor da planta (limpar posição) - envia body vazio para evitar 400 com null
+  async clearMotorPosicao(id: string) {
+    return this.request<void>(`/motors/${id}/posicao`, {
+      method: 'PATCH',
+      body: JSON.stringify({}),
     });
   }
 

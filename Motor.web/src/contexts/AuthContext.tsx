@@ -43,11 +43,13 @@ interface AuthContextType {
   user: User | null;
   plantaSelecionada: Planta | null;
   clienteSelecionado: Cliente | null;
+  clientesSelecionados: Cliente[];
   isAuthenticated: boolean;
   login: (email: string, senha: string) => Promise<void>;
   logout: () => void;
   setPlantaSelecionada: (planta: Planta | null) => void;
   setClienteSelecionado: (cliente: Cliente | null) => void;
+  setClientesSelecionados: (clientes: Cliente[]) => void;
   aplicarTemas: () => void;
 }
 
@@ -57,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [plantaSelecionada, setPlantaSelecionada] = useState<Planta | null>(null);
   const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
+  const [clientesSelecionados, setClientesSelecionadosState] = useState<Cliente[]>([]);
 
   useEffect(() => {
     // Carregar dados do localStorage ao iniciar
@@ -64,22 +67,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userStr = localStorage.getItem('user');
     const plantaStr = localStorage.getItem('plantaSelecionada');
     const clienteStr = localStorage.getItem('clienteSelecionado');
+    const clientesStr = localStorage.getItem('clientesSelecionados');
 
     if (token && userStr) {
       try {
         const userData = JSON.parse(userStr);
         setUser(userData);
         
-        if (clienteStr) {
+        if (clientesStr) {
+          const clientes = JSON.parse(clientesStr);
+          if (Array.isArray(clientes) && clientes.length > 0) {
+            setClientesSelecionadosState(clientes);
+            setClienteSelecionado(clientes[0]);
+          }
+        } else if (clienteStr) {
           const cliente = JSON.parse(clienteStr);
           setClienteSelecionado(cliente);
+          setClientesSelecionadosState([cliente]);
         }
         
         if (plantaStr) {
           const planta = JSON.parse(plantaStr);
           setPlantaSelecionada(planta);
         } else if (userData.plantas && userData.plantas.length > 0) {
-          // Selecionar primeira planta por padrão
           setPlantaSelecionada(userData.plantas[0]);
           localStorage.setItem('plantaSelecionada', JSON.stringify(userData.plantas[0]));
         }
@@ -186,9 +196,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('user');
     localStorage.removeItem('plantaSelecionada');
     localStorage.removeItem('clienteSelecionado');
+    localStorage.removeItem('clientesSelecionados');
     setUser(null);
     setPlantaSelecionada(null);
     setClienteSelecionado(null);
+    setClientesSelecionadosState([]);
     
     // Resetar estilos CSS customizados
     const root = document.documentElement;
@@ -210,12 +222,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleSetClienteSelecionado = (cliente: Cliente | null) => {
     setClienteSelecionado(cliente);
+    const arr = cliente ? [cliente] : [];
+    setClientesSelecionadosState(arr);
     if (cliente) {
       localStorage.setItem('clienteSelecionado', JSON.stringify(cliente));
-      // Limpar planta selecionada quando trocar de cliente
+      localStorage.setItem('clientesSelecionados', JSON.stringify(arr));
       setPlantaSelecionada(null);
       localStorage.removeItem('plantaSelecionada');
     } else {
+      localStorage.removeItem('clienteSelecionado');
+      localStorage.removeItem('clientesSelecionados');
+    }
+  };
+
+  const handleSetClientesSelecionados = (clientes: Cliente[]) => {
+    setClientesSelecionadosState(clientes);
+    setClienteSelecionado(clientes.length > 0 ? clientes[0] : null);
+    if (clientes.length > 0) {
+      localStorage.setItem('clientesSelecionados', JSON.stringify(clientes));
+      localStorage.setItem('clienteSelecionado', JSON.stringify(clientes[0]));
+      setPlantaSelecionada(null);
+      localStorage.removeItem('plantaSelecionada');
+    } else {
+      localStorage.removeItem('clientesSelecionados');
       localStorage.removeItem('clienteSelecionado');
     }
   };
@@ -226,11 +255,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         plantaSelecionada,
         clienteSelecionado,
+        clientesSelecionados,
         isAuthenticated: !!user,
         login,
         logout,
         setPlantaSelecionada: handleSetPlantaSelecionada,
         setClienteSelecionado: handleSetClienteSelecionado,
+        setClientesSelecionados: handleSetClientesSelecionados,
         aplicarTemas,
       }}
     >

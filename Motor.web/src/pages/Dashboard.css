@@ -137,12 +137,259 @@
   border-radius: 12px;
   overflow: hidden;
   border: 2px solid #e0e0e0;
+  position: relative;
+}
+
+/* Viewport da planta: sempre ajusta à tela e mostra a planta por completo */
+.plant-zoom-viewport {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 900 / 600;
+  max-height: min(70vh, calc(100vw * 600 / 900));
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Só em modo edição: zoom (roda/pinch) e bloqueio de scroll na área */
+.plant-zoom-viewport--edit {
+  touch-action: none;
+}
+
+.plant-zoom-content {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.plant-zoom-content .plant-svg {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  flex-shrink: 0;
+}
+
+.plant-container.plant-container--with-edit .plant-svg {
+  display: block;
 }
 
 .plant-svg {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* Mobile: evitar scroll/zoom ao interagir com a planta em modo edição */
+.plant-svg-touch {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Barra de menu lateral da planta baixa (modo editar) - canto superior direito */
+.plant-edit-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 56px;
+  height: 100%;
+  min-height: 320px;
+  background: linear-gradient(180deg, var(--primary-color, #496263) 0%, #2d3c3d 100%);
+  border-radius: 0 10px 10px 0;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  color: var(--white-color);
+}
+
+.plant-edit-sidebar-header {
+  padding: 12px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.plant-edit-sidebar-nav {
+  flex: 1;
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.plant-edit-sidebar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 8px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.plant-edit-sidebar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--white-color);
+}
+
+.plant-edit-sidebar-btn.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--white-color);
+}
+
+.plant-edit-sidebar-btn--danger {
+  color: #f8b4b4;
+}
+
+.plant-edit-sidebar-btn--danger:hover {
+  background: rgba(229, 62, 62, 0.4);
+  color: #fff;
+}
+
+/* Lista de motores para adicionar (arrastar para o mapa) */
+.plant-edit-sidebar-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 6px;
+}
+
+.plant-edit-sidebar-list-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.plant-edit-sidebar-list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plant-edit-sidebar-list-item {
+  font-size: 9px;
+  color: var(--white-color);
+  background: rgba(255, 255, 255, 0.12);
+  padding: 6px 6px;
+  border-radius: 6px;
+  cursor: grab;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plant-edit-sidebar-list-item:active {
+  cursor: grabbing;
+}
+
+.plant-edit-sidebar-list-item--selected {
+  background: rgba(52, 152, 219, 0.5);
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+.plant-edit-sidebar-list-empty {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 8px 4px;
+  text-align: center;
+}
+
+/* Modal de confirmação - excluir motor(es) */
+.plant-confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.plant-confirm-modal {
+  background: var(--white-color);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.plant-confirm-modal h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: var(--text-dark);
+}
+
+.plant-confirm-modal p {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.plant-confirm-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.plant-confirm-modal-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.plant-confirm-modal-btn--cancel {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.plant-confirm-modal-btn--cancel:hover {
+  background: #d0d0d0;
+}
+
+.plant-confirm-modal-btn--danger {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.plant-confirm-modal-btn--danger:hover {
+  background: #c0392b;
 }
 
 /* Estilos simplificados para motores - sem efeitos, sem cards */
