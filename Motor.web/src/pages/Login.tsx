@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,6 +15,12 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showModalSemPlantas, setShowModalSemPlantas] = useState(false);
+
+  // Garante que os campos iniciem vazios, mesmo se o navegador tentar preencher automaticamente
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +58,7 @@ function Login() {
           <p>Pedreira - Controle de Motores</p>
         </div>
 
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={handleSubmit} autoComplete="off">
           <div className="form-group">
             <div className={`input-wrapper ${email || emailFocused ? 'no-icon' : ''}`}>
               {!(email || emailFocused) && <User className="input-icon" size={20} />}
@@ -64,6 +70,7 @@ function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 onFocus={() => setEmailFocused(true)}
                 onBlur={() => setEmailFocused(false)}
+                autoComplete="off"
                 required
                 aria-label="E-mail"
               />
@@ -82,6 +89,7 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 onFocus={() => setPasswordFocused(true)}
                 onBlur={() => setPasswordFocused(false)}
+                autoComplete="new-password"
                 required
                 aria-label="Senha"
               />
