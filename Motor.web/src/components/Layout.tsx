@@ -30,7 +30,7 @@ interface LayoutProps {
 
 function Layout({ children, onLogout }: LayoutProps) {
   const location = useLocation();
-  const { user, plantaSelecionada, clienteSelecionado, clientesSelecionados, setPlantaSelecionada, setClientesSelecionados } = useAuth();
+  const { user, plantaSelecionada, clientesSelecionados, setPlantaSelecionada, setClientesSelecionados } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isClienteDropdownOpen, setIsClienteDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);

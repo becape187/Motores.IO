@@ -431,7 +431,7 @@ function Dashboard() {
     }
   };
 
-  const handleSVGTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+  const handleSVGTouchMove = (e: React.TouchEvent<SVGElement>) => {
     if (e.touches.length === 0) return;
     if (e.touches.length === 2 && isEditMode && lastPinchDistanceRef.current != null) {
       const dist = getTouchDistance(e);
