@@ -215,8 +215,9 @@
   background: transparent;
 }
 
-.floating-label.filled,
-.input-wrapper input:focus + .floating-label {
+/* Label sobe quando o input tem foco OU quando tem valor (inclui autofill do navegador) */
+.input-wrapper input:focus + .floating-label,
+.input-wrapper input:not(:placeholder-shown) + .floating-label {
   top: -8px;
   transform: translateY(0);
   font-size: 12px;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Filter, Cog, Loader, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Filter, Cog, Loader, Wifi, WifiOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
@@ -417,6 +417,10 @@ function Motors() {
                 <h3>{isAdding ? 'Novo Motor' : isEditing ? 'Editar Motor' : 'Detalhes do Motor'}</h3>
                 {!isAdding && !isEditing && (
                   <div className="header-actions">
+                    <button className="btn-secondary" onClick={handleBackToList}>
+                      <ArrowLeft size={18} />
+                      Voltar
+                    </button>
                     <button className="btn-secondary" onClick={handleEdit}>
                       <Edit2 size={18} />
                       Editar

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,11 +15,19 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showModalSemPlantas, setShowModalSemPlantas] = useState(false);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
-  // Garante que os campos iniciem vazios, mesmo se o navegador tentar preencher automaticamente
+  /* Sincroniza state com o valor real do input após montar (ex.: autofill do navegador),
+     para que o ícone e o layout reajam corretamente quando os campos vêm preenchidos. */
   useEffect(() => {
-    setEmail('');
-    setPassword('');
+    const syncFromInputs = () => {
+      if (emailInputRef.current?.value) setEmail(emailInputRef.current.value);
+      if (passwordInputRef.current?.value) setPassword(passwordInputRef.current.value);
+    };
+    syncFromInputs();
+    const t = setTimeout(syncFromInputs, 100);
+    return () => clearTimeout(t);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,9 +71,10 @@ function Login() {
             <div className={`input-wrapper ${email || emailFocused ? 'no-icon' : ''}`}>
               {!(email || emailFocused) && <User className="input-icon" size={20} />}
               <input
+                ref={emailInputRef}
                 id="email"
                 type="email"
-                placeholder=""
+                placeholder=" "
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onFocus={() => setEmailFocused(true)}
@@ -74,7 +83,7 @@ function Login() {
                 required
                 aria-label="E-mail"
               />
-              <label htmlFor="email" className={`floating-label ${email ? 'filled' : ''}`}>E-mail</label>
+              <label htmlFor="email" className="floating-label">E-mail</label>
             </div>
           </div>
 
@@ -82,9 +91,10 @@ function Login() {
             <div className={`input-wrapper ${password || passwordFocused ? 'no-icon' : ''}`}>
               {!(password || passwordFocused) && <Lock className="input-icon" size={20} />}
               <input
+                ref={passwordInputRef}
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder=""
+                placeholder=" "
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onFocus={() => setPasswordFocused(true)}
@@ -93,7 +103,7 @@ function Login() {
                 required
                 aria-label="Senha"
               />
-              <label htmlFor="password" className={`floating-label ${password ? 'filled' : ''}`}>Senha</label>
+              <label htmlFor="password" className="floating-label">Senha</label>
               <button
                 type="button"
                 className="password-toggle"

@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Calendar, Download, Filter, Loader } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import { format, subDays, subWeeks, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,6 +43,9 @@ function History() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [autoUpdate, setAutoUpdate] = useState(false);
+  const [zoomStartIndex, setZoomStartIndex] = useState<number | null>(null);
+  const [zoomEndIndex, setZoomEndIndex] = useState<number | null>(null);
+  const brushDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Carregar motores ao montar componente ou trocar planta
   useEffect(() => {
@@ -196,6 +199,117 @@ function History() {
 
     return Object.values(groupedByTime).sort((a: any, b: any) => a.date.getTime() - b.date.getTime());
   }, [filteredHistory, motors]);
+
+  const isZoomed = zoomStartIndex !== null && zoomEndIndex !== null && chartData.length > 1 && (zoomStartIndex > 0 || zoomEndIndex < chartData.length - 1);
+  
+  // Decimação simples e rápida (step uniforme) para melhor performance
+  const decimateData = useCallback((data: any[], maxPoints: number): any[] => {
+    if (data.length <= maxPoints) return data;
+    const step = data.length / maxPoints;
+    const decimated: any[] = [data[0]];
+    for (let i = 1; i < maxPoints; i++) {
+      const idx = Math.min(Math.floor(i * step), data.length - 1);
+      decimated.push(data[idx]);
+    }
+    if (data.length > 1) decimated.push(data[data.length - 1]);
+    return decimated;
+  }, []);
+
+  // Limites de pontos: menos = mais fluido
+  const MAX_POINTS_INITIAL = 250;
+  const MAX_POINTS_ZOOMED = 500;
+  const MAX_POINTS_BRUSH = 100;
+
+  const chartDataSlice = useMemo(() => {
+    if (chartData.length === 0) return chartData;
+    let dataToShow: any[];
+    if (isZoomed) {
+      const start = Math.max(0, Math.min(zoomStartIndex!, zoomEndIndex!));
+      const end = Math.min(chartData.length - 1, Math.max(zoomStartIndex!, zoomEndIndex!));
+      const zoomedData = chartData.slice(start, end + 1);
+      dataToShow = zoomedData.length > MAX_POINTS_ZOOMED
+        ? decimateData(zoomedData, MAX_POINTS_ZOOMED)
+        : zoomedData;
+    } else {
+      dataToShow = chartData.length > MAX_POINTS_INITIAL
+        ? decimateData(chartData, MAX_POINTS_INITIAL)
+        : chartData;
+    }
+    return dataToShow;
+  }, [chartData, isZoomed, zoomStartIndex, zoomEndIndex, decimateData]);
+
+  // Dados do Brush: sempre decimados para o strip não pesar (indices em espaço "brush")
+  const brushData = useMemo(() => {
+    if (chartData.length <= MAX_POINTS_BRUSH) return chartData;
+    return decimateData(chartData, MAX_POINTS_BRUSH);
+  }, [chartData, decimateData]);
+
+  const brushLength = brushData.length;
+  const chartLength = chartData.length;
+
+  // Mapear índices do chart completo para índices do brush (espaço decimado)
+  const brushStartIndex = useMemo(() => {
+    if (zoomStartIndex == null || chartLength <= 1 || brushLength <= 1) return 0;
+    return Math.min(
+      Math.floor((zoomStartIndex / (chartLength - 1)) * (brushLength - 1)),
+      brushLength - 1
+    );
+  }, [zoomStartIndex, chartLength, brushLength]);
+  const brushEndIndex = useMemo(() => {
+    if (zoomEndIndex == null || chartLength <= 1 || brushLength <= 1) return Math.max(0, brushLength - 1);
+    return Math.min(
+      Math.ceil((zoomEndIndex / (chartLength - 1)) * (brushLength - 1)),
+      brushLength - 1
+    );
+  }, [zoomEndIndex, chartLength, brushLength]);
+
+  const applyBrushRange = useCallback((start: number, end: number) => {
+    if (brushLength <= 1 || chartLength <= 1) return;
+    const b = brushLength - 1;
+    const c = chartLength - 1;
+    const newStart = Math.floor((start / b) * c);
+    const newEnd = Math.ceil((end / b) * c);
+    setZoomStartIndex(Math.max(0, newStart));
+    setZoomEndIndex(Math.min(chartLength - 1, newEnd));
+  }, [brushLength, chartLength]);
+
+  const handleBrushChange = useCallback((range: { startIndex?: number; endIndex?: number } | null) => {
+    if (range == null || range.startIndex == null || range.endIndex == null) {
+      setZoomStartIndex(null);
+      setZoomEndIndex(null);
+      return;
+    }
+    if (brushDebounceRef.current) clearTimeout(brushDebounceRef.current);
+    const start = range.startIndex;
+    const end = range.endIndex;
+    brushDebounceRef.current = setTimeout(() => {
+      applyBrushRange(start, end);
+      brushDebounceRef.current = null;
+    }, 80);
+  }, [applyBrushRange]);
+
+  useEffect(() => () => {
+    if (brushDebounceRef.current) clearTimeout(brushDebounceRef.current);
+  }, []);
+
+  const xAxisTickFormatter = useCallback((value: string) => {
+    const date = new Date(value);
+    return timeFilter === '24h' ? format(date, 'HH:mm') : format(date, 'dd/MM HH:mm');
+  }, [timeFilter]);
+  const tooltipLabelFormatter = useCallback((value: string) => {
+    return format(new Date(value), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  }, []);
+  const tooltipFormatter = useCallback((value: any, name?: string) => {
+    const motorId = (name || '').replace('motor_', '');
+    const motor = motors.find(m => m.id === motorId);
+    return [`${Number(value).toFixed(1)}A`, motor?.nome || motorId];
+  }, [motors]);
+  const legendFormatter = useCallback((value: string) => {
+    const motorId = value.replace('motor_', '');
+    const motor = motors.find(m => m.id === motorId);
+    return motor?.nome || motorId;
+  }, [motors]);
+
 
   const exportData = () => {
     const csvContent = [
@@ -388,60 +502,86 @@ function History() {
               <p>Não há registros de histórico para o período selecionado</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis
-                  dataKey="timestamp"
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return timeFilter === '24h'
-                      ? format(date, 'HH:mm')
-                      : format(date, 'dd/MM HH:mm');
-                  }}
-                />
-                <YAxis
-                  label={{ value: 'Corrente (A)', angle: -90, position: 'insideLeft' }}
-                  tick={{ fontSize: 12 }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: 'white',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  }}
-                  labelFormatter={(value) => {
-                    const date = new Date(value);
-                    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-                  }}
-                  formatter={(value: any, name?: string) => {
-                    const motorId = (name || '').replace('motor_', '');
-                    const motor = motors.find(m => m.id === motorId);
-                    return [`${Number(value).toFixed(1)}A`, motor?.nome || motorId];
-                  }}
-                />
-                <Legend
-                  formatter={(value) => {
-                    const motorId = value.replace('motor_', '');
-                    const motor = motors.find(m => m.id === motorId);
-                    return motor?.nome || motorId;
-                  }}
-                />
-                {selectedMotors.map((motorId) => (
-                  <Line
-                    key={motorId}
-                    type="monotone"
-                    dataKey={`motor_${motorId}`}
-                    stroke={motorColors[motorId] || CHART_COLORS[0]}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 6 }}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+            <>
+              <div className="chart-main-wrap">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartDataSlice} margin={{ top: 8, right: 8, left: 8, bottom: 8 }} isAnimationActive={false}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <XAxis
+                      dataKey="timestamp"
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={xAxisTickFormatter}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      label={{ value: 'Corrente (A)', angle: -90, position: 'insideLeft' }}
+                      tick={{ fontSize: 12 }}
+                      width={42}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'white',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      }}
+                      labelFormatter={tooltipLabelFormatter}
+                      formatter={tooltipFormatter}
+                      isAnimationActive={false}
+                    />
+                    <Legend formatter={legendFormatter} />
+                    {selectedMotors.map((motorId) => (
+                      <Line
+                        key={motorId}
+                        type="monotone"
+                        dataKey={`motor_${motorId}`}
+                        stroke={motorColors[motorId] || CHART_COLORS[0]}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4 }}
+                        isAnimationActive={false}
+                        connectNulls
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              {chartData.length > 1 && (
+                <div className="chart-brush-wrap">
+                  <ResponsiveContainer width="100%" height={40}>
+                    <LineChart data={brushData} margin={{ top: 0, right: 8, left: 8, bottom: 0 }}>
+                      <XAxis dataKey="timestamp" hide />
+                      <YAxis hide domain={['auto', 'auto']} />
+                      {selectedMotors.map((motorId) => (
+                        <Line
+                          key={motorId}
+                          type="monotone"
+                          dataKey={`motor_${motorId}`}
+                          stroke={motorColors[motorId] || CHART_COLORS[0]}
+                          strokeWidth={1}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                      ))}
+                      <Brush
+                        dataKey="timestamp"
+                        height={32}
+                        stroke="var(--primary-color)"
+                        fill="var(--background-color)"
+                        startIndex={brushStartIndex}
+                        endIndex={brushEndIndex}
+                        onChange={(range) => {
+                          if (range?.startIndex != null && range?.endIndex != null) {
+                            handleBrushChange({ startIndex: range.startIndex, endIndex: range.endIndex });
+                          }
+                        }}
+                        tickFormatter={xAxisTickFormatter}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
