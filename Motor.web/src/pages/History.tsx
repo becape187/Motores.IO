@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { Calendar, Download, Filter, Loader } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import { format, subDays, subWeeks, subMonths } from 'date-fns';
@@ -296,7 +296,8 @@ function History() {
     const date = new Date(value);
     return timeFilter === '24h' ? format(date, 'HH:mm') : format(date, 'dd/MM HH:mm');
   }, [timeFilter]);
-  const tooltipLabelFormatter = useCallback((value: string) => {
+  const tooltipLabelFormatter = useCallback((label: ReactNode) => {
+    const value = typeof label === 'string' ? label : String(label ?? '');
     return format(new Date(value), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   }, []);
   const tooltipFormatter = useCallback((value: any, name?: string) => {
@@ -505,7 +506,7 @@ function History() {
             <>
               <div className="chart-main-wrap">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartDataSlice} margin={{ top: 8, right: 8, left: 8, bottom: 8 }} isAnimationActive={false}>
+                  <LineChart data={chartDataSlice} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                     <XAxis
                       dataKey="timestamp"
