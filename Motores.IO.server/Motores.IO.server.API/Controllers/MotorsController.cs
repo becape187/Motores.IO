@@ -52,21 +52,37 @@ public class MotorsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Models.Motor>> PostMotor(Models.Motor motor)
     {
-        motor.Id = Guid.NewGuid();
-        motor.DataCriacao = DateTime.UtcNow;
-        motor.DataAtualizacao = DateTime.UtcNow;
-        _context.Motores.Add(motor);
-        await _context.SaveChangesAsync();
+        if (motor.PlantaId.HasValue)
+        {
+            var plantaExists = await _context.Plantas.AnyAsync(p => p.Id == motor.PlantaId.Value);
+            if (!plantaExists)
+            {
+                return BadRequest(new { message = $"Planta com ID '{motor.PlantaId}' não encontrada." });
+            }
+        }
 
-        // Log de sincronização
-        _logger.LogInformation("[Sync] === CRIAÇÃO DE MOTOR VIA API ===");
-        _logger.LogInformation("[Sync] Motor ID: {MotorId}", motor.Id);
-        _logger.LogInformation("[Sync] Nome: {Nome}", motor.Nome);
-        _logger.LogInformation("[Sync] Planta ID: {PlantaId}", motor.PlantaId);
-        _logger.LogInformation("[Sync] Data Criação: {DataCriacao}", motor.DataCriacao);
-        _logger.LogInformation("[Sync] ================================");
+        try
+        {
+            motor.Id = Guid.NewGuid();
+            motor.DataCriacao = DateTime.UtcNow;
+            motor.DataAtualizacao = DateTime.UtcNow;
+            _context.Motores.Add(motor);
+            await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetMotor), new { id = motor.Id }, motor);
+            _logger.LogInformation("[Sync] === CRIAÇÃO DE MOTOR VIA API ===");
+            _logger.LogInformation("[Sync] Motor ID: {MotorId}", motor.Id);
+            _logger.LogInformation("[Sync] Nome: {Nome}", motor.Nome);
+            _logger.LogInformation("[Sync] Planta ID: {PlantaId}", motor.PlantaId);
+            _logger.LogInformation("[Sync] Data Criação: {DataCriacao}", motor.DataCriacao);
+            _logger.LogInformation("[Sync] ================================");
+
+            return CreatedAtAction(nameof(GetMotor), new { id = motor.Id }, motor);
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "[Motors] Erro ao criar motor. PlantaId: {PlantaId}", motor.PlantaId);
+            return StatusCode(500, new { message = "Erro ao salvar motor no banco de dados.", detail = ex.InnerException?.Message ?? ex.Message });
+        }
     }
 
     // PUT: api/motors/5 - Atualizar configuração do motor (DEPRECATED - usar endpoints específicos)
