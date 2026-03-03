@@ -177,9 +177,9 @@ public class MotorsController : ControllerBase
         return NoContent();
     }
 
-    // PATCH: api/motors/{id}/posicao - Atualizar apenas posição do motor no mapa
+    // PATCH: api/motors/{id}/posicao - Atualizar apenas posição do motor no mapa (null ou corpo vazio = remover da planta)
     [HttpPatch("{id}/posicao")]
-    public async Task<IActionResult> UpdatePosicao(Guid id, UpdateMotorPosicaoDto dto)
+    public async Task<IActionResult> UpdatePosicao(Guid id, [FromBody] UpdateMotorPosicaoDto? dto)
     {
         var motor = await _context.Motores.FindAsync(id);
         if (motor == null)
@@ -187,9 +187,9 @@ public class MotorsController : ControllerBase
             return NotFound();
         }
 
-        // Atualizar apenas posição
-        motor.PosicaoX = dto.PosicaoX;
-        motor.PosicaoY = dto.PosicaoY;
+        // Atualizar apenas posição (corpo vazio ou null = remover da planta)
+        motor.PosicaoX = dto?.PosicaoX;
+        motor.PosicaoY = dto?.PosicaoY;
         motor.DataAtualizacao = DateTime.UtcNow;
 
         try
