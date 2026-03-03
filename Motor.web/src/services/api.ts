@@ -45,7 +45,8 @@ class ApiService {
         throw new Error('Sessão expirada. Por favor, faça login novamente.');
       }
       const error = await response.json().catch(() => ({ message: 'Erro na requisição' }));
-      throw new Error(error.message || `Erro: ${response.status}`);
+      const detail = error.detail ? ` (${error.detail})` : '';
+      throw new Error((error.message || `Erro: ${response.status}`) + detail);
     }
 
     // Se a resposta for 204 No Content ou não tiver conteúdo, retornar void

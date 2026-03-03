@@ -59,6 +59,12 @@ public class MotorsController : ControllerBase
             {
                 return BadRequest(new { message = $"Planta com ID '{motor.PlantaId}' não encontrada." });
             }
+
+            var nomeExiste = await _context.Motores.AnyAsync(m => m.PlantaId == motor.PlantaId && m.Nome == motor.Nome);
+            if (nomeExiste)
+            {
+                return Conflict(new { message = $"Já existe um motor com o nome '{motor.Nome}' nesta planta." });
+            }
         }
 
         try
@@ -80,7 +86,7 @@ public class MotorsController : ControllerBase
         }
         catch (DbUpdateException ex)
         {
-            _logger.LogError(ex, "[Motors] Erro ao criar motor. PlantaId: {PlantaId}", motor.PlantaId);
+            _logger.LogError(ex, "[Motors] Erro ao criar motor. PlantaId: {PlantaId}, Nome: {Nome}", motor.PlantaId, motor.Nome);
             return StatusCode(500, new { message = "Erro ao salvar motor no banco de dados.", detail = ex.InnerException?.Message ?? ex.Message });
         }
     }

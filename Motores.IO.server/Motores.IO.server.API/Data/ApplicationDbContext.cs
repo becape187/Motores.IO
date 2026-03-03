@@ -34,7 +34,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("gen_random_uuid()");
             
-            entity.HasIndex(e => e.Nome).IsUnique();
+            entity.HasIndex(e => new { e.PlantaId, e.Nome }).IsUnique();
             
             entity.Property(e => e.Nome)
                 .IsRequired()
