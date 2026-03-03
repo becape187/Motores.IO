@@ -40,15 +40,6 @@ function Layout({ children, onLogout }: LayoutProps) {
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' && window.innerWidth > 1200);
   const sidebarCollapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Nomes de exibição: Sigil pedreira -> Morro Grande, PADRAO -> Sigil
-  const nomeExibicaoCliente = (nome: string) => {
-    if (!nome) return nome;
-    const n = nome.trim();
-    if (n.toLowerCase().includes('sigil')) return 'Morro Grande';
-    if (n === 'PADRAO' || n.toLowerCase().includes('morro grande')) return 'Sigil';
-    return nome;
-  };
-
   // Fechar sidebar ao clicar em um item no mobile
   const handleNavClick = () => {
     if (window.innerWidth <= 1200) {
@@ -294,7 +285,7 @@ function Layout({ children, onLogout }: LayoutProps) {
                   }}
                 >
                   <Building2 size={18} />
-                  <span>{clienteSelecionado ? nomeExibicaoCliente(clienteSelecionado.nome) : 'Selecione um cliente'}</span>
+                  <span>{clienteSelecionado?.nome || 'Selecione um cliente'}</span>
                   <ChevronDown size={16} />
                 </button>
                 {isClienteDropdownOpen && (
@@ -355,7 +346,7 @@ function Layout({ children, onLogout }: LayoutProps) {
                             }
                           }}
                         >
-                          {nomeExibicaoCliente(cliente.nome)}
+                          {cliente.nome}
                         </button>
                       ))}
                     </div>
