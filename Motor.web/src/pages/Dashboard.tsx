@@ -778,7 +778,7 @@ function Dashboard() {
         <div className="plant-container plant-container--with-edit">
           {/* Barra de menu lateral (modo editar) - canto superior direito */}
           {isEditMode && (
-            <div className="plant-edit-sidebar">
+            <div className={`plant-edit-sidebar ${isAddMotorMode ? 'plant-edit-sidebar--expanded' : ''}`}>
               <div className="plant-edit-sidebar-header">
                 <span>Edição</span>
               </div>
