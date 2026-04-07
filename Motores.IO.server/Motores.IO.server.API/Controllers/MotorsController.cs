@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Motores.IO.server.API.Data;
 using Motores.IO.server.API.DTOs;
+using Motores.IO.server.API.Services;
 
 namespace Motores.IO.server.API.Controllers;
 
@@ -13,11 +14,13 @@ public class MotorsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<MotorsController> _logger;
+    private readonly InfluxDbService _influxDbService;
 
-    public MotorsController(ApplicationDbContext context, ILogger<MotorsController> logger)
+    public MotorsController(ApplicationDbContext context, ILogger<MotorsController> logger, InfluxDbService influxDbService)
     {
         _context = context;
         _logger = logger;
+        _influxDbService = influxDbService;
     }
 
     // GET: api/motors
@@ -342,6 +345,15 @@ public class MotorsController : ControllerBase
 
         _context.Motores.Remove(motor);
         await _context.SaveChangesAsync();
+
+        try
+        {
+            await _influxDbService.DeleteByMotorIdAsync(id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao deletar histórico do InfluxDB para motorId={MotorId}", id);
+        }
 
         return NoContent();
     }

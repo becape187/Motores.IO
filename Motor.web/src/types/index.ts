@@ -32,6 +32,9 @@ export type HistoricoMotor = {
   tensao: number;
   temperatura: number;
   status: string;
+  correnteMedia?: number;
+  correnteMaxima?: number;
+  correnteMinima?: number;
 };
 
 export type Alarme = {

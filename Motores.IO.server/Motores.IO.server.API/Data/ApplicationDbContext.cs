@@ -11,6 +11,7 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<Motor> Motores { get; set; }
+    // TEMPORÁRIO: manter até concluir migração para InfluxDB (POST /api/admin/migrar-historico)
     public DbSet<HistoricoMotor> HistoricosMotores { get; set; }
     public DbSet<Alarme> Alarmes { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }

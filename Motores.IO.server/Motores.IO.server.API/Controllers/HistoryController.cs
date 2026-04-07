@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Motores.IO.server.API.Data;
+using Motores.IO.server.API.Services;
 
 namespace Motores.IO.server.API.Controllers;
 
@@ -10,11 +9,11 @@ namespace Motores.IO.server.API.Controllers;
 [Authorize]
 public class HistoryController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly InfluxDbService _influxDbService;
 
-    public HistoryController(ApplicationDbContext context)
+    public HistoryController(InfluxDbService influxDbService)
     {
-        _context = context;
+        _influxDbService = influxDbService;
     }
 
     // GET: api/history
@@ -24,65 +23,24 @@ public class HistoryController : ControllerBase
         [FromQuery] DateTime? dataInicio = null,
         [FromQuery] DateTime? dataFim = null)
     {
-        var query = _context.HistoricosMotores.AsQueryable();
-
-        if (motorId.HasValue)
-        {
-            query = query.Where(h => h.MotorId == motorId.Value);
-        }
-
-        if (dataInicio.HasValue)
-        {
-            query = query.Where(h => h.Timestamp >= dataInicio.Value);
-        }
-
-        if (dataFim.HasValue)
-        {
-            query = query.Where(h => h.Timestamp <= dataFim.Value);
-        }
-
-        return await query.OrderByDescending(h => h.Timestamp).ToListAsync();
-    }
-
-    // GET: api/history/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Models.HistoricoMotor>> GetHistoricoRegistro(Guid id)
-    {
-        var historico = await _context.HistoricosMotores.FindAsync(id);
-
-        if (historico == null)
-        {
-            return NotFound();
-        }
-
-        return historico;
+        var historicos = await _influxDbService.QueryHistoricoAsync(motorId, dataInicio, dataFim);
+        return Ok(historicos);
     }
 
     // POST: api/history
     [HttpPost]
-    public async Task<ActionResult<Models.HistoricoMotor>> PostHistorico(Models.HistoricoMotor historico)
+    public async Task<ActionResult> PostHistorico(Models.HistoricoMotor historico)
     {
-        historico.Id = Guid.NewGuid();
         historico.Timestamp = DateTime.UtcNow;
-        _context.HistoricosMotores.Add(historico);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetHistoricoRegistro), new { id = historico.Id }, historico);
+        await _influxDbService.WriteHistoricoAsync(historico);
+        return Ok(historico);
     }
 
-    // DELETE: api/history/5
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteHistorico(Guid id)
+    // DELETE: api/history/motor/{motorId}
+    [HttpDelete("motor/{motorId}")]
+    public async Task<IActionResult> DeleteHistoricoByMotor(Guid motorId)
     {
-        var historico = await _context.HistoricosMotores.FindAsync(id);
-        if (historico == null)
-        {
-            return NotFound();
-        }
-
-        _context.HistoricosMotores.Remove(historico);
-        await _context.SaveChangesAsync();
-
+        await _influxDbService.DeleteByMotorIdAsync(motorId);
         return NoContent();
     }
 }

@@ -536,17 +536,13 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 // Removido log para evitar poluição (mais de 20 por segundo)
             }
 
-            // Criar registro de histórico
-            // IMPORTANTE: PostgreSQL requer DateTime com Kind=UTC
             DateTime timestampUtc;
             if (message.Timestamp.HasValue)
             {
-                // Converter timestamp Unix para DateTime UTC
                 timestampUtc = DateTimeOffset.FromUnixTimeSeconds(message.Timestamp.Value).UtcDateTime;
             }
             else
             {
-                // Usar DateTime.UtcNow que já retorna UTC
                 timestampUtc = DateTime.UtcNow;
             }
 
@@ -554,14 +550,14 @@ public class SocketServerService : BackgroundService, ISocketServerService
             {
                 MotorId = motorId,
                 Corrente = message.CorrenteAtual ?? motor.CorrenteNominal,
-                Tensao = motor.Tensao, // Usar tensão do motor
-                Temperatura = 0, // Valor padrão, pode ser ajustado se necessário
+                Tensao = motor.Tensao,
+                Temperatura = 0,
                 Status = message.Status ?? motor.Status,
-                Timestamp = timestampUtc // Garantir que seja UTC
+                Timestamp = timestampUtc
             };
 
-            dbContext.HistoricosMotores.Add(historico);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            var influxService = _serviceProvider.GetRequiredService<InfluxDbService>();
+            await influxService.WriteHistoricoAsync(historico);
 
             return true;
         }
@@ -606,22 +602,21 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 timestampUtc = DateTime.UtcNow;
             }
 
-            // Criar registro de histórico com todos os campos
             var historico = new HistoricoMotor
             {
                 MotorId = motorId,
-                Corrente = message.CorrenteAtual ?? motor.CorrenteNominal, // Corrente instantânea
+                Corrente = message.CorrenteAtual ?? motor.CorrenteNominal,
                 CorrenteMedia = message.CorrenteMedia,
                 CorrenteMaxima = message.CorrenteMaxima,
                 CorrenteMinima = message.CorrenteMinima,
-                Tensao = motor.Tensao, // Usar tensão do motor
-                Temperatura = 0, // Valor padrão
+                Tensao = motor.Tensao,
+                Temperatura = 0,
                 Status = message.Status ?? motor.Status,
                 Timestamp = timestampUtc
             };
 
-            dbContext.HistoricosMotores.Add(historico);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            var influxService = _serviceProvider.GetRequiredService<InfluxDbService>();
+            await influxService.WriteHistoricoAsync(historico);
 
             return true;
         }
