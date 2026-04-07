@@ -410,7 +410,7 @@ function Motors() {
               </div>
             ) : (
               <div className="motors-cards-list">
-                {filteredMotors.map((motor, index) => {
+                {filteredMotors.map((motor) => {
                   const statusConfig = {
                     ligado: { label: 'Ligado', color: '#27ae60' },
                     desligado: { label: 'Desligado', color: '#95a5a6' },
