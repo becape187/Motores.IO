@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Activity, TrendingUp, AlertCircle, Power, Edit2, Wifi, WifiOff, MousePointer2, Trash2, AlignCenterVertical, AlignCenterHorizontal, Plus } from 'lucide-react';
+import { Activity, TrendingUp, AlertCircle, Power, Edit2, Wifi, WifiOff, MousePointer2, Trash2, AlignCenterVertical, AlignCenterHorizontal, Plus, ImagePlus, ImageOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
@@ -17,6 +17,11 @@ function Dashboard() {
   const [draggedMotor, setDraggedMotor] = useState<string | null>(null);
   const [savingPosition, setSavingPosition] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Imagem de fundo da planta
+  const [plantaImage, setPlantaImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Modo "Adicionar motores": lista abaixo, arrastar para o mapa
   const [isAddMotorMode, setIsAddMotorMode] = useState(false);
@@ -97,6 +102,53 @@ function Dashboard() {
     }
   };
 
+
+  // Carregar imagem da planta ao trocar planta
+  useEffect(() => {
+    const loadPlantaImage = async () => {
+      if (!plantaSelecionada) {
+        setPlantaImage(null);
+        return;
+      }
+      try {
+        const result = await api.getImagemPlanta(plantaSelecionada.id);
+        setPlantaImage(result.imagemBase64 || null);
+      } catch {
+        setPlantaImage(null);
+      }
+    };
+    loadPlantaImage();
+  }, [plantaSelecionada]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !plantaSelecionada) return;
+    setUploadingImage(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        await api.uploadImagemPlanta(plantaSelecionada.id, base64);
+        setPlantaImage(base64);
+        setUploadingImage(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error('Erro ao fazer upload da imagem:', err);
+      setUploadingImage(false);
+    }
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  const handleImageDelete = async () => {
+    if (!plantaSelecionada) return;
+    try {
+      await api.deleteImagemPlanta(plantaSelecionada.id);
+      setPlantaImage(null);
+    } catch (err: any) {
+      console.error('Erro ao remover imagem:', err);
+    }
+  };
 
   // Buscar motores usando cache
   useEffect(() => {
@@ -843,6 +895,35 @@ function Dashboard() {
                     )}
                   </>
                 )}
+                <div className="plant-edit-sidebar-separator" />
+                <button
+                  type="button"
+                  className="plant-edit-sidebar-btn"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  title={plantaImage ? 'Trocar imagem de fundo' : 'Adicionar imagem de fundo'}
+                >
+                  <ImagePlus size={22} />
+                  <span>{uploadingImage ? 'Enviando...' : (plantaImage ? 'Trocar imagem' : 'Imagem de fundo')}</span>
+                </button>
+                {plantaImage && (
+                  <button
+                    type="button"
+                    className="plant-edit-sidebar-btn plant-edit-sidebar-btn--danger"
+                    onClick={handleImageDelete}
+                    title="Remover imagem de fundo"
+                  >
+                    <ImageOff size={22} />
+                    <span>Remover imagem</span>
+                  </button>
+                )}
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleImageUpload}
+                />
               </nav>
               {/* Lista de motores para adicionar ao mapa (arrastar para o mapa) */}
               {isAddMotorMode && (
@@ -906,14 +987,29 @@ function Dashboard() {
           >
             {/* Background */}
             <rect x="0" y="0" width="900" height="600" fill="#f8f9fa" />
+
+            {/* Imagem de fundo da planta */}
+            {plantaImage && (
+              <image
+                href={plantaImage}
+                x="0" y="0"
+                width="900" height="600"
+                preserveAspectRatio="xMidYMid meet"
+                style={{ pointerEvents: 'none' }}
+              />
+            )}
             
-            {/* Grid */}
-            <defs>
-              <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e0e0e0" strokeWidth="0.5"/>
-              </pattern>
-            </defs>
-            <rect width="900" height="600" fill="url(#grid)" />
+            {/* Grid (somente se nao houver imagem) */}
+            {!plantaImage && (
+              <>
+                <defs>
+                  <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                    <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e0e0e0" strokeWidth="0.5"/>
+                  </pattern>
+                </defs>
+                <rect width="900" height="600" fill="url(#grid)" />
+              </>
+            )}
 
             {/* Retângulo de seleção por arraste */}
             {boxSelectStart && boxSelectCurrent && (

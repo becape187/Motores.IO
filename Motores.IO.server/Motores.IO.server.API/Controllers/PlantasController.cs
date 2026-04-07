@@ -301,7 +301,7 @@ public class PlantasController : ControllerBase
             // Construir query base com ordenação
             var orderedQuery = _context.Motores
                 .Where(m => m.PlantaId == id)
-                .OrderBy(m => m.Nome);
+                .OrderBy(m => m.Ordem).ThenBy(m => m.Nome);
 
             // Aplicar paginação se especificada (take > 0) - ANTES do Select
             IQueryable<Models.Motor> queryableQuery;
@@ -331,6 +331,8 @@ public class PlantasController : ControllerBase
                 Habilitado = m.Habilitado,
                 PosicaoX = m.PosicaoX,
                 PosicaoY = m.PosicaoY,
+                Ordem = m.Ordem,
+                CicloManutencao = m.CicloManutencao,
                 HorimetroProximaManutencao = m.HorimetroProximaManutencao,
                 DataEstimadaProximaManutencao = m.DataEstimadaProximaManutencao,
                 DataCriacao = m.DataCriacao,
@@ -422,6 +424,8 @@ public class PlantasController : ControllerBase
         motor.PosicaoY = existingMotor.PosicaoY;
         motor.HorimetroProximaManutencao = existingMotor.HorimetroProximaManutencao;
         motor.DataEstimadaProximaManutencao = existingMotor.DataEstimadaProximaManutencao;
+        motor.CicloManutencao = existingMotor.CicloManutencao;
+        motor.Ordem = existingMotor.Ordem;
         motor.PlantaId = plantaId; // Garantir que o motor pertence à planta correta
         motor.DataCriacao = existingMotor.DataCriacao;
         motor.DataAtualizacao = DateTime.UtcNow;
@@ -512,8 +516,60 @@ public class PlantasController : ControllerBase
         }
     }
 
+    // GET: api/plantas/{id}/imagem-planta
+    [HttpGet("{id}/imagem-planta")]
+    public async Task<ActionResult<object>> GetImagemPlanta(Guid id)
+    {
+        var planta = await _context.Plantas.FindAsync(id);
+        if (planta == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(new { imagemBase64 = planta.ImagemPlantaBase64 });
+    }
+
+    // POST: api/plantas/{id}/imagem-planta
+    [HttpPost("{id}/imagem-planta")]
+    public async Task<IActionResult> UploadImagemPlanta(Guid id, [FromBody] UploadImagemPlantaRequest request)
+    {
+        var planta = await _context.Plantas.FindAsync(id);
+        if (planta == null)
+        {
+            return NotFound();
+        }
+
+        planta.ImagemPlantaBase64 = request.ImagemBase64;
+        planta.DataAtualizacao = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    // DELETE: api/plantas/{id}/imagem-planta
+    [HttpDelete("{id}/imagem-planta")]
+    public async Task<IActionResult> DeleteImagemPlanta(Guid id)
+    {
+        var planta = await _context.Plantas.FindAsync(id);
+        if (planta == null)
+        {
+            return NotFound();
+        }
+
+        planta.ImagemPlantaBase64 = null;
+        planta.DataAtualizacao = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     private bool PlantaExists(Guid id)
     {
         return _context.Plantas.Any(e => e.Id == id);
     }
+}
+
+public class UploadImagemPlantaRequest
+{
+    public string ImagemBase64 { get; set; } = string.Empty;
 }

@@ -31,7 +31,7 @@ public class MotorsController : ControllerBase
             query = query.Where(m => m.PlantaId == plantaId.Value);
         }
         
-        return await query.ToListAsync();
+        return await query.OrderBy(m => m.Ordem).ThenBy(m => m.Nome).ToListAsync();
     }
 
     // GET: api/motors/5
@@ -119,6 +119,8 @@ public class MotorsController : ControllerBase
         // Preservar dados de manutenção (devem ser atualizados via endpoint específico)
         motor.HorimetroProximaManutencao = existingMotor.HorimetroProximaManutencao;
         motor.DataEstimadaProximaManutencao = existingMotor.DataEstimadaProximaManutencao;
+        motor.CicloManutencao = existingMotor.CicloManutencao;
+        motor.Ordem = existingMotor.Ordem;
 
         // Preservar PlantaId se não foi enviado no request
         if (motor.PlantaId == null && existingMotor.PlantaId != null)
@@ -171,6 +173,7 @@ public class MotorsController : ControllerBase
         motor.RegistroModBus = dto.RegistroModBus;
         motor.RegistroLocal = dto.RegistroLocal;
         motor.Habilitado = dto.Habilitado;
+        motor.CicloManutencao = dto.CicloManutencao;
         
         // Preservar PlantaId se não foi enviado
         if (dto.PlantaId.HasValue)
@@ -299,6 +302,31 @@ public class MotorsController : ControllerBase
             }
         }
 
+        return NoContent();
+    }
+
+    // PATCH: api/motors/reordenar - Reordenar motores (batch)
+    [HttpPatch("reordenar")]
+    public async Task<IActionResult> ReordenarMotores(ReordenarMotoresDto dto)
+    {
+        if (dto.Itens == null || dto.Itens.Count == 0)
+        {
+            return BadRequest(new { message = "Lista de itens vazia." });
+        }
+
+        var ids = dto.Itens.Select(i => i.Id).ToList();
+        var motores = await _context.Motores.Where(m => ids.Contains(m.Id)).ToListAsync();
+
+        foreach (var item in dto.Itens)
+        {
+            var motor = motores.FirstOrDefault(m => m.Id == item.Id);
+            if (motor != null)
+            {
+                motor.Ordem = item.Ordem;
+            }
+        }
+
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 

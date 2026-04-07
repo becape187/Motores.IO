@@ -195,6 +195,32 @@
   box-shadow: var(--shadow-lg);
 }
 
+.motor-card--dragging {
+  opacity: 0.4;
+}
+
+.motor-card--drag-over {
+  border-top: 3px solid var(--primary-color, #3498db);
+}
+
+.motor-card-drag-handle {
+  display: flex;
+  align-items: center;
+  color: #999;
+  cursor: grab;
+  flex-shrink: 0;
+  padding: 0 4px;
+  touch-action: none;
+}
+
+.motor-card-drag-handle:active {
+  cursor: grabbing;
+}
+
+.motor-card-drag-handle:hover {
+  color: #555;
+}
+
 .motor-card-icon {
   width: 48px;
   height: 48px;

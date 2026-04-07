@@ -141,6 +141,7 @@ class ApiService {
     registroModBus?: string;
     registroLocal?: string;
     habilitado: boolean;
+    cicloManutencao?: number;
     plantaId?: string;
   }) {
     return this.request<void>(`/motors/${id}/configuracao`, {
@@ -179,8 +180,33 @@ class ApiService {
     });
   }
 
+  async reordenarMotores(itens: { id: string; ordem: number }[]) {
+    return this.request<void>('/motors/reordenar', {
+      method: 'PATCH',
+      body: JSON.stringify({ itens }),
+    });
+  }
+
   async deleteMotor(id: string) {
     return this.request<void>(`/motors/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Imagem da planta
+  async getImagemPlanta(plantaId: string) {
+    return this.request<{ imagemBase64: string | null }>(`/plantas/${plantaId}/imagem-planta`);
+  }
+
+  async uploadImagemPlanta(plantaId: string, imagemBase64: string) {
+    return this.request<void>(`/plantas/${plantaId}/imagem-planta`, {
+      method: 'POST',
+      body: JSON.stringify({ imagemBase64 }),
+    });
+  }
+
+  async deleteImagemPlanta(plantaId: string) {
+    return this.request<void>(`/plantas/${plantaId}/imagem-planta`, {
       method: 'DELETE',
     });
   }

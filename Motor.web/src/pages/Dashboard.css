@@ -271,6 +271,12 @@
   color: #fff;
 }
 
+.plant-edit-sidebar-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 4px 8px;
+}
+
 /* Lista de motores para adicionar (arrastar para o mapa) */
 .plant-edit-sidebar-list {
   flex: 1;

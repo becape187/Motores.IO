@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Filter, Cog, Loader, Wifi, WifiOff, ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Edit2, Trash2, Save, X, Filter, Cog, Loader, Wifi, WifiOff, ArrowLeft, GripVertical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
@@ -8,7 +8,7 @@ import { useWebSocketCorrentes } from '../hooks/useWebSocketCorrentes';
 import './Motors.css';
 
 function Motors() {
-  const { plantaSelecionada } = useAuth();
+  const { plantaSelecionada, user } = useAuth();
   const { getMotors, invalidateCache } = useMotorsCache();
   const [motors, setMotors] = useState<Motor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -19,6 +19,11 @@ function Motors() {
   const [isAdding, setIsAdding] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showDetails, setShowDetails] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isAdmin = user?.perfil === 'admin' || user?.perfil === 'global';
   
   const [formData, setFormData] = useState<Partial<Motor>>({
     nome: '',
@@ -32,6 +37,7 @@ function Motors() {
     status: 'desligado',
     horimetro: 0,
     habilitado: true,
+    cicloManutencao: undefined,
   });
 
   const handleSelectMotor = (motor: Motor) => {
@@ -66,6 +72,7 @@ function Motors() {
       status: 'desligado',
       horimetro: 0,
       habilitado: true,
+      cicloManutencao: undefined,
     });
   };
 
@@ -162,6 +169,7 @@ function Motors() {
           registroLocal: formData.registroLocal,
           horimetro: formData.horimetro || 0,
           habilitado: formData.habilitado !== undefined ? formData.habilitado : true,
+          cicloManutencao: formData.cicloManutencao ?? null,
           plantaId: plantaSelecionada.id,
         };
         
@@ -178,11 +186,12 @@ function Motors() {
           registroLocal: newMotor.registroLocal,
           status: newMotor.status as Motor['status'],
           horimetro: Number(newMotor.horimetro),
-          // Converter correnteAtual: dividir por 100 (ex: 2153 -> 21.5)
           correnteAtual: (Number(newMotor.correnteAtual || 0)) / 100,
           posicaoX: newMotor.posicaoX ? Number(newMotor.posicaoX) : undefined,
           posicaoY: newMotor.posicaoY ? Number(newMotor.posicaoY) : undefined,
           habilitado: newMotor.habilitado !== undefined ? newMotor.habilitado : true,
+          ordem: newMotor.ordem ?? 0,
+          cicloManutencao: newMotor.cicloManutencao ? Number(newMotor.cicloManutencao) : undefined,
         };
         setMotors([...motors, convertedMotor]);
         setSelectedMotor(convertedMotor);
@@ -202,6 +211,7 @@ function Motors() {
           registroModBus: formData.registroModBus ?? undefined,
           registroLocal: formData.registroLocal ?? undefined,
           habilitado: formData.habilitado ?? true,
+          cicloManutencao: formData.cicloManutencao ?? undefined,
           plantaId: plantaSelecionada.id,
         });
         
@@ -219,11 +229,12 @@ function Motors() {
           registroLocal: updatedMotor.registroLocal,
           status: updatedMotor.status as Motor['status'],
           horimetro: Number(updatedMotor.horimetro),
-          // Converter correnteAtual: dividir por 100 (ex: 2153 -> 21.5)
           correnteAtual: (Number(updatedMotor.correnteAtual || 0)) / 100,
           posicaoX: updatedMotor.posicaoX ? Number(updatedMotor.posicaoX) : undefined,
           posicaoY: updatedMotor.posicaoY ? Number(updatedMotor.posicaoY) : undefined,
           habilitado: updatedMotor.habilitado !== undefined ? updatedMotor.habilitado : true,
+          ordem: updatedMotor.ordem ?? 0,
+          cicloManutencao: updatedMotor.cicloManutencao ? Number(updatedMotor.cicloManutencao) : undefined,
         };
         setMotors(motors.map(m => m.id === selectedMotor.id ? convertedMotor : m));
         setSelectedMotor(convertedMotor);
@@ -269,6 +280,47 @@ function Motors() {
 
   const handleInputChange = (field: keyof Motor, value: any) => {
     setFormData({ ...formData, [field]: value });
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      handleDragEnd();
+      return;
+    }
+
+    const reordered = [...motors];
+    const [moved] = reordered.splice(draggedIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+
+    const updatedMotors = reordered.map((m, i) => ({ ...m, ordem: i }));
+    setMotors(updatedMotors);
+    handleDragEnd();
+
+    if (dragSaveTimeoutRef.current) clearTimeout(dragSaveTimeoutRef.current);
+    dragSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await api.reordenarMotores(updatedMotors.map((m, i) => ({ id: m.id, ordem: i })));
+        if (plantaSelecionada) invalidateCache(plantaSelecionada.id);
+      } catch (err: any) {
+        console.error('Erro ao salvar ordem:', err);
+      }
+    }, 300);
   };
 
 
@@ -358,7 +410,7 @@ function Motors() {
               </div>
             ) : (
               <div className="motors-cards-list">
-                {filteredMotors.map((motor) => {
+                {filteredMotors.map((motor, index) => {
                   const statusConfig = {
                     ligado: { label: 'Ligado', color: '#27ae60' },
                     desligado: { label: 'Desligado', color: '#95a5a6' },
@@ -367,14 +419,25 @@ function Motors() {
                     pendente: { label: 'Pendente', color: '#9b59b6' },
                   };
                   const config = statusConfig[motor.status as keyof typeof statusConfig] || statusConfig.desligado;
+                  const realIndex = motors.indexOf(motor);
                   
                   return (
                     <div
                       key={motor.id}
-                      className="motor-card"
+                      className={`motor-card ${draggedIndex === realIndex ? 'motor-card--dragging' : ''} ${dragOverIndex === realIndex ? 'motor-card--drag-over' : ''}`}
                       style={{ borderLeftColor: config.color }}
                       onClick={() => handleSelectMotor(motor)}
+                      draggable={isAdmin && filterStatus === 'all'}
+                      onDragStart={isAdmin ? () => handleDragStart(realIndex) : undefined}
+                      onDragOver={isAdmin ? (e) => handleDragOver(e, realIndex) : undefined}
+                      onDrop={isAdmin ? (e) => handleDrop(e, realIndex) : undefined}
+                      onDragEnd={isAdmin ? handleDragEnd : undefined}
                     >
+                      {isAdmin && filterStatus === 'all' && (
+                        <div className="motor-card-drag-handle" onClick={(e) => e.stopPropagation()}>
+                          <GripVertical size={18} />
+                        </div>
+                      )}
                       <div className="motor-card-icon" style={{ background: config.color }}>
                         <Cog size={24} />
                       </div>
@@ -484,6 +547,20 @@ function Motors() {
                         onChange={(e) => handleInputChange('horimetro', Number(e.target.value))}
                         disabled={!isEditing && !isAdding}
                       />
+                    </div>
+
+                    <div className="form-field">
+                      <label>Ciclo Manutenção (horas)</label>
+                      <input
+                        type="number"
+                        value={formData.cicloManutencao ?? ''}
+                        onChange={(e) => handleInputChange('cicloManutencao', e.target.value ? Number(e.target.value) : undefined)}
+                        disabled={!isEditing && !isAdding}
+                        placeholder="Ex: 500"
+                      />
+                      <span className="field-hint">
+                        Intervalo em horas para manutenção preventiva
+                      </span>
                     </div>
 
                     <div className="form-field">

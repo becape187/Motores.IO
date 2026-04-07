@@ -26,6 +26,8 @@ public class Planta
 
     public DateTime? ApiTokenGeradoEm { get; set; }
 
+    public string? ImagemPlantaBase64 { get; set; }
+
     // Relacionamentos
     public virtual Cliente Cliente { get; set; } = null!;
     public virtual ICollection<UsuarioPlanta> UsuariosPlantas { get; set; } = new List<UsuarioPlanta>();

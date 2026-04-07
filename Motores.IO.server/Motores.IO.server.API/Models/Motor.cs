@@ -30,7 +30,11 @@ public class Motor
 
     public decimal? PosicaoY { get; set; }
 
+    public int Ordem { get; set; } = 0;
+
     // Dados de manutenção
+    public decimal? CicloManutencao { get; set; }
+
     public decimal? HorimetroProximaManutencao { get; set; }
 
     public DateTime? DataEstimadaProximaManutencao { get; set; }

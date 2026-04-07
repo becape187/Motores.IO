@@ -17,7 +17,9 @@ export type Motor = {
   posicaoX?: number;
   posicaoY?: number;
   habilitado: boolean; // Para esconder do mapa, alarmes, etc
+  ordem?: number;
   // Dados de manutenção
+  cicloManutencao?: number;
   horimetroProximaManutencao?: number;
   dataEstimadaProximaManutencao?: Date;
 };

@@ -14,5 +14,6 @@ public class UpdateMotorConfiguracaoDto
     public string? RegistroModBus { get; set; }
     public string? RegistroLocal { get; set; }
     public bool Habilitado { get; set; } = true;
+    public decimal? CicloManutencao { get; set; }
     public Guid? PlantaId { get; set; }
 }
