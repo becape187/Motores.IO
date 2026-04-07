@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor, OrdemServico, RelatorioOS } from '../types';
+import { horimetroInteiro } from '../utils/horimetroDisplay';
 import './Maintenance.css';
 
 function Maintenance() {
@@ -276,7 +277,7 @@ function Maintenance() {
                       <div className="motor-card-info">
                         <div className="info-row">
                           <span className="label">Horímetro Atual:</span>
-                          <span className="value">{motor.horimetro}h</span>
+                          <span className="value">{horimetroInteiro(motor.horimetro)}h</span>
                         </div>
                         <div className="info-row">
                           <span className="label">Próxima Manutenção:</span>
@@ -321,7 +322,7 @@ function Maintenance() {
                 <div className="details-grid">
                   <div className="detail-item">
                     <span className="detail-label">Horímetro Atual</span>
-                    <span className="detail-value">{selectedMotor.horimetro}h</span>
+                    <span className="detail-value">{horimetroInteiro(selectedMotor.horimetro)}h</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Horímetro Próxima Manutenção</span>
