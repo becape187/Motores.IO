@@ -1,6 +1,7 @@
 using InfluxDB.Client;
 using InfluxDB.Client.Api.Domain;
 using InfluxDB.Client.Writes;
+using Motores.IO.server.API.DTOs;
 using Motores.IO.server.API.Models;
 
 namespace Motores.IO.server.API.Services;
@@ -71,6 +72,83 @@ public class InfluxDbService : IDisposable
 
         var writeApi = _client.GetWriteApiAsync();
         await writeApi.WritePointsAsync(points, _bucket, _org);
+    }
+
+    /// <summary>
+    /// Resumo leve para diagnóstico sem UI: último ponto e contagem por intervalo (campo corrente = 1 ponto por medição).
+    /// </summary>
+    public async Task<InfluxIngestaoResumoDto> ObterResumoIngestaoAsync(bool contarTodoPeriodo = false)
+    {
+        var dto = new InfluxIngestaoResumoDto { Bucket = _bucket, Org = _org };
+        try
+        {
+            dto.UltimoPontoUtc = await FluxUltimoTimestampCorrenteAsync();
+            dto.PontosUltimos30Dias = await FluxCountCorrenteAsync("-30d");
+            if (contarTodoPeriodo)
+            {
+                dto.Aviso = "Contagem total pode ser lenta e pesar CPU/memória em buckets grandes.";
+                dto.PontosTodoPeriodo = await FluxCountCorrenteAsync("1970-01-01T00:00:00Z");
+            }
+
+            dto.InfluxRespondendo = true;
+        }
+        catch (Exception ex)
+        {
+            dto.InfluxRespondendo = false;
+            dto.ErroConexao = ex.Message;
+            _logger.LogWarning(ex, "Falha ao consultar resumo do InfluxDB");
+        }
+
+        return dto;
+    }
+
+    private async Task<DateTime?> FluxUltimoTimestampCorrenteAsync()
+    {
+        var flux = $"""
+            from(bucket: "{_bucket}")
+                |> range(start: -87600h)
+                |> filter(fn: (r) => r["_measurement"] == "{Measurement}" and r["_field"] == "corrente")
+                |> last()
+            """;
+
+        var tables = await _client.GetQueryApi().QueryAsync(flux, _org);
+        foreach (var table in tables)
+        {
+            foreach (var record in table.Records)
+                return record.GetTime()?.ToDateTimeUtc();
+        }
+
+        return null;
+    }
+
+    private async Task<long?> FluxCountCorrenteAsync(string rangeStart)
+    {
+        var flux = $"""
+            from(bucket: "{_bucket}")
+                |> range(start: {rangeStart})
+                |> filter(fn: (r) => r["_measurement"] == "{Measurement}" and r["_field"] == "corrente")
+                |> group()
+                |> count()
+            """;
+
+        var tables = await _client.GetQueryApi().QueryAsync(flux, _org);
+        foreach (var table in tables)
+        {
+            foreach (var record in table.Records)
+            {
+                var v = record.GetValue();
+                if (v is long l)
+                    return l;
+                if (v is int i)
+                    return i;
+                if (v is double d)
+                    return (long)d;
+                if (v is ulong ul)
+                    return (long)ul;
+            }
+        }
+
+        return 0;
     }
 
     public async Task<List<HistoricoMotor>> QueryHistoricoAsync(
