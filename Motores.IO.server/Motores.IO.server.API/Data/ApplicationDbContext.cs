@@ -11,8 +11,6 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<Motor> Motores { get; set; }
-    // TEMPORÁRIO: manter até concluir migração para InfluxDB (POST /api/admin/migrar-historico)
-    public DbSet<HistoricoMotor> HistoricosMotores { get; set; }
     public DbSet<Alarme> Alarmes { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<OrdemServico> OrdensServico { get; set; }
@@ -76,6 +74,10 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasColumnType("decimal(10,2)");
             
+            entity.Property(e => e.HorimetroTs)
+                .IsRequired()
+                .HasDefaultValue(0.0);
+            
             entity.Property(e => e.Habilitado)
                 .IsRequired()
                 .HasDefaultValue(true);
@@ -92,54 +94,6 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.DataCriacao)
                 .IsRequired()
                 .HasDefaultValueSql("NOW()");
-        });
-
-        // Configuração do HistoricoMotor
-        modelBuilder.Entity<HistoricoMotor>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            
-            entity.Property(e => e.Id)
-                .HasDefaultValueSql("gen_random_uuid()");
-            
-            entity.HasIndex(e => e.MotorId);
-            entity.HasIndex(e => e.Timestamp);
-            
-            entity.Property(e => e.MotorId)
-                .IsRequired();
-            
-            entity.Property(e => e.Timestamp)
-                .IsRequired();
-            
-            entity.Property(e => e.Corrente)
-                .IsRequired()
-                .HasColumnType("decimal(10,2)");
-            
-            entity.Property(e => e.Tensao)
-                .IsRequired()
-                .HasColumnType("decimal(10,2)");
-            
-            entity.Property(e => e.Temperatura)
-                .IsRequired()
-                .HasColumnType("decimal(10,2)");
-            
-            entity.Property(e => e.Status)
-                .IsRequired()
-                .HasMaxLength(50);
-            
-            entity.Property(e => e.CorrenteMedia)
-                .HasColumnType("decimal(10,2)");
-            
-            entity.Property(e => e.CorrenteMaxima)
-                .HasColumnType("decimal(10,2)");
-            
-            entity.Property(e => e.CorrenteMinima)
-                .HasColumnType("decimal(10,2)");
-            
-            entity.HasOne(e => e.Motor)
-                .WithMany(m => m.Historicos)
-                .HasForeignKey(e => e.MotorId)
-                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configuração do Alarme

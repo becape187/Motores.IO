@@ -559,6 +559,10 @@ public class SocketServerService : BackgroundService, ISocketServerService
             var influxService = _serviceProvider.GetRequiredService<InfluxDbService>();
             await influxService.WriteHistoricoAsync(historico);
 
+            var corrente = (double)(message.CorrenteAtual ?? 0);
+            AtualizarHorimetroInline(motor, corrente, timestampUtc);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
             return true;
         }
         catch (Exception ex)
@@ -618,6 +622,10 @@ public class SocketServerService : BackgroundService, ISocketServerService
             var influxService = _serviceProvider.GetRequiredService<InfluxDbService>();
             await influxService.WriteHistoricoAsync(historico);
 
+            var corrente = (double)(message.CorrenteAtual ?? 0);
+            AtualizarHorimetroInline(motor, corrente, timestampUtc);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
             return true;
         }
         catch (Exception ex)
@@ -625,6 +633,25 @@ public class SocketServerService : BackgroundService, ISocketServerService
             _logger.LogError(ex, "Erro ao processar histórico do motor {Id}", message.Id);
             return false;
         }
+    }
+
+    private static void AtualizarHorimetroInline(Models.Motor motor, double corrente, DateTime timestampUtc)
+    {
+        const double correnteLimite = 5.0;
+        const double maxGapSegundos = 600.0;
+
+        if (motor.UltimoTimestampIntegrado.HasValue && corrente >= correnteLimite)
+        {
+            var deltaSegundos = (timestampUtc - motor.UltimoTimestampIntegrado.Value).TotalSeconds;
+            if (deltaSegundos > 0 && deltaSegundos < maxGapSegundos)
+            {
+                motor.HorimetroTs += deltaSegundos;
+                motor.Horimetro = (decimal)Math.Round(motor.HorimetroTs / 3600.0, 2);
+            }
+        }
+
+        motor.UltimoTimestampIntegrado = timestampUtc;
+        motor.DataAtualizacao = DateTime.UtcNow;
     }
 
     private async Task SendResponseAsync(TcpClient client, string response)

@@ -10,6 +10,7 @@ export type Motor = {
   registroLocal?: string;
   status: 'ligado' | 'desligado' | 'alerta' | 'alarme' | 'pendente';
   horimetro: number;
+  horimetroTs?: number;
   correnteAtual: number; // Dinâmico, recebido via socket futuramente
   correnteMedia?: number; // Média dos últimos 60 segundos
   correnteMaxima?: number; // Máximo registrado

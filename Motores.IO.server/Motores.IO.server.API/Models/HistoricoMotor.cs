@@ -1,5 +1,8 @@
 namespace Motores.IO.server.API.Models;
 
+/// <summary>
+/// DTO em memória para leitura/escrita no InfluxDB e API de histórico. Não há tabela PostgreSQL.
+/// </summary>
 public class HistoricoMotor
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -16,13 +19,9 @@ public class HistoricoMotor
 
     public string Status { get; set; } = string.Empty;
 
-    // Novos campos para histórico detalhado
     public decimal? CorrenteMedia { get; set; }
 
     public decimal? CorrenteMaxima { get; set; }
 
     public decimal? CorrenteMinima { get; set; }
-
-    // Relacionamento
-    public virtual Motor Motor { get; set; } = null!;
 }

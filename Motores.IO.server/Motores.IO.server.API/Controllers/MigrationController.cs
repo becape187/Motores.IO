@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Motores.IO.server.API.Data;
 using Motores.IO.server.API.DTOs;
-using Motores.IO.server.API.Models;
 using Motores.IO.server.API.Services;
 
 namespace Motores.IO.server.API.Controllers;
@@ -16,7 +13,7 @@ public class MigrationController : ControllerBase
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly InfluxDbService _influxDbService;
     private readonly ILogger<MigrationController> _logger;
-    private static int _migrationEmExecucao;
+    private static int _horimetroEmExecucao;
 
     public MigrationController(
         IServiceScopeFactory scopeFactory,
@@ -39,109 +36,78 @@ public class MigrationController : ControllerBase
     }
 
     /// <summary>
-    /// Inicia migração PostgreSQL → InfluxDB em segundo plano (evita 504 do nginx em lotes grandes).
+    /// Integra horímetro incrementalmente (a partir do último ponto já processado de cada motor).
     /// </summary>
-    [HttpPost("migrar-historico")]
-    public IActionResult MigrarHistoricoParaInflux()
+    [HttpPost("integrar-horimetro")]
+    public IActionResult IntegrarHorimetro()
     {
-        if (Interlocked.CompareExchange(ref _migrationEmExecucao, 1, 0) != 0)
+        if (Interlocked.CompareExchange(ref _horimetroEmExecucao, 1, 0) != 0)
         {
-            return Conflict(new
-            {
-                mensagem = "Já existe uma migração em execução. Aguarde o término (veja os logs do servidor)."
-            });
+            return Conflict(new { mensagem = "Já existe um cálculo de horímetro em execução." });
         }
 
         var logger = _logger;
         var scopeFactory = _scopeFactory;
 
-        Console.WriteLine($"[MOTORES-API][MIGRACAO] UTC {DateTime.UtcNow:O} — POST migrar-historico aceito; fila em segundo plano.");
-        logger.LogInformation("Migração: POST aceito, execução em segundo plano iniciada.");
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var service = scope.ServiceProvider.GetRequiredService<HorimetroService>();
+                var (motores, horas) = await service.IntegrarTodosMotoresAsync();
+                logger.LogInformation("Integração horímetro concluída: {Motores} motores, +{Horas:F2}h", motores, horas);
+                Console.WriteLine($"[MOTORES-API][HORIMETRO] Integração concluída: {motores} motores, +{horas:F2}h adicionadas.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Falha na integração de horímetro");
+                Console.WriteLine($"[MOTORES-API][HORIMETRO] ERRO: {ex.Message}");
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _horimetroEmExecucao, 0);
+            }
+        });
+
+        return Accepted(new { mensagem = "Integração de horímetro iniciada em segundo plano. Acompanhe os logs." });
+    }
+
+    /// <summary>
+    /// Zera HorimetroTs e UltimoTimestampIntegrado de todos os motores e recalcula do zero a partir do InfluxDB.
+    /// </summary>
+    [HttpPost("recalcular-horimetro")]
+    public IActionResult RecalcularHorimetro()
+    {
+        if (Interlocked.CompareExchange(ref _horimetroEmExecucao, 1, 0) != 0)
+        {
+            return Conflict(new { mensagem = "Já existe um cálculo de horímetro em execução." });
+        }
+
+        var logger = _logger;
+        var scopeFactory = _scopeFactory;
 
         _ = Task.Run(async () =>
         {
             try
             {
-                await ExecutarMigracaoAsync(scopeFactory, logger);
+                using var scope = scopeFactory.CreateScope();
+                var service = scope.ServiceProvider.GetRequiredService<HorimetroService>();
+                var (motores, horas) = await service.RecalcularTodosMotoresAsync();
+                logger.LogInformation("Recálculo horímetro concluído: {Motores} motores, total={Horas:F2}h", motores, horas);
+                Console.WriteLine($"[MOTORES-API][HORIMETRO] Recálculo concluído: {motores} motores, total={horas:F2}h.");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Falha na migração de histórico para InfluxDB");
-                Console.WriteLine($"[MOTORES-API][MIGRACAO] ERRO: {ex.Message}");
+                logger.LogError(ex, "Falha no recálculo de horímetro");
+                Console.WriteLine($"[MOTORES-API][HORIMETRO] ERRO: {ex.Message}");
             }
             finally
             {
-                Interlocked.Exchange(ref _migrationEmExecucao, 0);
+                Interlocked.Exchange(ref _horimetroEmExecucao, 0);
             }
         });
 
-        return Accepted(new
-        {
-            mensagem =
-                "Migração iniciada em segundo plano. Veja journalctl ou stdout por linhas [MOTORES-API][MIGRACAO]. GET /api/admin/influx-resumo para checar ingestão.",
-            dicaNginx =
-                "Se precisar de migração síncrona no futuro, aumente proxy_read_timeout no location da API."
-        });
-    }
-
-    private static async Task ExecutarMigracaoAsync(
-        IServiceScopeFactory scopeFactory,
-        ILogger logger)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var influxDbService = scope.ServiceProvider.GetRequiredService<InfluxDbService>();
-        var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-
-        var batchSize = Math.Clamp(config.GetValue("InfluxDb:MigrationBatchSize", 400), 50, 10_000);
-        var delayMs = Math.Clamp(config.GetValue("InfluxDb:MigrationDelayMsBetweenBatches", 150), 0, 120_000);
-
-        var totalRegistros = await context.HistoricosMotores.CountAsync();
-        logger.LogInformation(
-            "Migração: iniciando {Total} registros PostgreSQL → InfluxDB (batch={Batch}, delayMs={Delay})",
-            totalRegistros, batchSize, delayMs);
-        Console.WriteLine(
-            $"[MOTORES-API][MIGRACAO] UTC {DateTime.UtcNow:O} — início total={totalRegistros} batch={batchSize} delayMs={delayMs}");
-
-        DateTime? lastTs = null;
-        Guid? lastId = null;
-        var processados = 0;
-
-        while (true)
-        {
-            IQueryable<HistoricoMotor> query = context.HistoricosMotores.AsNoTracking();
-            if (lastTs.HasValue && lastId.HasValue)
-            {
-                var ts = lastTs.Value;
-                var id = lastId.Value;
-                query = query.Where(h => h.Timestamp > ts || (h.Timestamp == ts && h.Id > id));
-            }
-
-            var lote = await query
-                .OrderBy(h => h.Timestamp)
-                .ThenBy(h => h.Id)
-                .Take(batchSize)
-                .ToListAsync();
-
-            if (lote.Count == 0)
-                break;
-
-            await influxDbService.WriteBatchAsync(lote);
-            var ult = lote[^1];
-            lastTs = ult.Timestamp;
-            lastId = ult.Id;
-            processados += lote.Count;
-
-            logger.LogInformation("Migração: {Processados}/{Total} registros enviados ao InfluxDB", processados,
-                totalRegistros);
-            Console.WriteLine(
-                $"[MOTORES-API][MIGRACAO] UTC {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} — {processados}/{totalRegistros}");
-
-            if (delayMs > 0)
-                await Task.Delay(delayMs);
-        }
-
-        logger.LogInformation("Migração concluída: {Total} registros migrados para InfluxDB", processados);
-        Console.WriteLine($"[MOTORES-API][MIGRACAO] UTC {DateTime.UtcNow:O} — CONCLUÍDA {processados} registros.");
+        return Accepted(new { mensagem = "Recálculo de horímetro iniciado em segundo plano (zera e recalcula tudo). Acompanhe os logs." });
     }
 }

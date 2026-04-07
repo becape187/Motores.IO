@@ -151,6 +151,43 @@ public class InfluxDbService : IDisposable
         return 0;
     }
 
+    public async Task<List<(DateTime Time, double Corrente)>> QueryPontosCorrenteAsync(Guid motorId, DateTime? desde = null)
+    {
+        var rangeStart = desde.HasValue
+            ? desde.Value.ToUniversalTime().ToString("o")
+            : "1970-01-01T00:00:00Z";
+
+        var flux = $"""
+            from(bucket: "{_bucket}")
+                |> range(start: {rangeStart})
+                |> filter(fn: (r) => r["_measurement"] == "{Measurement}" and r["_field"] == "corrente" and r["motorId"] == "{motorId}")
+                |> sort(columns: ["_time"])
+            """;
+
+        var tables = await _client.GetQueryApi().QueryAsync(flux, _org);
+
+        var result = new List<(DateTime Time, double Corrente)>();
+        foreach (var table in tables)
+        {
+            foreach (var record in table.Records)
+            {
+                var time = record.GetTime()?.ToDateTimeUtc() ?? DateTime.UtcNow;
+                var value = record.GetValue();
+                double corrente = 0;
+                if (value is double d)
+                    corrente = d;
+                else if (value is long l)
+                    corrente = l;
+                else if (value != null)
+                    corrente = Convert.ToDouble(value);
+
+                result.Add((time, corrente));
+            }
+        }
+
+        return result;
+    }
+
     public async Task<List<HistoricoMotor>> QueryHistoricoAsync(
         Guid? motorId = null,
         DateTime? dataInicio = null,

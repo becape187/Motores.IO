@@ -24,6 +24,10 @@ public class Motor
 
     public decimal Horimetro { get; set; }
 
+    public double HorimetroTs { get; set; }
+
+    public DateTime? UltimoTimestampIntegrado { get; set; }
+
     public bool Habilitado { get; set; } = true; // Para esconder do mapa, alarmes, etc
 
     public decimal? PosicaoX { get; set; }
@@ -47,7 +51,6 @@ public class Motor
 
     // Relacionamentos
     public virtual Planta? Planta { get; set; }
-    public virtual ICollection<HistoricoMotor> Historicos { get; set; } = new List<HistoricoMotor>();
     public virtual ICollection<Alarme> Alarmes { get; set; } = new List<Alarme>();
     public virtual ICollection<OrdemServico> OrdensServico { get; set; } = new List<OrdemServico>();
 }
