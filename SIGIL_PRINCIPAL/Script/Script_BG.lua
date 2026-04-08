@@ -1,67 +1,242 @@
--- =========================
--- Integração com Wecon
--- =========================
 Script_BG_limits = 11
 
+-- Variáei locis do módu
+local socketClient
+local logger
+local motorSync
+local apiClient
+local sqliteDB
+local motorCurrentReader
+local fileManager
+local fileManagerHandler
+local databaseHandler
+local conta = 0
+local sistemaInicializado = false
+local inicioms 
+
+-- UUID da planta
+-- PLANTA TESTE
+local PLANTA_UUID = "661e8415-65eb-4821-86e9-462d7ad57c9e" --SIGIL
+--local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874" --MORRO GRANDE
+local API_TOKEN = "GepUHoPHVES-KrlV_96hbg-Geoc9VRqGUCfG22T_HMzSw"
+
+-- Mesmo caminho usado em SQLiteDB:new — botão "apagar banco" deve usar esta constante
+local CAMINHO_BANCO_MOTORES = "sdcard:motores.db"
+
+-- Função de inicializaçoque pode ser chamada manualmente (ex:por botão)
+function inicializarSistema()
+    -- IMPORTNTE: Verificar se já está inicializado SEM usar print (ainda não temos Logger)
+    if sistemaInicializado then
+        return true
+    end
+    
+    conta = 0
+    
+    -- ============================================
+    -- PRIMEIRA COISA: Conectar ao Socket
+    -- ANTES de QUALQUER outra coisa, incluindo prints
+    -- ============================================
+    we_bas_setint("@W_HDW300",10)
+    
+    -- Criar SocketClient primeiro (sem prints ainda)
+    -- Porta 5055 é onde o SocketServerService escuta conexões TCP simples
+    socketClient = SocketClient:new("api.motores.automais.io", 5055)
+
+    -- Tentar conectar ao socket (PRIMEIRA ação do sistema)
+    local socketConnected, socketErr = socketClient:Conectar()
+    
+    -- Enviar identificação da planta após conectar
+    if socketConnected then
+        local identMessage = json.encode({
+            tipo = "identificacao",
+            plantaId = PLANTA_UUID
+        })
+        socketClient:EnviarMensagem(identMessage)
+    end
+    
+    -- ============================================
+    -- SEGUNDA COISA: Inicializar Logger IMEDIATAMENTE
+    -- Logo após conectar ao socket, antes de qualquer print
+    -- ============================================
+    logger = Logger:new(socketClient, PLANTA_UUID)  -- Passar PLANTA_UUID para incluir nas mensagens
+    logger:SubstituirPrint()  -- Substitui print global - AGORA todos os prints serão capturados
+    logger:ConfigurarTratamentoErros()  -- Configura tratamento de erros - AGORA todos os erros serão capturados
+    
+    -- AGORA SIM podemos usar print - ele já será redirecionado para o socket
+    if not socketConnected then
+        print("[Init] ⚠ Aviso: Não foi possível conectar ao socket: " .. tostring(socketErr))
+        print("[Init] Continuando inicialização sem socket (logs locais apenas)...")
+    else
+        print("[Init] ✓ Socket conectado com sucesso")
+    end
+    
+    print("[Init] === INICIANDO SISTEMA ===")
+    print("[Init] Logger inicializado - prints e erros serão enviados via socket")
+    
+    -- Agora continuar com inicialização normal  
+    -- Inicializar banco de dados local
+    print("[Init] Inicializando banco de dados local...")
+    -- Usar "udisk:" para disco USB ou caminho relativo conforme documentação
+    sqliteDB = SQLiteDB:new(CAMINHO_BANCO_MOTORES)
+    we_bas_setint("@W_HDW300",11)
+    local dbConnected, dbErr = sqliteDB:Conectar()
+    we_bas_setint("@W_HDW300",12)
+    if not dbConnected then
+        print("[Init] ✗ Erro ao conectar ao banco local: " .. tostring(dbErr))
+        print("[Init] Detalhes do erro: " .. tostring(dbErr))
+        sistemaInicializado = false
+        return false -- Não continua se não conseguir conectar ao banco
+    else
+        print("[Init] ✓ Banco de dados local conectado")
+    end
+    -- CriarTabelas() já é chamado dentro de SQLiteDB:Conectar()
+    
+    -- Inicializar API Client
+    print("[Init] Inicializando API Client...")
+    we_bas_setint("@W_HDW300",13)
+    apiClient = APIClient:new("http://api.motores.automais.io", PLANTA_UUID, API_TOKEN) -- API em produção
+    print("[Init] ✓ API Client inicializado")
+    
+    -- Inicializar MotorSync
+    print("[Init] Inicializando MotorSync...")
+    we_bas_setint("@W_HDW300",14)
+    motorSync = MotorSync:new(apiClient, sqliteDB, PLANTA_UUID)
+    we_bas_setint("@W_HDW300",15)
+    local syncInicializado = motorSync:Inicializar()
+    if syncInicializado then
+        print("[Init] ✓ MotorSync inicializado")
+    else
+        print("[Init] ✗ Erro ao inicializar MotorSync")
+        sistemaInicializado = false
+        return false
+    end
+    
+    -- Configurar callback para obter dados do motor (buscar da memória do MotorSync)
+    we_bas_setint("@W_HDW300",17)
+    socketClient:SetMotorDataCallback(function()
+        -- Buscar motor da memória do MotorSync pelo GUID
+        -- Você pode ajustar isso para buscar o motor correto
+        if motorSync then
+            --we_bas_setint("@W_HDW300",18)
+            local motores = motorSync:ObterTodosMotores()
+            --we_bas_setint("@W_HDW300",19)
+            if #motores > 0 then
+                --we_bas_setint("@W_HDW300",20)
+                return motores[1] -- Retorna o primeiro motor (ajuste conforme necessário)
+            end
+        end
+        return nil
+    end)
+    print("[Init] ✓ SocketClient configurado")
+    
+    -- Inicializar MotorCurrentReader (passar socketClient para enviar dados e sqliteDB para registrar)
+    print("[Init] Inicializando MotorCurrentReader...")
+    we_bas_setint("@W_HDW300",21)
+    motorCurrentReader = MotorCurrentReader:new(motorSync, socketClient, sqliteDB)
+    print("[Init] ✓ MotorCurrentReader inicializado")
+    
+    -- Inicializar FileManager e FileManagerHandler
+    print("[Init] Inicializando FileManager...")
+    we_bas_setint("@W_HDW300",22)
+    fileManager = FileManager:new("/flash")
+    fileManagerHandler = FileManagerHandler:new(fileManager, socketClient)
+    
+    -- Inicializar DatabaseHandler
+    print("[Init] Inicializando DatabaseHandler...")
+    databaseHandler = DatabaseHandler:new(sqliteDB, socketClient)
+    
+    -- Configurar callback para processar comandos (arquivo e database)
+    socketClient:SetCommandHandlerCallback(function(comando)
+        -- Verificar tipo de comando
+        if comando.tipo == "database" then
+            return databaseHandler:ProcessarComando(comando)
+        else
+            -- Comandos sem tipo ou outros tipos vão para FileManagerHandler
+            return fileManagerHandler:ProcessarComando(comando)
+        end
+    end)
+    print("[Init] ✓ FileManager e DatabaseHandler inicializados")
+    
+    we_bas_setint("@W_HDW300",23)
+    sistemaInicializado = true
+    print("[Init] === INICIALIZAÇÃO CONCLUÍDA ===")
+
+    return true
+end
+
+-- Função pra verificar se o sistema está inicializado
+function sistemaEstaInicializado()
+    return sistemaInicializado
+end
+
+--- Apaga o arquivo motores.db no SD (recuperação de "Database Format Mismatch" / banco corrompido).
+--- No PIStudio: configure o botão para executar a função Lua `apagarBancoMotores` (pressionar / soltar conforme o objeto).
+--- Após sucesso, o próximo ciclo de `we_bg_poll` chama `inicializarSistema()` de novo (ou use um botão que chame `inicializarSistema()`).
+function apagarBancoMotores()
+    print("[DB] Apagando banco local: " .. CAMINHO_BANCO_MOTORES)
+    if sqliteDB and sqliteDB.Connected then
+        sqliteDB:Fechar()
+    end
+    sistemaInicializado = false
+    sqliteDB = nil
+    motorSync = nil
+    motorCurrentReader = nil
+    databaseHandler = nil
+    fileManager = nil
+    fileManagerHandler = nil
+
+    local fm = FileManager:new("/flash")
+    local ok, err = fm:ApagarArquivo(CAMINHO_BANCO_MOTORES)
+    if ok then
+        print("[DB] ✓ motores.db removido. O sistema será reinicializado pelo script de fundo ou chame inicializarSistema().")
+        return true
+    end
+    if err and string.find(tostring(err), "não encontrado", 1, true) then
+        print("[DB] ⚠ Arquivo já inexistente — considere concluído.")
+        return true
+    end
+    print("[DB] ✗ " .. tostring(err))
+    return false, err
+end
+
+-- Função chamada automaticamente pelo sistema (pode ficar vazia ou fazer inicialização mínima)
 function we_bg_init()
-    print("\n" .. string.rep("=", 60))
-    print("  SISTEMA DE MONITORAMENTO - VERSÃO SIMPLIFICADA v5.0")
-    print("  Wecon PI8150IG - PLANTA SIGIL")
-    print("  22 MOTORES: Horímetro + Configurações")
-    print(string.rep("=", 60))
-    print("\n📋 FUNCIONALIDADES:")
-    print("  ✓ Horímetro individual por motor (HORAS INTEIRAS)")
-    print("  ✓ Configurações persistentes (setpoints)")
-    print("  ✓ Salvamento automático a cada 10s")
-    print("  ✓ Botão de zerar horímetro individual")
-    print("  ✓ Sincronização de registradores")
-    print("\n🏭 MOTORES MONITORADOS:")
-    print("  AV01, AV02")
-    print("  BRT01, BRT02, BRT03")
-    print("  TC01-TC14 (14 motores)")
-    print("  PV01, PV02, PV03")
-    print("\n📊 REGISTRADORES POR MOTOR:")
-    print("  Corrente           = Endereço específico")
-    print("  Setpoint Alarme    = HAW0-HAW21 (escrita)")
-    print("  Setpoint Nominal   = HAW30-HAW51 (escrita)")
-    print("  Alarme Efetivo     = HAW60-HAW81 (leitura)")
-    print("  Nominal Efetivo    = HAW90-HAW111 (leitura)")
-    print("  Horímetro          = HAW200-HAW242 (HORAS)")
-    print("\n🔘 BOTÕES POR MOTOR:")
-    print("  Zerar horímetro = HDX6.0-HDX6.15, HDX7.0-HDX7.5")
-    print(string.rep("=", 60) .. "\n")
-    print("⏳ Aguarde a inicialização...\n")
+    -- Iicialização automática desabilitada para permitir inicialização manual
+    -- Chame inicializarSistema() através de um botão ou script
+    inicioms = we_bas_gettickcount()
+    print("[Init] Sistema aguardando inicialização manual...")
+    print("[Init] Use a função 'inicializarSistema()' para inicializar o sistema")
 end
 
 function we_bg_poll()
-    LoopPrincipal()
-end
-
--- =========================
--- Finalização
--- =========================
-function we_bg_exit()
-    print("\n" .. string.rep("=", 50))
-    print("FINALIZANDO SISTEMA")
-    print(string.rep("=", 50))
-    
-    -- Salvar horímetros de todos os motores
-    if bancoInicializado then
-        print("💾 Salvando horímetros finais...")
-        local salvos = 0
-        
-        for i, motor in ipairs(MOTORES) do
-            local estado = estadoMotores[motor.tag]
-            if estado.horimetroSegundos > 0 then
-                if SalvarHorimetro(motor, estado.horimetroSegundos) then
-                    salvos = salvos + 1
-                end
-            end
-        end
-        
-        print("✓ " .. salvos .. " horímetros salvos")
+    if we_bas_gettickcount() > (inicioms + 5000) and sistemaInicializado == false then
+        inicioms = we_bas_gettickcount()
+        inicializarSistema()
     end
     
-    print("\n🔚 Sistema finalizado com segurança")
-    print(string.rep("=", 50) .. "\n")
+    -- Só executar loops se o sistema estiver inicializado
+    if not sistemaInicializado then
+        return
+    end
+    
+    -- Chamar o loop da classe SocketClient
+    if socketClient then
+        --we_bas_setdword("@W_HDW305",we_bas_gettickcount())
+        socketClient:Loop()
+    end
+    
+    -- Enviar ping periódico do Logger (mostra que está conectado)
+    if logger then
+        logger:EnviarPing()
+    end
+    
+    -- Chamar o loop da classe MotorSync (sincronização a cada minuto)
+    if motorSync then
+        motorSync:Loop()
+    end
+    
+    -- Chamar o loop da classe MotorCurrentReader (atualiza correntes da IHM)
+    if motorCurrentReader then
+        motorCurrentReader:Loop()
+    end
 end
