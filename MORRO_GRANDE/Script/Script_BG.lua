@@ -15,14 +15,18 @@ local sistemaInicializado = false
 local inicioms 
 
 -- UUID da planta
-local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874"
+-- PLANTA TESTE
+local PLANTA_UUID = "661e8415-65eb-4821-86e9-462d7ad57c9e" --SIGIL
+--local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874" --MORRO GRANDE
+local API_TOKEN = "GepUHoPHVES-KrlV_96hbg-Geoc9VRqGUCfG22T_HMzSw"
+
+-- Mesmo caminho usado em SQLiteDB:new — botão "apagar banco" deve usar esta constante
+local CAMINHO_BANCO_MOTORES = "sdcard:motores.db"
 
 -- Função de inicializaçoque pode ser chamada manualmente (ex:por botão)
 function inicializarSistema()
     -- IMPORTNTE: Verificar se já está inicializado SEM usar print (ainda não temos Logger)
     if sistemaInicializado then
-        -- Usar print original aqui pois Logger ainda não foi inicializado
-        -- Mas isso só acontece se já estiver inicializado, então é raro
         return true
     end
     
@@ -37,7 +41,6 @@ function inicializarSistema()
     -- Criar SocketClient primeiro (sem prints ainda)
     -- Porta 5055 é onde o SocketServerService escuta conexões TCP simples
     socketClient = SocketClient:new("api.motores.automais.io", 5055)
-    --socketClient = SocketClient:new("192.168.15.187", 5055)
 
     -- Tentar conectar ao socket (PRIMEIRA ação do sistema)
     local socketConnected, socketErr = socketClient:Conectar()
@@ -70,11 +73,11 @@ function inicializarSistema()
     print("[Init] === INICIANDO SISTEMA ===")
     print("[Init] Logger inicializado - prints e erros serão enviados via socket")
     
-    -- Agora continuar com inicialização normal
+    -- Agora continuar com inicialização normal  
     -- Inicializar banco de dados local
     print("[Init] Inicializando banco de dados local...")
     -- Usar "udisk:" para disco USB ou caminho relativo conforme documentação
-    sqliteDB = SQLiteDB:new("sdcard:motores.db")
+    sqliteDB = SQLiteDB:new(CAMINHO_BANCO_MOTORES)
     we_bas_setint("@W_HDW300",11)
     local dbConnected, dbErr = sqliteDB:Conectar()
     we_bas_setint("@W_HDW300",12)
@@ -86,11 +89,12 @@ function inicializarSistema()
     else
         print("[Init] ✓ Banco de dados local conectado")
     end
+    -- CriarTabelas() já é chamado dentro de SQLiteDB:Conectar()
     
     -- Inicializar API Client
     print("[Init] Inicializando API Client...")
     we_bas_setint("@W_HDW300",13)
-    apiClient = APIClient:new("http://api.motores.automais.io") -- API em produção
+    apiClient = APIClient:new("http://api.motores.automais.io", PLANTA_UUID, API_TOKEN) -- API em produção
     print("[Init] ✓ API Client inicializado")
     
     -- Inicializar MotorSync
@@ -165,6 +169,36 @@ function sistemaEstaInicializado()
     return sistemaInicializado
 end
 
+--- Apaga o arquivo motores.db no SD (recuperação de "Database Format Mismatch" / banco corrompido).
+--- No PIStudio: configure o botão para executar a função Lua `apagarBancoMotores` (pressionar / soltar conforme o objeto).
+--- Após sucesso, o próximo ciclo de `we_bg_poll` chama `inicializarSistema()` de novo (ou use um botão que chame `inicializarSistema()`).
+function apagarBancoMotores()
+    print("[DB] Apagando banco local: " .. CAMINHO_BANCO_MOTORES)
+    if sqliteDB and sqliteDB.Connected then
+        sqliteDB:Fechar()
+    end
+    sistemaInicializado = false
+    sqliteDB = nil
+    motorSync = nil
+    motorCurrentReader = nil
+    databaseHandler = nil
+    fileManager = nil
+    fileManagerHandler = nil
+
+    local fm = FileManager:new("/flash")
+    local ok, err = fm:ApagarArquivo(CAMINHO_BANCO_MOTORES)
+    if ok then
+        print("[DB] ✓ motores.db removido. O sistema será reinicializado pelo script de fundo ou chame inicializarSistema().")
+        return true
+    end
+    if err and string.find(tostring(err), "não encontrado", 1, true) then
+        print("[DB] ⚠ Arquivo já inexistente — considere concluído.")
+        return true
+    end
+    print("[DB] ✗ " .. tostring(err))
+    return false, err
+end
+
 -- Função chamada automaticamente pelo sistema (pode ficar vazia ou fazer inicialização mínima)
 function we_bg_init()
     -- Iicialização automática desabilitada para permitir inicialização manual
@@ -176,6 +210,7 @@ end
 
 function we_bg_poll()
     if we_bas_gettickcount() > (inicioms + 5000) and sistemaInicializado == false then
+        inicioms = we_bas_gettickcount()
         inicializarSistema()
     end
     

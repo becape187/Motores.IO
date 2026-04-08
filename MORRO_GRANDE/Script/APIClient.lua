@@ -2,7 +2,7 @@
 APIClient = {}
 APIClient.__index = APIClient
 
--- Carregar módulos conforme documentação do PIStudio
+-- Carregar módulos conforme documentação do PIStudio 
 -- Usando apenas HTTP (HTTPS não é suportado)
 local http = require("socket.http") -- Para requisições HTTP
 local json = require("json")
@@ -10,13 +10,15 @@ local ltn12 = require("ltn12") -- Para sink.table (receber dados)
 -- Nota: No exemplo que funciona, usa LTN12 (maiúsculas), mas ltn12 (minúsculas) também funciona
 
 -- UUID da planta (hardcoded)
-local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874" -- TODO: Definir UUID real da planta
+local PLANTA_UUID = "" --6e1c1fd1-f104-4172-bbd9-1f5a7e90e874" -- TODO: Definir UUID real da planta
 
 -- Token da API da planta (deve ser configurado)
-local PLANTA_API_TOKEN = "T7pcp1FXmE65nBM35fQgRQ-zZu1-6ndwUeS5g1Ijx7opQ" -- TODO: Configurar o token gerado na API
+local PLANTA_API_TOKEN = "" --"T7pcp1FXmE65nBM35fQgRQ-zZu1-6ndwUeS5g1Ijx7opQ" -- TODO: Configurar o token gerado na API
 
 -- Construtor
-function APIClient:new(baseURL, apiToken)
+function APIClient:new(baseURL, plantaUUID, apiToken)
+    PLANTA_UUID = plantaUUID
+    PLANTA_API_TOKEN = apiToken
     print("[DEBUG] === INÍCIO DA CRIACAO API ==")
     local obj = {}
     setmetatable(obj, APIClient)
@@ -36,7 +38,7 @@ function APIClient:new(baseURL, apiToken)
     
     obj.BaseURL = url
     obj.PlantaUUID = PLANTA_UUID
-    obj.ApiToken = apiToken or PLANTA_API_TOKEN
+    obj.ApiToken = PLANTA_API_TOKEN --apiToken or PLANTA_API_TOKEN
     obj.Timeout = 30 -- segundos
     print("[DEBUG] === FIM DA CRIACAO API ===")
     return obj

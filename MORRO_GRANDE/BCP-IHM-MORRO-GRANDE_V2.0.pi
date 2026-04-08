@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project filever="1.0" SoftLang="English" OldVersion="9.4.13" ProjectVer="9.4.13.25053001">
-	<HmiSet Type="PI8150ig2" RotateAngle="0" Width="1920" Height="1080" HmiTypeIndex="105" HmiCpuType="RK128" PIEx="0" GUID="ea09c91e-2ca4-4c13-bcd4-80d457ba3b2d" Language="0" StartScrNo="2" Style="Rurality" SaveAsJpg="0" JpgBkColor="0" />
+	<HmiSet Type="PI8150ig2" RotateAngle="0" Width="1920" Height="1080" HmiTypeIndex="105" HmiCpuType="RK128" PIEx="0" Language="0" StartScrNo="2" Style="Rurality" SaveAsJpg="0" JpgBkColor="0" GUID="daa7f1cf-90e5-4705-b816-de5622f8599a" />
 	<AddressLib>
 		<Address Index="1" AddrType="W" AddrVal="8" TypeIndex="4" ConnIndex="2" StatNO="-1" BitVal="0" Name="I_AV01" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />
 		<Address Index="2" AddrType="W" AddrVal="10" TypeIndex="4" ConnIndex="1" StatNO="-1" BitVal="0" Name="I_AV02" ByteOrder="0" ExTag1Value="0" ExTag2Value="0" />

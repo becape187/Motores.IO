@@ -166,7 +166,7 @@ function SQLiteDB:CriarTabelas()
     local result4 = self.DB:execute(sql_index)
     local result5 = self.DB:execute(sql_dados)
     
-    -- Verificar se todas as execuções foram bem-sucedidas
+    -- Verificar se todas as execuções foram bem-suced idas 
     -- No luasql_sqlite3, execute() retorna true/nil ou número de linhas
     if not result1 or not result2 or not result3 or not result4 or not result5 then
         print("[SQLite] ✗ Erro ao criar tabelas")

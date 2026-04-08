@@ -5,7 +5,7 @@ FileManager = {}
 FileManager.__index = FileManager
 
 -- Paths especiais da IHM conforme documentação do PIStudio
--- sdcard: - Cartão SD
+-- sdcard: - Cartão SD 
 -- udisk: - Disco USB
 -- /flash - Flash interno
 
@@ -16,7 +16,7 @@ function FileManager:new(basePath)
     
     -- Caminho base para operações d arquivo (padrão: /flash)
     -- Pode ser: /flash, sdcard:, udisk:, etc.
-    obj.BasePath = basePath or "/flash"
+    obj.BasePath = basePath or "sdcard:"
     
     return obj
 end
