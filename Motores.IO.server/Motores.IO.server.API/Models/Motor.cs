@@ -43,6 +43,8 @@ public class Motor
 
     public DateTime? DataEstimadaProximaManutencao { get; set; }
 
+    public DateTime? DataUltimaManutencao { get; set; }
+
     public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
     public DateTime? DataAtualizacao { get; set; }
 

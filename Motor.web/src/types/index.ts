@@ -23,6 +23,7 @@ export type Motor = {
   cicloManutencao?: number;
   horimetroProximaManutencao?: number;
   dataEstimadaProximaManutencao?: Date;
+  dataUltimaManutencao?: Date;
 };
 
 export type HistoricoMotor = {

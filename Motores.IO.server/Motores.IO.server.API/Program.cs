@@ -75,6 +75,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<InfluxDbService>();
 builder.Services.AddScoped<HorimetroService>();
+builder.Services.AddScoped<MaintenanceService>();
 
 // Registrar Socket Server Service
 // Registra como Singleton para ISocketServerService e como HostedService para BackgroundService

@@ -24,6 +24,192 @@
   margin: 0;
 }
 
+/* Tabs */
+.maintenance-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--white-color);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: var(--shadow-md);
+}
+
+.maintenance-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: var(--transition);
+  flex: 1;
+  justify-content: center;
+}
+
+.maintenance-tab:hover {
+  background: var(--background-color);
+  color: var(--text-dark);
+}
+
+.maintenance-tab.active {
+  background: var(--primary-color);
+  color: var(--white-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-badge-pendente {
+  background: #e74c3c;
+  color: var(--white-color);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+  animation: pulse-badge 2s infinite;
+}
+
+.maintenance-tab.active .tab-badge-pendente {
+  background: var(--white-color);
+  color: #e74c3c;
+}
+
+/* Histórico */
+.historico-card {
+  background: var(--white-color);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  border-left: 4px solid #27ae60;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.historico-card:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.historico-card.expanded {
+  border-left-width: 4px;
+  background: rgba(39, 174, 96, 0.03);
+}
+
+.historico-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.historico-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.historico-os-number {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.historico-motor-nome {
+  font-size: 13px;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.historico-card-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.historico-card-dates span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.historico-descricao {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-dark);
+  line-height: 1.4;
+}
+
+.historico-relatorios {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.historico-relatorios h5 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.historico-relatorio-item {
+  background: var(--background-color);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-left: 3px solid var(--primary-color);
+}
+
+.historico-relatorio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.historico-relatorio-data {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-light);
+}
+
+.historico-relatorio-tecnico {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 13px;
+}
+
+.historico-relatorio-descricao {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-dark);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.historico-relatorio-obs {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-light);
+  font-style: italic;
+  line-height: 1.4;
+}
+
 .maintenance-container {
   position: relative;
   flex: 1;
@@ -146,6 +332,30 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
+}
+
+.pendente-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f39c12;
+  color: var(--white-color);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.motor-maintenance-card.pendente {
+  border-left: 4px solid #f39c12;
+  background: rgba(243, 156, 18, 0.08);
 }
 
 .motor-card-info {
@@ -637,6 +847,176 @@
   font-size: 13px;
   color: var(--text-light);
   line-height: 1.6;
+}
+
+/* Barra de progresso */
+.progresso-bar-container {
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progresso-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* Alerta de manutenção pendente */
+.pendente-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(243, 156, 18, 0.12);
+  border: 1px solid rgba(243, 156, 18, 0.3);
+  border-left: 4px solid #f39c12;
+  border-radius: 12px;
+  color: #7a5d0b;
+}
+
+.pendente-alert strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.pendente-alert p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Alertas genéricos */
+.maintenance-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.maintenance-alert-error {
+  background: #fee;
+  color: #c33;
+  border: 1px solid rgba(204, 51, 51, 0.2);
+}
+
+.maintenance-alert-success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+/* Formulário de Fechamento de Manutenção */
+.fechar-manutencao-form {
+  background: var(--white-color);
+  border-radius: 12px;
+  padding: 24px;
+  border: 2px solid #f39c12;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.15);
+}
+
+.fechar-manutencao-form h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.fechar-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+.btn-fechar-manutencao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #f39c12;
+  color: var(--white-color);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-fechar-manutencao:hover:not(:disabled) {
+  background: #e67e22;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-fechar-manutencao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Botão fechar OS no card */
+.btn-fechar-os {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f39c12;
+  color: var(--white-color);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 12px;
+  align-self: flex-end;
+}
+
+.btn-fechar-os:hover {
+  background: #e67e22;
+  transform: translateY(-1px);
+}
+
+/* OS card pendente */
+.os-card-pendente {
+  border-left-color: #f39c12 !important;
+  background: rgba(243, 156, 18, 0.04);
+}
+
+/* Relatórios inline dentro da OS */
+.os-relatorios-inline {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.relatorio-inline {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  align-items: flex-start;
+}
+
+.relatorio-inline-date {
+  color: var(--text-light);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.relatorio-inline-texto {
+  color: var(--text-dark);
+  line-height: 1.4;
 }
 
 .no-data,

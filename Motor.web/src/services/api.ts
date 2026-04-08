@@ -250,6 +250,26 @@ class ApiService {
     return this.request<Array<any>>(`/maintenance/orders${query}`);
   }
 
+  async fecharManutencao(osId: string, relatorio: string) {
+    return this.request<{ message: string }>(`/maintenance/orders/${osId}/fechar`, {
+      method: 'POST',
+      body: JSON.stringify({ relatorio }),
+    });
+  }
+
+  async getManutencoesPendentes(plantaId?: string) {
+    const query = plantaId ? `?plantaId=${plantaId}` : '';
+    return this.request<Array<any>>(`/maintenance/pendentes${query}`);
+  }
+
+  async getHistoricoManutencoes(plantaId?: string, motorId?: string) {
+    const params = new URLSearchParams();
+    if (plantaId) params.append('plantaId', plantaId);
+    if (motorId) params.append('motorId', motorId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<Array<any>>(`/maintenance/historico${query}`);
+  }
+
   // Usuários
   async getUsuarios(ativo?: boolean) {
     const query = ativo !== undefined ? `?ativo=${ativo}` : '';

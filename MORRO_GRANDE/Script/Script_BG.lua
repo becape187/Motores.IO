@@ -16,8 +16,8 @@ local inicioms
 
 -- UUID da planta
 -- PLANTA TESTE
-local PLANTA_UUID = "661e8415-65eb-4821-86e9-462d7ad57c9e" --SIGIL
---local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874" --MORRO GRANDE
+--local PLANTA_UUID = "661e8415-65eb-4821-86e9-462d7ad57c9e" --SIGIL
+local PLANTA_UUID = "6e1c1fd1-f104-4172-bbd9-1f5a7e90e874" --MORRO GRANDE
 local API_TOKEN = "GepUHoPHVES-KrlV_96hbg-Geoc9VRqGUCfG22T_HMzSw"
 
 -- Mesmo caminho usado em SQLiteDB:new — botão "apagar banco" deve usar esta constante

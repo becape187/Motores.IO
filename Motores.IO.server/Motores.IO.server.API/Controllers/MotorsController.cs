@@ -15,12 +15,14 @@ public class MotorsController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<MotorsController> _logger;
     private readonly InfluxDbService _influxDbService;
+    private readonly MaintenanceService _maintenanceService;
 
-    public MotorsController(ApplicationDbContext context, ILogger<MotorsController> logger, InfluxDbService influxDbService)
+    public MotorsController(ApplicationDbContext context, ILogger<MotorsController> logger, InfluxDbService influxDbService, MaintenanceService maintenanceService)
     {
         _context = context;
         _logger = logger;
         _influxDbService = influxDbService;
+        _maintenanceService = maintenanceService;
     }
 
     // GET: api/motors
@@ -123,6 +125,7 @@ public class MotorsController : ControllerBase
         motor.HorimetroProximaManutencao = existingMotor.HorimetroProximaManutencao;
         motor.DataEstimadaProximaManutencao = existingMotor.DataEstimadaProximaManutencao;
         motor.CicloManutencao = existingMotor.CicloManutencao;
+        motor.DataUltimaManutencao = existingMotor.DataUltimaManutencao;
         motor.Ordem = existingMotor.Ordem;
 
         // Preservar PlantaId se não foi enviado no request
@@ -176,7 +179,16 @@ public class MotorsController : ControllerBase
         motor.RegistroModBus = dto.RegistroModBus;
         motor.RegistroLocal = dto.RegistroLocal;
         motor.Habilitado = dto.Habilitado;
+
+        var cicloAnterior = motor.CicloManutencao;
         motor.CicloManutencao = dto.CicloManutencao;
+
+        // Inicializar ciclo de manutenção quando definido pela primeira vez ou alterado
+        if (dto.CicloManutencao != null && dto.CicloManutencao > 0 &&
+            (motor.HorimetroProximaManutencao == null || cicloAnterior != dto.CicloManutencao))
+        {
+            _maintenanceService.InicializarCicloManutencao(motor);
+        }
         
         // Preservar PlantaId se não foi enviado
         if (dto.PlantaId.HasValue)
@@ -286,8 +298,12 @@ public class MotorsController : ControllerBase
         // Atualizar apenas estado dinâmico (vindo do PLC)
         motor.Status = dto.Status;
         motor.Horimetro = dto.Horimetro;
-        // Nota: CorrenteAtual será armazenado no HistoricoMotor quando implementado
-        // Não atualizar DataAtualizacao para estado dinâmico (muito frequente)
+
+        // Verificar se atingiu limiar de manutenção e gerar OS automática se necessário
+        await _maintenanceService.VerificarEGerarOSAsync(motor);
+
+        // Recalcular data estimada da próxima manutenção com base na taxa de uso
+        _maintenanceService.RecalcularDataEstimada(motor);
 
         try
         {
