@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project filever="1.0">
+	<AddrInfo ScrnNo="0" HasNoPlcAddr="1">
+		<HMIAddr />
+		<WordAddr>
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:40:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:8:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000200" Len="2" Fast="0" />
+			<Add Addr="HAW_W_0000090" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000030" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000060" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000000" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:41:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:9:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000202" Len="2" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:42:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:10:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000204" Len="2" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:43:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:11:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000206" Len="2" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:44:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:12:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000208" Len="2" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:45:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:13:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000210" Len="2" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:46:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:14:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000212" Len="2" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:47:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:15:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000214" Len="2" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:48:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:16:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000216" Len="2" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:49:0:25600" Len="1" Fast="0" />
+			<Add Addr="Conn:Stat:Reg:Addr:ByOrder:JZ_W_1:0:4:17:0:25600" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000218" Len="2" Fast="0" />
+			<Add Addr="HAW_W_0000061" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000001" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000091" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000031" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000062" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000002" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000092" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000032" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000063" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000003" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000093" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000033" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000064" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000004" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000094" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000034" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000095" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000035" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000065" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000005" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000066" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000006" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000096" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000036" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000067" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000007" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000097" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000037" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000068" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000008" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000098" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000038" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000069" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000009" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000099" Len="1" Fast="0" />
+			<Add Addr="HAW_W_0000039" Len="1" Fast="0" />
+		</WordAddr>
+	</AddrInfo>
+</project>

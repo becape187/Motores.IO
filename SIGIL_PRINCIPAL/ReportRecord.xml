@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project filever="1.0" ProjectVer="1.0">
+	<DataGrpSet />
+	<BitAlarmSet />
+	<HisXYTrendSet />
+	<WordAlarmSet>
+		<Alarm WordAddr="I_AV01" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="1" Name="AV01">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW0" AlarmReg2="" StrIndex="*@!#1" notice="1" Trigger1="ALARME_AV01" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_CV01" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="2" Name="CV01">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW1" AlarmReg2="" StrIndex="*@!#2" notice="1" Trigger1="ALARME_CV01" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_BRT01" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="3" Name="BRT01">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW2" AlarmReg2="" StrIndex="*@!#3" notice="1" Trigger1="ALARME_BRT01" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_BRT02" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="4" Name="BRT02">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW3" AlarmReg2="" StrIndex="*@!#4" notice="1" Trigger1="ALARME_BRT02" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_BRT03" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="5" Name="BRT03">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW4" AlarmReg2="" StrIndex="*@!#5" notice="1" Trigger1="ALARME_BRT03" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC01" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="6" Name="TC01">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW5" AlarmReg2="" StrIndex="*@!#6" notice="1" Trigger1="ALARME_TC01" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC02" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="7" Name="TC02">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW6" AlarmReg2="" StrIndex="*@!#7" notice="1" Trigger1="ALARME_TC02" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC03" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="8" Name="TC03">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW7" AlarmReg2="" StrIndex="*@!#8" notice="1" Trigger1="ALARME_TC03" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC04" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="9" Name="TC04">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW8" AlarmReg2="" StrIndex="*@!#9" notice="1" Trigger1="ALARME_TC04" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC05" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="10" Name="TC05">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW9" AlarmReg2="" StrIndex="*@!#10" notice="1" Trigger1="ALARME_TC05" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC06" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="11" Name="TC06">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW10" AlarmReg2="" StrIndex="*@!#11" notice="1" Trigger1="ALARME_TC06" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC07" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="12" Name="TC07">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW11" AlarmReg2="" StrIndex="*@!#12" notice="1" Trigger1="ALARME_TC07" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC08" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="13" Name="TC08">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW12" AlarmReg2="" StrIndex="*@!#13" notice="1" Trigger1="ALARME_TC08" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC09" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="14" Name="TC09">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW13" AlarmReg2="" StrIndex="*@!#14" notice="1" Trigger1="ALARME_TC09" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC10" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="15" Name="TC10">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW14" AlarmReg2="" StrIndex="*@!#15" notice="1" Trigger1="ALARME_TC10" bResetTrigger="0" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC11" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="16" Name="TC11">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW15" AlarmReg2="" StrIndex="*@!#16" notice="1" Trigger1="ALARME_TC11" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC12" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="17" Name="TC12">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW16" AlarmReg2="" StrIndex="*@!#17" notice="1" Trigger1="ALARME_TC12" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC13" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="18" Name="TC13">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW17" AlarmReg2="" StrIndex="*@!#18" notice="1" Trigger1="ALARME_TC13" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_TC14" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="19" Name="TC14">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW18" AlarmReg2="" StrIndex="*@!#19" notice="1" Trigger1="ALARME_TC14" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_PV01" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="20" Name="PV01">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW19" AlarmReg2="" StrIndex="*@!#20" notice="1" Trigger1="ALARME_PV01" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_PV02" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="21" Name="PV02">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW20" AlarmReg2="" StrIndex="*@!#21" notice="1" Trigger1="ALARME_PV02" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+		<Alarm WordAddr="I_PV03" DataFormat="105" DigitCount="3 2" GroupID="0" Cloud="0" ID="22" Name="PV03">
+			<ElementAlarm AlarmType="0" bSave="1" bSaveUnChain="0" bVar="1" AlarmReg1="0#HAW21" AlarmReg2="" StrIndex="*@!#22" notice="1" Trigger1="ALARME_PV03" bResetTrigger="1" UseBuzzer="1" IsBeepOne="0" Freq="0" BuzzerTime="0" ScreenNo="-1" ID="1" Use="0" IsSetAlarmCount="0" CountAddr="" IsSetAddTime="0" TimeAddr="" />
+		</Alarm>
+	</WordAlarmSet>
+</project>
