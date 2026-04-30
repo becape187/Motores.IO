@@ -309,7 +309,7 @@ function History() {
     const motor = motors.find(m => m.id === motorId);
     const horimetro = item?.payload?.[`horimetro_${motorId}`];
     const horimetroStr = horimetro != null && horimetro > 0
-      ? ` | Horímetro: ${Number(horimetro).toFixed(2)}h`
+      ? ` | Horímetro: ${Math.floor(Number(horimetro))}h`
       : '';
     return [`${Number(value).toFixed(1)}A${horimetroStr}`, motor?.nome || motorId];
   }, [motors]);
@@ -334,7 +334,7 @@ function History() {
           correnteAmperes.toFixed(2),
           Number(h.tensao).toFixed(1),
           Number(h.temperatura).toFixed(1),
-          h.horimetro > 0 ? Number(h.horimetro).toFixed(2) : '',
+          h.horimetro > 0 ? Math.floor(Number(h.horimetro)).toString() : '',
           h.status,
         ].join(',');
       }),
@@ -657,7 +657,7 @@ function History() {
                           <td className="value">{Number(record.tensao).toFixed(1)} V</td>
                           <td className="value">{Number(record.temperatura).toFixed(1)} °C</td>
                           <td className="value">
-                            {record.horimetro > 0 ? `${Number(record.horimetro).toFixed(2)} h` : '—'}
+                            {record.horimetro > 0 ? `${Math.floor(Number(record.horimetro))} h` : '—'}
                           </td>
                           <td>
                             <span className={`status-indicator status-${record.status.toLowerCase()}`}>
