@@ -24,4 +24,6 @@ public class HistoricoMotor
     public decimal? CorrenteMaxima { get; set; }
 
     public decimal? CorrenteMinima { get; set; }
+
+    public decimal Horimetro { get; set; }
 }

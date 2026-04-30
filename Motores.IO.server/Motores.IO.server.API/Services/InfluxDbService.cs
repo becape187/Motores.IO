@@ -43,6 +43,7 @@ public class InfluxDbService : IDisposable
             point = point.Field("correnteMaxima", (double)historico.CorrenteMaxima.Value);
         if (historico.CorrenteMinima.HasValue)
             point = point.Field("correnteMinima", (double)historico.CorrenteMinima.Value);
+        point = point.Field("horimetro", (double)historico.Horimetro);
 
         var writeApi = _client.GetWriteApiAsync();
         await writeApi.WritePointAsync(point, _bucket, _org);
@@ -66,6 +67,7 @@ public class InfluxDbService : IDisposable
                 point = point.Field("correnteMaxima", (double)h.CorrenteMaxima.Value);
             if (h.CorrenteMinima.HasValue)
                 point = point.Field("correnteMinima", (double)h.CorrenteMinima.Value);
+            point = point.Field("horimetro", (double)h.Horimetro);
 
             return point;
         }).ToList();
@@ -233,6 +235,7 @@ public class InfluxDbService : IDisposable
                     CorrenteMedia = GetNullableDecimalField(record, "correnteMedia"),
                     CorrenteMaxima = GetNullableDecimalField(record, "correnteMaxima"),
                     CorrenteMinima = GetNullableDecimalField(record, "correnteMinima"),
+                    Horimetro = GetDecimalField(record, "horimetro"),
                 };
                 result.Add(h);
             }

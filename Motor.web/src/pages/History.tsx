@@ -28,6 +28,7 @@ interface HistoricoMotor {
   tensao: number;
   temperatura: number;
   status: string;
+  horimetro: number;
 }
 
 function History() {
@@ -193,6 +194,9 @@ function History() {
         // Converter corrente de centésimos para amperes (ex: 2153 -> 21.53)
         const correnteAmperes = Number(item.corrente) / 100;
         acc[timeKey][`motor_${item.motorId}`] = correnteAmperes;
+        if (item.horimetro > 0) {
+          acc[timeKey][`horimetro_${item.motorId}`] = Number(item.horimetro);
+        }
       }
       return acc;
     }, {} as Record<string, any>);
@@ -300,10 +304,14 @@ function History() {
     const value = typeof label === 'string' ? label : String(label ?? '');
     return format(new Date(value), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   }, []);
-  const tooltipFormatter = useCallback((value: any, name?: string) => {
+  const tooltipFormatter = useCallback((value: any, name?: string, item?: any) => {
     const motorId = (name || '').replace('motor_', '');
     const motor = motors.find(m => m.id === motorId);
-    return [`${Number(value).toFixed(1)}A`, motor?.nome || motorId];
+    const horimetro = item?.payload?.[`horimetro_${motorId}`];
+    const horimetroStr = horimetro != null && horimetro > 0
+      ? ` | Horímetro: ${Number(horimetro).toFixed(2)}h`
+      : '';
+    return [`${Number(value).toFixed(1)}A${horimetroStr}`, motor?.nome || motorId];
   }, [motors]);
   const legendFormatter = useCallback((value: string) => {
     const motorId = value.replace('motor_', '');
@@ -314,7 +322,7 @@ function History() {
 
   const exportData = () => {
     const csvContent = [
-      ['Timestamp', 'Motor', 'Corrente (A)', 'Tensão (V)', 'Temperatura (°C)', 'Status'].join(','),
+      ['Timestamp', 'Motor', 'Corrente (A)', 'Tensão (V)', 'Temperatura (°C)', 'Horímetro (h)', 'Status'].join(','),
       ...filteredHistory.map(h => {
         const motor = motors.find(m => m.id === h.motorId);
         const timestamp = new Date(h.timestamp);
@@ -326,6 +334,7 @@ function History() {
           correnteAmperes.toFixed(2),
           Number(h.tensao).toFixed(1),
           Number(h.temperatura).toFixed(1),
+          h.horimetro > 0 ? Number(h.horimetro).toFixed(2) : '',
           h.status,
         ].join(',');
       }),
@@ -620,6 +629,7 @@ function History() {
                     <th>Corrente</th>
                     <th>Tensão</th>
                     <th>Temperatura</th>
+                    <th>Horímetro</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -646,6 +656,9 @@ function History() {
                           <td className="value">{correnteAmperes.toFixed(2)} A</td>
                           <td className="value">{Number(record.tensao).toFixed(1)} V</td>
                           <td className="value">{Number(record.temperatura).toFixed(1)} °C</td>
+                          <td className="value">
+                            {record.horimetro > 0 ? `${Number(record.horimetro).toFixed(2)} h` : '—'}
+                          </td>
                           <td>
                             <span className={`status-indicator status-${record.status.toLowerCase()}`}>
                               {record.status}

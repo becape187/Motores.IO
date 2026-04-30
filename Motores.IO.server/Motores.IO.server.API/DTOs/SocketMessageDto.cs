@@ -28,9 +28,6 @@ public class SocketMessageDto
     [JsonPropertyName("status")]
     public string? Status { get; set; }
 
-    [JsonPropertyName("horimetro")]
-    public decimal? Horimetro { get; set; }
-
     [JsonPropertyName("timestamp")]
     public long? Timestamp { get; set; }
 }

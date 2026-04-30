@@ -37,6 +37,7 @@ export type HistoricoMotor = {
   correnteMedia?: number;
   correnteMaxima?: number;
   correnteMinima?: number;
+  horimetro: number;
 };
 
 export type Alarme = {

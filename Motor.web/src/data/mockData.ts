@@ -126,6 +126,7 @@ export const generateMockHistory = (): HistoricoMotor[] => {
           tensao: motor.tensao + (Math.random() * 10 - 5),
           temperatura: 45 + Math.random() * 30,
           status: motor.status,
+          horimetro: 0,
         });
       }
     }

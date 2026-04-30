@@ -113,7 +113,7 @@ public class MotorsController : ControllerBase
         }
 
         // PROTEGER CAMPOS DINÂMICOS - NÃO PODEM SER SOBRESCRITOS
-        // Preservar campos que vêm do PLC/socket (Status e Horimetro são atualizados apenas via endpoint /estado)
+        // Preservar campos que vêm do PLC/socket (Status e Horimetro são atualizados apenas via SocketServerService).
         motor.Status = existingMotor.Status;
         motor.Horimetro = existingMotor.Horimetro;
         
@@ -265,45 +265,6 @@ public class MotorsController : ControllerBase
         motor.HorimetroProximaManutencao = dto.HorimetroProximaManutencao;
         motor.DataEstimadaProximaManutencao = dto.DataEstimadaProximaManutencao;
         motor.DataAtualizacao = DateTime.UtcNow;
-
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!MotorExists(id))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
-        }
-
-        return NoContent();
-    }
-
-    // PATCH: api/motors/{id}/estado - Atualizar estado dinâmico (apenas para integração PLC/socket)
-    [HttpPatch("{id}/estado")]
-    public async Task<IActionResult> UpdateEstado(Guid id, UpdateMotorEstadoDto dto)
-    {
-        var motor = await _context.Motores.FindAsync(id);
-        if (motor == null)
-        {
-            return NotFound();
-        }
-
-        // Atualizar apenas estado dinâmico (vindo do PLC)
-        motor.Status = dto.Status;
-        motor.Horimetro = dto.Horimetro;
-
-        // Verificar se atingiu limiar de manutenção e gerar OS automática se necessário
-        await _maintenanceService.VerificarEGerarOSAsync(motor);
-
-        // Recalcular data estimada da próxima manutenção com base na taxa de uso
-        _maintenanceService.RecalcularDataEstimada(motor);
 
         try
         {
