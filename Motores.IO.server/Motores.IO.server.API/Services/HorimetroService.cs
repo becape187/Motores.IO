@@ -54,11 +54,6 @@ public class HorimetroService
         await IntegrarMotorInternoAsync(motor, context);
     }
 
-    public Task IntegrarHorimetroAsync(Models.Motor motor, ApplicationDbContext context)
-    {
-        return IntegrarMotorInternoAsync(motor, context);
-    }
-
     public async Task<(int motoresProcessados, double totalHorasCalculadas)> RecalcularTodosMotoresAsync()
     {
         using var scope = _scopeFactory.CreateScope();

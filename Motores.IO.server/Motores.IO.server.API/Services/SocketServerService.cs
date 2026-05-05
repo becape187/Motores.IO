@@ -25,8 +25,6 @@ public class SocketServerService : BackgroundService, ISocketServerService
     private readonly object _commandsLock = new();
     private int _port;
 
-    private const double ThrottleHorimetroHoras = 1.0;
-
     public SocketServerService(
         ILogger<SocketServerService> logger,
         IConfiguration configuration,
@@ -535,23 +533,10 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 timestampUtc = DateTime.UtcNow;
             }
 
-            var precisaIntegrar = motor.UltimoTimestampIntegrado == null
-                || (timestampUtc - motor.UltimoTimestampIntegrado.Value).TotalHours >= ThrottleHorimetroHoras;
+            var corrente = (double)(message.CorrenteAtual ?? 0);
+            AtualizarHorimetroInline(motor, corrente, timestampUtc);
+            await dbContext.SaveChangesAsync(cancellationToken);
 
-            if (precisaIntegrar)
-            {
-                var horimetroService = scope.ServiceProvider.GetRequiredService<HorimetroService>();
-                await horimetroService.IntegrarHorimetroAsync(motor, dbContext);
-                hasChanges = false; // IntegrarHorimetroAsync já chamou SaveChangesAsync
-            }
-            else if (hasChanges)
-            {
-                motor.DataAtualizacao = DateTime.UtcNow;
-                await dbContext.SaveChangesAsync(cancellationToken);
-                hasChanges = false;
-            }
-
-            // Horímetro do histórico = motor.Horimetro (calculado por HorimetroService). Única fonte de verdade.
             var historico = new HistoricoMotor
             {
                 MotorId = motorId,
@@ -609,16 +594,10 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 timestampUtc = DateTime.UtcNow;
             }
 
-            var precisaIntegrar = motor.UltimoTimestampIntegrado == null
-                || (timestampUtc - motor.UltimoTimestampIntegrado.Value).TotalHours >= ThrottleHorimetroHoras;
+            var corrente = (double)(message.CorrenteAtual ?? 0);
+            AtualizarHorimetroInline(motor, corrente, timestampUtc);
+            await dbContext.SaveChangesAsync(cancellationToken);
 
-            if (precisaIntegrar)
-            {
-                var horimetroService = scope.ServiceProvider.GetRequiredService<HorimetroService>();
-                await horimetroService.IntegrarHorimetroAsync(motor, dbContext);
-            }
-
-            // Horímetro do histórico = motor.Horimetro (calculado por HorimetroService). Única fonte de verdade.
             var historico = new HistoricoMotor
             {
                 MotorId = motorId,
@@ -643,6 +622,25 @@ public class SocketServerService : BackgroundService, ISocketServerService
             _logger.LogError(ex, "Erro ao processar histórico do motor {Id}", message.Id);
             return false;
         }
+    }
+
+    private static void AtualizarHorimetroInline(Models.Motor motor, double corrente, DateTime timestampUtc)
+    {
+        const double correnteLimite = 5.0;
+        const double maxGapSegundos = 600.0;
+
+        if (motor.UltimoTimestampIntegrado.HasValue && corrente >= correnteLimite)
+        {
+            var deltaSegundos = (timestampUtc - motor.UltimoTimestampIntegrado.Value).TotalSeconds;
+            if (deltaSegundos > 0 && deltaSegundos < maxGapSegundos)
+            {
+                motor.HorimetroTs += deltaSegundos;
+                motor.Horimetro = (decimal)Math.Round(motor.HorimetroTs / 3600.0, 2);
+            }
+        }
+
+        motor.UltimoTimestampIntegrado = timestampUtc;
+        motor.DataAtualizacao = DateTime.UtcNow;
     }
 
     private async Task SendResponseAsync(TcpClient client, string response)
