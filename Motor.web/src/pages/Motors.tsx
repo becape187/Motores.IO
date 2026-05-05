@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor } from '../types';
-import { horimetroInteiro } from '../utils/horimetroDisplay';
+import { horimetroHHmm } from '../utils/horimetroDisplay';
 import { useWebSocketCorrentes } from '../hooks/useWebSocketCorrentes';
 import './Motors.css';
 
@@ -454,7 +454,7 @@ function Motors() {
                         <div className="motor-card-details">
                           <div className="detail-item">
                             <span className="detail-label">Horímetro:</span>
-                            <span className="detail-value">{horimetroInteiro(motor.horimetro)}h</span>
+                            <span className="detail-value">{horimetroHHmm(motor.horimetro)}</span>
                           </div>
                           <div className="detail-item">
                             <span className="detail-label">Corrente:</span>
@@ -686,7 +686,7 @@ function Motors() {
                     <div className="info-grid">
                       <div className="info-card">
                         <span className="info-label">Tempo de Operação</span>
-                        <span className="info-value">{horimetroInteiro(selectedMotor.horimetro)} horas</span>
+                        <span className="info-value">{horimetroHHmm(selectedMotor.horimetro)}</span>
                       </div>
                       <div className="info-card">
                         <span className="info-label">Utilização</span>

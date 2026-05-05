@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor, OrdemServico } from '../types';
-import { horimetroInteiro } from '../utils/horimetroDisplay';
+import { horimetroHHmm } from '../utils/horimetroDisplay';
 import './Maintenance.css';
 
 type TabType = 'manutencao' | 'historico';
@@ -378,17 +378,17 @@ function Maintenance() {
                         <div className="motor-card-info">
                           <div className="info-row">
                             <span className="label">Horímetro Atual:</span>
-                            <span className="value">{horimetroInteiro(motor.horimetro)}h</span>
+                            <span className="value">{horimetroHHmm(motor.horimetro)}</span>
                           </div>
                           <div className="info-row">
                             <span className="label">Próxima Manutenção:</span>
                             <span className={`value ${pendente ? 'urgent-text' : ''}`}>
-                              {motor.horimetroProximaManutencao != null ? `${horimetroInteiro(motor.horimetroProximaManutencao)}h` : 'N/A'}
+                              {motor.horimetroProximaManutencao != null ? horimetroHHmm(motor.horimetroProximaManutencao) : 'N/A'}
                             </span>
                           </div>
                           <div className="info-row">
                             <span className="label">Ciclo:</span>
-                            <span className="value">{motor.cicloManutencao}h</span>
+                            <span className="value">{motor.cicloManutencao != null ? horimetroHHmm(motor.cicloManutencao) : 'N/A'}</span>
                           </div>
                           {!pendente && motor.dataEstimadaProximaManutencao && (
                             <div className="info-row">
@@ -426,17 +426,17 @@ function Maintenance() {
                     <div className="details-grid">
                       <div className="detail-item">
                         <span className="detail-label">Horímetro Atual</span>
-                        <span className="detail-value">{horimetroInteiro(selectedMotor.horimetro)}h</span>
+                        <span className="detail-value">{horimetroHHmm(selectedMotor.horimetro)}</span>
                       </div>
                       <div className="detail-item">
                         <span className="detail-label">Próxima Manutenção</span>
                         <span className={`detail-value ${isMotorPendente(selectedMotor) ? 'urgent-text' : ''}`}>
-                          {selectedMotor.horimetroProximaManutencao != null ? `${horimetroInteiro(selectedMotor.horimetroProximaManutencao)}h` : 'N/A'}
+                          {selectedMotor.horimetroProximaManutencao != null ? horimetroHHmm(selectedMotor.horimetroProximaManutencao) : 'N/A'}
                         </span>
                       </div>
                       <div className="detail-item">
                         <span className="detail-label">Ciclo de Manutenção</span>
-                        <span className="detail-value">{selectedMotor.cicloManutencao ?? 'N/A'}h</span>
+                        <span className="detail-value">{selectedMotor.cicloManutencao != null ? horimetroHHmm(selectedMotor.cicloManutencao) : 'N/A'}</span>
                       </div>
                       <div className="detail-item">
                         <span className="detail-label">Data Estimada</span>
@@ -455,8 +455,8 @@ function Maintenance() {
                       <div>
                         <strong>Manutenção Pendente!</strong>
                         <p>
-                          O horímetro ({horimetroInteiro(selectedMotor.horimetro)}h) atingiu ou ultrapassou o limiar
-                          ({selectedMotor.horimetroProximaManutencao != null ? horimetroInteiro(selectedMotor.horimetroProximaManutencao) : '?'}h).
+                          O horímetro ({horimetroHHmm(selectedMotor.horimetro)}) atingiu ou ultrapassou o limiar
+                          ({selectedMotor.horimetroProximaManutencao != null ? horimetroHHmm(selectedMotor.horimetroProximaManutencao) : '?'}).
                           Feche a manutenção abaixo para reiniciar o contador.
                         </p>
                       </div>

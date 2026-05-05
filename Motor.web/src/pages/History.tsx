@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor } from '../types';
+import { horimetroHHmm } from '../utils/horimetroDisplay';
 import './History.css';
 
 const CHART_COLORS = [
@@ -309,7 +310,7 @@ function History() {
     const motor = motors.find(m => m.id === motorId);
     const horimetro = item?.payload?.[`horimetro_${motorId}`];
     const horimetroStr = horimetro != null && horimetro > 0
-      ? ` | Horímetro: ${Math.floor(Number(horimetro))}h`
+      ? ` | Horímetro: ${horimetroHHmm(Number(horimetro))}`
       : '';
     return [`${Number(value).toFixed(1)}A${horimetroStr}`, motor?.nome || motorId];
   }, [motors]);
@@ -322,7 +323,7 @@ function History() {
 
   const exportData = () => {
     const csvContent = [
-      ['Timestamp', 'Motor', 'Corrente (A)', 'Tensão (V)', 'Temperatura (°C)', 'Horímetro (h)', 'Status'].join(','),
+      ['Timestamp', 'Motor', 'Corrente (A)', 'Tensão (V)', 'Temperatura (°C)', 'Horímetro (HH:mm)', 'Status'].join(','),
       ...filteredHistory.map(h => {
         const motor = motors.find(m => m.id === h.motorId);
         const timestamp = new Date(h.timestamp);
@@ -334,7 +335,7 @@ function History() {
           correnteAmperes.toFixed(2),
           Number(h.tensao).toFixed(1),
           Number(h.temperatura).toFixed(1),
-          h.horimetro > 0 ? Math.floor(Number(h.horimetro)).toString() : '',
+          h.horimetro > 0 ? horimetroHHmm(Number(h.horimetro)) : '',
           h.status,
         ].join(',');
       }),
@@ -657,7 +658,7 @@ function History() {
                           <td className="value">{Number(record.tensao).toFixed(1)} V</td>
                           <td className="value">{Number(record.temperatura).toFixed(1)} °C</td>
                           <td className="value">
-                            {record.horimetro > 0 ? `${Math.floor(Number(record.horimetro))} h` : '—'}
+                            {record.horimetro > 0 ? horimetroHHmm(Number(record.horimetro)) : '—'}
                           </td>
                           <td>
                             <span className={`status-indicator status-${record.status.toLowerCase()}`}>

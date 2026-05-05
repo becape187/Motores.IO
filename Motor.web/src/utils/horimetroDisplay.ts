@@ -1,6 +1,9 @@
-/** Exibe horímetro apenas com parte inteira (horas), sem casas decimais na UI. */
-export function horimetroInteiro(value: number | undefined | null): number {
+/** Formata horímetro decimal (em horas) para "HH:mm" — horas e minutos de funcionamento. */
+export function horimetroHHmm(value: number | undefined | null): string {
   const n = Number(value);
-  if (Number.isNaN(n)) return 0;
-  return Math.floor(n);
+  if (!Number.isFinite(n) || n < 0) return '00:00';
+  const totalMinutos = Math.floor(n * 60);
+  const horas = Math.floor(totalMinutos / 60);
+  const minutos = totalMinutos % 60;
+  return `${horas}:${String(minutos).padStart(2, '0')}`;
 }
