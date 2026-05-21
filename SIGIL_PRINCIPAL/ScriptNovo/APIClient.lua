@@ -455,12 +455,15 @@ function APIClient:BuscarMotoresPlanta(plantaUUID)
 end
 
 -- Função para atualizar motor da planta
+-- httpRequest devolve (success, data_decodada_ou_erro, status_code).
+-- Antes o destructuring estava invertido (success,status,data) e a função
+-- sempre devolvia nil mesmo no PUT bem-sucedido.
 function APIClient:AtualizarMotorPlanta(plantaUUID, motorGUID, dados)
     local endpoint = "/api/plantas/" .. (plantaUUID or self.PlantaUUID) .. "/motores/" .. motorGUID
-    local success, status, data = self:httpRequest("PUT", endpoint, dados)
-    
+    local success, data, status = self:httpRequest("PUT", endpoint, dados)
+
     if success and status == 200 then
-        return json.decode(data), nil
+        return data, nil   -- httpRequest já devolve decodificado em sucesso
     else
         return nil, "Erro ao atualizar motor: " .. tostring(data)
     end
@@ -469,10 +472,10 @@ end
 -- Função para criar motor na planta
 function APIClient:CriarMotorPlanta(plantaUUID, dados)
     local endpoint = "/api/plantas/" .. (plantaUUID or self.PlantaUUID) .. "/motores"
-    local success, status, data = self:httpRequest("POST", endpoint, dados)
-    
+    local success, data, status = self:httpRequest("POST", endpoint, dados)
+
     if success and (status == 200 or status == 201) then
-        return json.decode(data), nil
+        return data, nil
     else
         return nil, "Erro ao criar motor: " .. tostring(data)
     end

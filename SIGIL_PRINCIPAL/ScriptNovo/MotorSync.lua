@@ -11,7 +11,7 @@ function MotorSync:new(apiClient, sqliteDB, plantaUUID)
     obj.SQLiteDB = sqliteDB
     obj.PlantaUUID = plantaUUID
     obj.MotoresMemoria = {} -- Tabela em memória: [GUID] = {motor, ultimaAtualizacao}
-    obj.SyncInterval = 30000   -- re-sync periódico DEPOIS de já ter motores (ms)
+    obj.SyncInterval = 5000    -- re-sync periódico (5s) p/ horímetro fresco na tela
     obj.RetryInterval = 10000  -- re-tentativa enquanto NÃO há motores / rede caiu (ms)
     obj.LastSyncTime = -obj.RetryInterval -- força a 1ª requisição já no 1º Loop()
     obj.Inicializado = false

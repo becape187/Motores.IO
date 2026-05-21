@@ -6,13 +6,18 @@
 --      pra não colar 22 JSONs num read TCP — o SocketServerService NÃO
 --      faz framing por '\n' e dropa quando 2+ msgs colidem num read.
 --
--- Contrato confirmado em journald de produção 07/05:
+-- ARQUITETURA (2026-05-21): a IHM NÃO decide nada — só lê a corrente bruta
+-- e manda. Quem decide ligado/desligado e quem integra horímetro é o
+-- BACKEND (que tem corrente nominal, percentual e histerese por motor).
+-- Por isso este reader NÃO envia `status` nem `horimetro` nas mensagens
+-- e não tem `LimiarLigado`. O backend precisa ser atualizado pra derivar
+-- ligado/desligado a partir de `correnteAtual` vs config do motor.
+--
+-- Payload atual:
 --   correntes: {"tipo":"correntes","timestamp":<unix_s>,"plantaId":"<uuid>",
---               "motores":[{"id","status","correnteAtual",
---                           "correnteMedia","correnteMaxima","correnteMinima"}]}
---   historico: {"tipo":"historico","timestamp":<unix_s>,"id":"<guid>",
---               "status":"ligado|desligado","correnteAtual","correnteMedia",
---               "correnteMaxima","correnteMinima"}   (máx/mín só se ligado)
+--               "motores":[{"id","correnteAtual"}]}
+--   historico: {"tipo":"historico","timestamp":<unix_s>,"plantaId":"<uuid>",
+--               "id","correnteAtual","correnteMedia","correnteMaxima","correnteMinima"}
 -- Valores são RAW inteiros do registro de 16 bits (escala raw->A é downstream).
 
 local json = require("json")
@@ -29,11 +34,14 @@ function MotorCurrentReader:new(motorSync, socketClient)
     obj.Enabled      = true
 
     -- ====== TUNÁVEIS ======
-    obj.LiveIntervalMs = 2000     -- "correntes" (tempo real) a cada 2s
+    -- "correntes" sai TODO ciclo de poll ("tão rápido quanto a tela da IHM").
+    -- Payload agora é minúsculo (só id+correnteAtual por motor) e cabe num
+    -- read TCP — improbabilidade de colidir com a próxima.
+    obj.LiveIntervalMs = 0        -- 0 = envia em todo poll do we_bg_poll
     obj.HistIntervalMs = 60000    -- "historico" (resumo persistido) a cada 60s
     obj.HistStaggerMs  = 150      -- gap mínimo entre msgs de historico no drain
-    obj.LimiarLigado   = 500      -- raw: acima disso = ligado
     -- ======================
+    -- (sem LimiarLigado: IHM não decide status; backend decide.)
 
     local agora = we_bas_gettickcount()
     obj.LastLiveTime     = agora
@@ -66,6 +74,11 @@ function MotorCurrentReader:Ler()
             if raw ~= nil then
                 raw = tonumber(raw) or 0
                 if raw < 0 then raw = 0 end
+                -- Sanidade: 0xFFFF (65535) é o padrão de "registrador
+                -- não inicializado / falha de sensor". Trata como zero
+                -- pra não disparar status="ligado" falso e o backend
+                -- integrar hora em motor que não está rodando.
+                if raw >= 65535 then raw = 0 end
 
                 local acc = self.Acc[guid]
                 if not acc then acc = novoAcc(); self.Acc[guid] = acc end
@@ -94,11 +107,10 @@ function MotorCurrentReader:EnviarLive()
         local motor = motorData.motor
         local acc = self.Acc[guid]
         if motor and motor.GUID and acc then
-            local ligado = (acc.ultima > self.LimiarLigado)
-            motor.Status = ligado  -- mantém UI local coerente
+            -- IHM só reporta a corrente bruta. Sem `status` e sem `horimetro`:
+            -- backend é quem decide ligado/desligado e quem mantém o horímetro.
             table.insert(arr, {
                 id            = motor.GUID,
-                status        = ligado and "ligado" or "desligado",
                 correnteAtual = acc.ultima
             })
         end
@@ -138,21 +150,18 @@ function MotorCurrentReader:EnviarProximoHistorico()
     end
 
     local media = (acc.n > 0) and (acc.soma / acc.n) or acc.ultima
-    local ligado = (acc.ultima > self.LimiarLigado)
 
+    -- Sem `status`: backend decide. Manda sempre max/min — backend filtra/usa.
     local item = {
-        tipo          = "historico",
-        timestamp     = os.time(),
-        plantaId      = self.MotorSync.PlantaUUID,
-        id            = motor.GUID,
-        status        = ligado and "ligado" or "desligado",
-        correnteAtual = acc.ultima,
-        correnteMedia = media
+        tipo           = "historico",
+        timestamp      = os.time(),
+        plantaId       = self.MotorSync.PlantaUUID,
+        id             = motor.GUID,
+        correnteAtual  = acc.ultima,
+        correnteMedia  = media,
+        correnteMaxima = acc.max or acc.ultima,
+        correnteMinima = acc.min or acc.ultima
     }
-    if ligado then
-        item.correnteMaxima = acc.max or acc.ultima
-        item.correnteMinima = acc.min or acc.ultima
-    end
 
     -- 1 mensagem só, EnviarMensagem já anexa "\n"
     self.SocketClient:EnviarMensagem(json.encode(item))
@@ -182,6 +191,13 @@ function MotorCurrentReader:Loop()
             self.LastHistItemTime = agora
             if #self.HistFila == 0 then
                 self.LastHistTime = agora  -- ciclo de historico concluído
+                -- O backend acabou de receber o histórico e recalculou os
+                -- horímetros de TODOS os motores. Faz uma sync REST agora
+                -- pra trazer o valor "sincronizado" pra `motor.Horimetro`
+                -- em memória da IHM. A tela pode ler dali (ainda a wirear).
+                if self.MotorSync and self.MotorSync.Sincronizar then
+                    self.MotorSync:Sincronizar()
+                end
             end
         end
         return  -- não envia live no mesmo tick

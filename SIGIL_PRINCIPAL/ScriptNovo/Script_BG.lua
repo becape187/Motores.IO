@@ -91,6 +91,72 @@ function sistemaEstaInicializado()
     return sistemaInicializado
 end
 
+-- ============================================================
+-- Botões da TELA DE EDIÇÃO DE MOTORES
+-- ------------------------------------------------------------
+-- AjustarHorimetro(motorGuid, novoValorHoras)
+--   Define o horímetro do motor (em horas) e propaga via PUT pra API.
+-- ZerarHorimetro(motorGuid)
+--   Atalho para AjustarHorimetro(motorGuid, 0).
+--
+-- Wire-up no PIStudio (cada botão "Execute Lua"):
+--   Botão "Zerar Horímetro"  -> ZerarHorimetro(<reg_string_com_guid>)
+--   Botão "Ajustar Horímetro"-> AjustarHorimetro(<reg_string_com_guid>, <reg_word_com_novo_valor>)
+-- Onde <reg_string_com_guid> é o registrador string que a tela usa pra
+-- identificar o motor selecionado e <reg_word_com_novo_valor> é o input
+-- numérico da nova quantidade de horas.
+-- ============================================================
+
+-- Espelha o formato que MotorSync:AtualizarMotorAPI já manda (campo "horimetro" substituído)
+local function _payloadComHorimetro(motor, novoHorimetro)
+    return {
+        id              = motor.GUID,
+        nome            = motor.Nome,
+        status          = motor.Status and "ligado" or "desligado",
+        horimetro       = novoHorimetro,
+        correnteAtual   = motor.CorrenteAtual or 0,
+        registroModBus  = tostring(motor.RegistroModBus or ""),
+        registroLocal   = tostring(motor.RegistroLocal or ""),
+        correnteNominal = motor.CorrenteNominal or 0
+    }
+end
+
+function AjustarHorimetro(motorGuid, novoValorHoras)
+    if not motorGuid or motorGuid == "" then
+        print("[Horímetro] ✗ GUID vazio — botão não pode chamar sem identificar o motor")
+        return false
+    end
+    novoValorHoras = tonumber(novoValorHoras)
+    if not novoValorHoras or novoValorHoras < 0 then novoValorHoras = 0 end
+
+    if not motorSync or not apiClient then
+        print("[Horímetro] ✗ Sistema ainda não inicializado")
+        return false
+    end
+
+    local motor = motorSync:ObterMotor(motorGuid)
+    if not motor then
+        print("[Horímetro] ✗ Motor não encontrado em memória: " .. tostring(motorGuid))
+        return false
+    end
+
+    local dados = _payloadComHorimetro(motor, novoValorHoras)
+    local resp, err = apiClient:AtualizarMotorPlanta(motorSync.PlantaUUID, motorGuid, dados)
+    if resp ~= nil then
+        motor.Horimetro = novoValorHoras  -- reflete na cópia em memória
+        print(string.format("[Horímetro] ✓ %s: ajustado para %s h",
+            tostring(motor.Nome), tostring(novoValorHoras)))
+        return true
+    else
+        print("[Horímetro] ✗ Falha na API: " .. tostring(err))
+        return false
+    end
+end
+
+function ZerarHorimetro(motorGuid)
+    return AjustarHorimetro(motorGuid, 0)
+end
+
 -- Função chamada automaticamente pelo sistema (pode ficar vazia ou fazer inicialização mínima)
 function we_bg_init()
     -- Iicialização automática desabilitada para permitir inicialização manual
