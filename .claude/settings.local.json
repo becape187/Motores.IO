@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(dotnet build *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "PowerShell(Get-Command *)",
+      "Bash(grep -oE \"[0-9]+\\\\.[0-9]+\\\\.[0-9]+\\\\.[0-9]+:[0-9]+$\")",
+      "Bash(sed 's/:.*//')"
+    ]
+  }
+}

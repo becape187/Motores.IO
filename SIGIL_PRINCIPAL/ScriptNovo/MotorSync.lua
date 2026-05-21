@@ -1,4 +1,4 @@
--- Cs MooSync para sinconização bidirecional entre API e banco loc
+-- Case MotoSync para sinconização bidirecional entre API e banco loc
 MotorSync = {}
 MotorSync.__index = MotorSync
 
@@ -11,8 +11,9 @@ function MotorSync:new(apiClient, sqliteDB, plantaUUID)
     obj.SQLiteDB = sqliteDB
     obj.PlantaUUID = plantaUUID
     obj.MotoresMemoria = {} -- Tabela em memória: [GUID] = {motor, ultimaAtualizacao}
-    obj.LastSyncTime = 0
-    obj.SyncInterval = 5000 -- 20 segundos em milissegundos
+    obj.SyncInterval = 30000   -- re-sync periódico DEPOIS de já ter motores (ms)
+    obj.RetryInterval = 10000  -- re-tentativa enquanto NÃO há motores / rede caiu (ms)
+    obj.LastSyncTime = -obj.RetryInterval -- força a 1ª requisição já no 1º Loop()
     obj.Inicializado = false
     
     return obj
@@ -167,7 +168,6 @@ function MotorSync:Sincronizar()
             criadosLocal, atualizadosLocal, atualizadosAPI))
     end
     
-    self.SyncInterval = 600000
     return true
 end
 
@@ -269,10 +269,42 @@ end
 function MotorSync:Loop()
     local currentTime = we_bas_gettickcount()
     
-    if currentTime - self.LastSyncTime >= self.SyncInterval then
+    -- proteção contra wrap-around do tickcount
+    if currentTime < self.LastSyncTime then
         self.LastSyncTime = currentTime
-        self:Sincronizar()
     end
+
+    -- Enquanto NÃO há motores (1ª vez, rede caída): tenta a cada RetryInterval (10s).
+    -- Depois que já tem motores: re-sincroniza a cada SyncInterval (30s).
+    local intervalo = self.SyncInterval
+    if not self:TemMotores() then
+        intervalo = self.RetryInterval
+    end
+
+    if currentTime - self.LastSyncTime >= intervalo then
+        self.LastSyncTime = currentTime  -- conta a partir do INÍCIO da tentativa
+        self:Sincronizar()
+        if self:TemMotores() then
+            print("[Sync] ✓ " .. self:ContarMotores()
+                  .. " motores em memória — próxima sync em " .. (self.SyncInterval/1000) .. "s")
+        else
+            print("[Sync] ⚠ Sem motores (sem rede/API?) — nova tentativa em "
+                  .. (self.RetryInterval/1000) .. "s")
+        end
+    end
+end
+
+-- Há ao menos 1 motor em memória?
+function MotorSync:TemMotores()
+    for _ in pairs(self.MotoresMemoria) do return true end
+    return false
+end
+
+-- Conta motores em memória
+function MotorSync:ContarMotores()
+    local n = 0
+    for _ in pairs(self.MotoresMemoria) do n = n + 1 end
+    return n
 end
 
 -- Função para obter motor da memória por GUID

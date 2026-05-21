@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git log *)",
+      "Bash(grep -c \"udisk:motores.db\" BCP-IHM-SIGIL_V2.0.pi2 BCP-IHM-SIGIL_V2.0.wmt3)",
+      "Bash(grep -c \"sdcard:motores.db\" BCP-IHM-SIGIL_V2.0.pi2 BCP-IHM-SIGIL_V2.0.wmt3)",
+      "WebFetch(domain:docs.we-con.com.cn)",
+      "Bash(curl *)",
+      "Bash([ -f \"$f\" ])"
+    ]
+  }
+}
