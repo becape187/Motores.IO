@@ -138,26 +138,34 @@ export function useWebSocketConsole(
         };
 
         ws.onclose = (event) => {
-          console.log('[Console WebSocket] Conexão fechada. Code:', event.code, 'Reason:', event.reason);
+          console.log('[Console WebSocket] Conexão fechada. Code:', event.code, 'Reason:', event.reason || '(vazio)');
           setIsConnected(false);
           isConnectingRef.current = false;
-          
-          // Tentar reconectar apenas se ainda estiver montado e flag ativa
-          // E se não foi um fechamento intencional (code 1000)
-          if (isMountedRef.current && shouldReconnect.current && event.code !== 1000) {
-            reconnectAttempts.current++;
-            const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectAttempts.current, 5)), 30000);
-            console.log(`[Console WebSocket] Tentando reconectar em ${delay}ms (tentativa ${reconnectAttempts.current})`);
-            
-            reconnectTimeoutRef.current = setTimeout(() => {
-              if (isMountedRef.current && shouldReconnect.current && !isConnectingRef.current) {
-                isConnectingRef.current = true;
-                connect();
-              }
-            }, delay);
-          } else {
-            console.log('[Console WebSocket] Não reconectando - componente desmontado, flag desabilitada ou fechamento intencional');
+
+          // Reconectar SEMPRE enquanto o componente estiver montado.
+          // O servidor responde com NormalClosure (1000) mesmo quando o cliente
+          // fechou por outro motivo — checar code 1000 mata a reconexão eterna.
+          if (!isMountedRef.current) {
+            console.log('[Console WebSocket] ✋ Não reconectando: componente desmontado');
+            return;
           }
+          if (!shouldReconnect.current) {
+            console.log('[Console WebSocket] ✋ Não reconectando: flag shouldReconnect=false (cleanup em andamento)');
+            return;
+          }
+
+          reconnectAttempts.current++;
+          const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectAttempts.current, 5)), 30000);
+          console.log(`[Console WebSocket] ↻ Reconectando em ${delay}ms (tentativa #${reconnectAttempts.current})`);
+
+          reconnectTimeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current && shouldReconnect.current && !isConnectingRef.current) {
+              isConnectingRef.current = true;
+              connect();
+            } else {
+              console.log('[Console WebSocket] Reconexão agendada cancelada: estado mudou');
+            }
+          }, delay);
         };
       } catch (err) {
         console.error('[Console WebSocket] Erro ao criar conexão:', err);

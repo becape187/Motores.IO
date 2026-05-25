@@ -177,7 +177,7 @@ export function useWebSocketCorrentes(
         };
 
         ws.onclose = (event) => {
-          console.log('[WebSocket Correntes] Conexão fechada. Code:', event.code, 'Reason:', event.reason);
+          console.log('[WebSocket Correntes] Conexão fechada. Code:', event.code, 'Reason:', event.reason || '(vazio)');
           setIsConnected(false);
           isConnectingRef.current = false;
           lastMessageTimeRef.current = null;
@@ -187,24 +187,35 @@ export function useWebSocketCorrentes(
             clearTimeout(heartbeatTimeoutRef.current);
             heartbeatTimeoutRef.current = null;
           }
-          
-          // Tentar reconectar infinitamente se ainda houver planta selecionada e flag ativa
-          // E se não foi um fechamento intencional (code 1000)
-          if (isMountedRef.current && shouldReconnect.current && event.code !== 1000) {
-            reconnectAttempts.current++;
-            // Backoff exponencial com limite máximo de 30 segundos
-            const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectAttempts.current, 5)), 30000);
-            console.log(`[WebSocket Correntes] Tentando reconectar em ${delay}ms (tentativa ${reconnectAttempts.current})`);
-            
-            reconnectTimeoutRef.current = setTimeout(() => {
-              if (isMountedRef.current && shouldReconnect.current && !isConnectingRef.current) {
-                isConnectingRef.current = true;
-                connect();
-              }
-            }, delay);
-          } else {
-            console.log('[WebSocket Correntes] Não reconectando - componente desmontado, flag desabilitada ou fechamento intencional');
+
+          // Reconectar SEMPRE enquanto o componente estiver montado.
+          // `shouldReconnect` só vira false no cleanup do useEffect (mudança de plantaId
+          // ou unmount). NÃO checar event.code: o servidor sempre responde com
+          // NormalClosure (1000), mesmo quando o cliente fechou por timeout — então
+          // checar code 1000 mata a reconexão eterna que precisamos.
+          if (!isMountedRef.current) {
+            console.log('[WebSocket Correntes] ✋ Não reconectando: componente desmontado');
+            return;
           }
+          if (!shouldReconnect.current) {
+            console.log('[WebSocket Correntes] ✋ Não reconectando: flag shouldReconnect=false (cleanup em andamento)');
+            return;
+          }
+
+          reconnectAttempts.current++;
+          // Backoff exponencial limitado a 30s. Cap interno no expoente em 5
+          // (1s, 2s, 4s, 8s, 16s, 30s) — depois de 5 tentativas, fica em 30s pra sempre.
+          const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectAttempts.current, 5)), 30000);
+          console.log(`[WebSocket Correntes] ↻ Reconectando em ${delay}ms (tentativa #${reconnectAttempts.current})`);
+
+          reconnectTimeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current && shouldReconnect.current && !isConnectingRef.current) {
+              isConnectingRef.current = true;
+              connect();
+            } else {
+              console.log('[WebSocket Correntes] Reconexão agendada cancelada: estado mudou');
+            }
+          }, delay);
         };
       } catch (err) {
         console.error('[WebSocket Correntes] Erro ao criar conexão:', err);
