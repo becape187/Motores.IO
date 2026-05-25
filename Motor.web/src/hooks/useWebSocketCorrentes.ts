@@ -22,7 +22,6 @@ export interface MotorCorrenteData {
   correnteMedia?: number;
   correnteMaxima?: number;
   correnteMinima?: number;
-  status?: string;
 }
 
 export function useWebSocketCorrentes(
@@ -144,16 +143,15 @@ export function useWebSocketCorrentes(
             const message: CorrentesMessage = JSON.parse(event.data);
             
             if (message.tipo === 'correntes' && message.motores) {
-              // Criar um Map com UUID -> dados de corrente
-              // Converter valores: dividir por 100 (ex: 2153 -> 21.5)
+              // Valores já em AMPERES (IHM aplica raw/100). Status sai do payload —
+              // é derivado da corrente na UI (utils/motorStatus.ts).
               const correntesMap = new Map<string, MotorCorrenteData>();
               message.motores.forEach((motor) => {
                 const dados: MotorCorrenteData = {
-                  correnteAtual: motor.correnteAtual / 100,
-                  correnteMedia: motor.correnteMedia ? motor.correnteMedia / 100 : undefined,
-                  correnteMaxima: motor.correnteMaxima ? motor.correnteMaxima / 100 : undefined,
-                  correnteMinima: motor.correnteMinima ? motor.correnteMinima / 100 : undefined,
-                  status: motor.status,
+                  correnteAtual: motor.correnteAtual,
+                  correnteMedia: motor.correnteMedia,
+                  correnteMaxima: motor.correnteMaxima,
+                  correnteMinima: motor.correnteMinima,
                 };
                 correntesMap.set(motor.id, dados);
               });

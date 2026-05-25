@@ -90,7 +90,10 @@ public class ApplicationDbContext : DbContext
             
             entity.Property(e => e.HorimetroProximaManutencao)
                 .HasColumnType("decimal(10,2)");
-            
+
+            entity.Property(e => e.HorimetroCalculado)
+                .HasColumnType("decimal(10,2)");
+
             entity.Property(e => e.DataCriacao)
                 .IsRequired()
                 .HasDefaultValueSql("NOW()");

@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Filter, Cog, Loader, Wifi, WifiOff, ArrowLeft, GripVertical } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Filter, Cog, Loader, Wifi, WifiOff, ArrowLeft, GripVertical, RotateCcw, Calculator } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor } from '../types';
 import { horimetroHHmm } from '../utils/horimetroDisplay';
 import { useWebSocketCorrentes } from '../hooks/useWebSocketCorrentes';
+import { derivarStatus } from '../utils/motorStatus';
 import './Motors.css';
 
 function Motors() {
@@ -23,6 +26,8 @@ function Motors() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [zerandoHorimetro, setZerandoHorimetro] = useState(false);
+  const [calculandoHorimetro, setCalculandoHorimetro] = useState(false);
 
   const isAdmin = user?.perfil === 'admin' || user?.perfil === 'global';
   
@@ -93,21 +98,20 @@ function Motors() {
     }
   };
 
-  // WebSocket para atualização em tempo real das correntes
+  // WebSocket para atualização em tempo real das correntes. Status na UI é
+  // derivado de `correnteAtual` — não vem mais do payload.
   const handleCorrentesUpdate = useCallback((correntesMap: Map<string, import('../hooks/useWebSocketCorrentes').MotorCorrenteData>) => {
-    setMotors(prevMotors => 
+    setMotors(prevMotors =>
       prevMotors.map(motor => {
         const dadosCorrente = correntesMap.get(motor.id);
         if (dadosCorrente !== undefined) {
-          const updatedMotor = { 
-            ...motor, 
+          const updatedMotor = {
+            ...motor,
             correnteAtual: dadosCorrente.correnteAtual,
             correnteMedia: dadosCorrente.correnteMedia,
             correnteMaxima: dadosCorrente.correnteMaxima,
             correnteMinima: dadosCorrente.correnteMinima,
-            status: dadosCorrente.status as Motor['status'] || motor.status,
           };
-          // Atualizar motor selecionado se for o mesmo
           setSelectedMotor(prev => prev && prev.id === motor.id ? updatedMotor : prev);
           return updatedMotor;
         }
@@ -187,7 +191,7 @@ function Motors() {
           registroLocal: newMotor.registroLocal,
           status: newMotor.status as Motor['status'],
           horimetro: Number(newMotor.horimetro),
-          correnteAtual: (Number(newMotor.correnteAtual || 0)) / 100,
+          correnteAtual: Number(newMotor.correnteAtual || 0),
           posicaoX: newMotor.posicaoX ? Number(newMotor.posicaoX) : undefined,
           posicaoY: newMotor.posicaoY ? Number(newMotor.posicaoY) : undefined,
           habilitado: newMotor.habilitado !== undefined ? newMotor.habilitado : true,
@@ -230,7 +234,7 @@ function Motors() {
           registroLocal: updatedMotor.registroLocal,
           status: updatedMotor.status as Motor['status'],
           horimetro: Number(updatedMotor.horimetro),
-          correnteAtual: (Number(updatedMotor.correnteAtual || 0)) / 100,
+          correnteAtual: Number(updatedMotor.correnteAtual || 0),
           posicaoX: updatedMotor.posicaoX ? Number(updatedMotor.posicaoX) : undefined,
           posicaoY: updatedMotor.posicaoY ? Number(updatedMotor.posicaoY) : undefined,
           habilitado: updatedMotor.habilitado !== undefined ? updatedMotor.habilitado : true,
@@ -283,6 +287,59 @@ function Motors() {
     setFormData({ ...formData, [field]: value });
   };
 
+  // Zera o Horímetro de Operação. NÃO toca no Horímetro Calculado nem na data dele.
+  const handleZerarHorimetro = async () => {
+    if (!selectedMotor) return;
+    if (!window.confirm(`Zerar Horímetro de Operação de "${selectedMotor.nome}"?\nO Horímetro Calculado e o histórico do Influx NÃO serão afetados.`)) {
+      return;
+    }
+    try {
+      setZerandoHorimetro(true);
+      const resp = await api.zerarHorimetro(selectedMotor.id);
+      const atualizado: Motor = {
+        ...selectedMotor,
+        horimetro: Number(resp.horimetro ?? 0),
+        dataZeramentoHorimetro: resp.dataZeramentoHorimetro ? new Date(resp.dataZeramentoHorimetro) : new Date(),
+      };
+      setSelectedMotor(atualizado);
+      setMotors(prev => prev.map(m => m.id === atualizado.id ? atualizado : m));
+      if (plantaSelecionada) invalidateCache(plantaSelecionada.id);
+    } catch (err: any) {
+      alert('Erro ao zerar horímetro: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setZerandoHorimetro(false);
+    }
+  };
+
+  // Recalcula o Horímetro Calculado integrando todo o histórico do Influx.
+  // NÃO toca no Horímetro de Operação.
+  const handleCalcularHorimetro = async () => {
+    if (!selectedMotor) return;
+    try {
+      setCalculandoHorimetro(true);
+      const resp = await api.calcularHorimetro(selectedMotor.id);
+      const atualizado: Motor = {
+        ...selectedMotor,
+        horimetroCalculado: resp.horimetroCalculado != null ? Number(resp.horimetroCalculado) : undefined,
+        dataCalculoHorimetro: resp.dataCalculoHorimetro ? new Date(resp.dataCalculoHorimetro) : new Date(),
+      };
+      setSelectedMotor(atualizado);
+      setMotors(prev => prev.map(m => m.id === atualizado.id ? atualizado : m));
+      if (plantaSelecionada) invalidateCache(plantaSelecionada.id);
+    } catch (err: any) {
+      alert('Erro ao calcular horímetro: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setCalculandoHorimetro(false);
+    }
+  };
+
+  const formatarDataHora = (d?: Date | string) => {
+    if (!d) return '—';
+    const data = d instanceof Date ? d : new Date(d);
+    if (Number.isNaN(data.getTime())) return '—';
+    return format(data, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  };
+
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -325,8 +382,9 @@ function Motors() {
   };
 
 
+  // Filtro usa status DERIVADO da corrente (não o campo persistido).
   const filteredMotors = motors.filter(motor =>
-    filterStatus === 'all' || motor.status === filterStatus
+    filterStatus === 'all' || derivarStatus(motor.correnteAtual) === filterStatus
   );
 
   if (loading) {
@@ -419,7 +477,8 @@ function Motors() {
                     alarme: { label: 'Alarme', color: '#e74c3c' },
                     pendente: { label: 'Pendente', color: '#9b59b6' },
                   };
-                  const config = statusConfig[motor.status as keyof typeof statusConfig] || statusConfig.desligado;
+                  const statusAtual = derivarStatus(motor.correnteAtual);
+                  const config = statusConfig[statusAtual as keyof typeof statusConfig] || statusConfig.desligado;
                   const realIndex = motors.indexOf(motor);
                   
                   return (
@@ -679,6 +738,54 @@ function Motors() {
                     </div>
                   </div>
                 </div>
+
+                {!isEditing && !isAdding && selectedMotor && (
+                  <div className="form-section">
+                    <h4>Horímetro</h4>
+                    <div className="info-grid">
+                      <div className="info-card">
+                        <span className="info-label">Horímetro de Operação</span>
+                        <span className="info-value">{horimetroHHmm(selectedMotor.horimetro)}</span>
+                        <span className="field-hint">
+                          Último zeramento: {formatarDataHora(selectedMotor.dataZeramentoHorimetro)}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          onClick={handleZerarHorimetro}
+                          disabled={zerandoHorimetro}
+                          title="Zera o Horímetro de Operação (usado por manutenção). Não afeta o Horímetro Calculado."
+                        >
+                          {zerandoHorimetro ? <Loader size={16} className="spin" /> : <RotateCcw size={16} />}
+                          {zerandoHorimetro ? 'Zerando...' : 'Zerar Horímetro'}
+                        </button>
+                      </div>
+                      <div className="info-card">
+                        <span className="info-label">Horímetro Calculado</span>
+                        <span className="info-value">
+                          {selectedMotor.horimetroCalculado != null
+                            ? horimetroHHmm(selectedMotor.horimetroCalculado)
+                            : '—'}
+                        </span>
+                        <span className="field-hint">
+                          Último cálculo: {formatarDataHora(selectedMotor.dataCalculoHorimetro)}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          onClick={handleCalcularHorimetro}
+                          disabled={calculandoHorimetro}
+                          title="Integra todo o histórico do Influx e atualiza o Horímetro Calculado. Não afeta o de Operação."
+                        >
+                          {calculandoHorimetro ? <Loader size={16} className="spin" /> : <Calculator size={16} />}
+                          {calculandoHorimetro ? 'Calculando...' : 'Calcular do Histórico'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {!isEditing && !isAdding && selectedMotor && (
                   <div className="form-section">

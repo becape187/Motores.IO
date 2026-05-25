@@ -14,6 +14,7 @@ const MotorsCacheContext = createContext<MotorsCacheContextType | undefined>(und
 const motorsCache: Map<string, { motors: Motor[]; timestamp: number }> = new Map();
 const CACHE_DURATION = 30000; // 30 segundos
 
+// correnteAtual chega em AMPERES (IHM já aplica raw/100). Não dividir mais.
 const convertMotorData = (m: any): Motor => ({
   id: m.id,
   nome: m.nome,
@@ -26,8 +27,10 @@ const convertMotorData = (m: any): Motor => ({
   registroLocal: m.registroLocal,
   status: m.status as Motor['status'],
   horimetro: Number(m.horimetro),
-  // Converter correnteAtual: dividir por 100 (ex: 2153 -> 21.5)
-  correnteAtual: (Number(m.correnteAtual || 0)) / 100,
+  horimetroCalculado: m.horimetroCalculado != null ? Number(m.horimetroCalculado) : undefined,
+  dataCalculoHorimetro: m.dataCalculoHorimetro ? new Date(m.dataCalculoHorimetro) : undefined,
+  dataZeramentoHorimetro: m.dataZeramentoHorimetro ? new Date(m.dataZeramentoHorimetro) : undefined,
+  correnteAtual: Number(m.correnteAtual || 0),
   posicaoX: m.posicaoX ? Number(m.posicaoX) : undefined,
   posicaoY: m.posicaoY ? Number(m.posicaoY) : undefined,
   habilitado: m.habilitado !== undefined ? m.habilitado : true,

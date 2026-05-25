@@ -6,19 +6,19 @@
 --      pra não colar 22 JSONs num read TCP — o SocketServerService NÃO
 --      faz framing por '\n' e dropa quando 2+ msgs colidem num read.
 --
--- ARQUITETURA (2026-05-21): a IHM NÃO decide nada — só lê a corrente bruta
--- e manda. Quem decide ligado/desligado e quem integra horímetro é o
--- BACKEND (que tem corrente nominal, percentual e histerese por motor).
--- Por isso este reader NÃO envia `status` nem `horimetro` nas mensagens
--- e não tem `LimiarLigado`. O backend precisa ser atualizado pra derivar
--- ligado/desligado a partir de `correnteAtual` vs config do motor.
+-- ARQUITETURA (2026-05-25): a IHM NÃO decide nada — só lê a corrente do
+-- registrador, aplica a aferição local (raw/100, em centésimos de Ampere) e
+-- manda já em AMPERES. O backend recebe valores em A e usa o limiar de 5 A
+-- pra integrar horímetro. Status (ligado/desligado) é derivado na UI a partir
+-- da corrente — não é enviado pela IHM nem persistido como regra de negócio.
 --
 -- Payload atual:
 --   correntes: {"tipo":"correntes","timestamp":<unix_s>,"plantaId":"<uuid>",
 --               "motores":[{"id","correnteAtual"}]}
 --   historico: {"tipo":"historico","timestamp":<unix_s>,"plantaId":"<uuid>",
 --               "id","correnteAtual","correnteMedia","correnteMaxima","correnteMinima"}
--- Valores são RAW inteiros do registro de 16 bits (escala raw->A é downstream).
+-- Valores em AMPERES (float). Aferição (escala raw→A) vive aqui, no reader;
+-- ajustar este fator se o registrador do PLC mudar de escala.
 
 local json = require("json")
 
@@ -40,6 +40,9 @@ function MotorCurrentReader:new(motorSync, socketClient)
     obj.LiveIntervalMs = 0        -- 0 = envia em todo poll do we_bg_poll
     obj.HistIntervalMs = 60000    -- "historico" (resumo persistido) a cada 60s
     obj.HistStaggerMs  = 150      -- gap mínimo entre msgs de historico no drain
+    -- Aferição: o registrador do PLC reporta corrente em centésimos de Ampere
+    -- (raw 247 = 2,47 A). Se o eletricista ajustar a escala no CT, mudar aqui.
+    obj.FatorEscala    = 1 / 100  -- raw → Amperes
     -- ======================
     -- (sem LimiarLigado: IHM não decide status; backend decide.)
 
@@ -76,20 +79,23 @@ function MotorCurrentReader:Ler()
                 if raw < 0 then raw = 0 end
                 -- Sanidade: 0xFFFF (65535) é o padrão de "registrador
                 -- não inicializado / falha de sensor". Trata como zero
-                -- pra não disparar status="ligado" falso e o backend
-                -- integrar hora em motor que não está rodando.
+                -- pra não fazer o backend integrar hora em motor parado.
                 if raw >= 65535 then raw = 0 end
+
+                -- Aferição: converte raw → Amperes ANTES de acumular.
+                -- Daqui pra frente, o acc/payload/JSON tudo está em A.
+                local amperes = raw * self.FatorEscala
 
                 local acc = self.Acc[guid]
                 if not acc then acc = novoAcc(); self.Acc[guid] = acc end
 
-                if acc.max == nil or raw > acc.max then acc.max = raw end
-                if acc.min == nil or raw < acc.min then acc.min = raw end
-                acc.ultima = raw
-                acc.soma = acc.soma + raw
+                if acc.max == nil or amperes > acc.max then acc.max = amperes end
+                if acc.min == nil or amperes < acc.min then acc.min = amperes end
+                acc.ultima = amperes
+                acc.soma = acc.soma + amperes
                 acc.n = acc.n + 1
 
-                motor:setCorrenteAtual(raw)
+                motor:setCorrenteAtual(amperes)
             end
         end
     end

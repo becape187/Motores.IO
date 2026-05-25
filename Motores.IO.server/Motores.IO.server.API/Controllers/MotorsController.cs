@@ -16,13 +16,20 @@ public class MotorsController : ControllerBase
     private readonly ILogger<MotorsController> _logger;
     private readonly InfluxDbService _influxDbService;
     private readonly MaintenanceService _maintenanceService;
+    private readonly HorimetroService _horimetroService;
 
-    public MotorsController(ApplicationDbContext context, ILogger<MotorsController> logger, InfluxDbService influxDbService, MaintenanceService maintenanceService)
+    public MotorsController(
+        ApplicationDbContext context,
+        ILogger<MotorsController> logger,
+        InfluxDbService influxDbService,
+        MaintenanceService maintenanceService,
+        HorimetroService horimetroService)
     {
         _context = context;
         _logger = logger;
         _influxDbService = influxDbService;
         _maintenanceService = maintenanceService;
+        _horimetroService = horimetroService;
     }
 
     // GET: api/motors
@@ -308,6 +315,48 @@ public class MotorsController : ControllerBase
 
         await _context.SaveChangesAsync();
         return NoContent();
+    }
+
+    // POST: api/motors/{id}/zerar-horimetro — zera o Horímetro de Operação.
+    // NÃO toca em HorimetroCalculado nem na data do último cálculo.
+    [HttpPost("{id}/zerar-horimetro")]
+    public async Task<IActionResult> ZerarHorimetro(Guid id)
+    {
+        var motor = await _context.Motores.FindAsync(id);
+        if (motor == null)
+        {
+            return NotFound();
+        }
+
+        await _horimetroService.ZerarHorimetroOperacaoAsync(id);
+
+        var atualizado = await _context.Motores.FindAsync(id);
+        return Ok(new
+        {
+            horimetro = atualizado?.Horimetro,
+            dataZeramentoHorimetro = atualizado?.DataZeramentoHorimetro,
+        });
+    }
+
+    // POST: api/motors/{id}/calcular-horimetro — integra TODO o histórico do Influx
+    // e armazena em HorimetroCalculado + DataCalculoHorimetro. Não toca no de operação.
+    [HttpPost("{id}/calcular-horimetro")]
+    public async Task<IActionResult> CalcularHorimetro(Guid id)
+    {
+        var motor = await _context.Motores.FindAsync(id);
+        if (motor == null)
+        {
+            return NotFound();
+        }
+
+        var horas = await _horimetroService.CalcularHorimetroDoZeroAsync(id);
+        var atualizado = await _context.Motores.FindAsync(id);
+
+        return Ok(new
+        {
+            horimetroCalculado = horas,
+            dataCalculoHorimetro = atualizado?.DataCalculoHorimetro,
+        });
     }
 
     // DELETE: api/motors/5

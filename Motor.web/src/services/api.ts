@@ -193,6 +193,26 @@ class ApiService {
     });
   }
 
+  // Zera o Horímetro de Operação do motor (NÃO toca no Horímetro Calculado).
+  async zerarHorimetro(id: string) {
+    return this.request<{
+      horimetro: number;
+      dataZeramentoHorimetro?: string;
+    }>(`/motors/${id}/zerar-horimetro`, {
+      method: 'POST',
+    });
+  }
+
+  // Recalcula o Horímetro Calculado integrando todo o histórico do Influx.
+  async calcularHorimetro(id: string) {
+    return this.request<{
+      horimetroCalculado: number | null;
+      dataCalculoHorimetro?: string;
+    }>(`/motors/${id}/calcular-horimetro`, {
+      method: 'POST',
+    });
+  }
+
   // Imagem da planta
   async getImagemPlanta(plantaId: string) {
     return this.request<{ imagemBase64: string | null }>(`/plantas/${plantaId}/imagem-planta`);

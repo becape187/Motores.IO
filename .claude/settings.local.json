@@ -8,7 +8,10 @@
       "Bash(git push *)",
       "PowerShell(Get-Command *)",
       "Bash(grep -oE \"[0-9]+\\\\.[0-9]+\\\\.[0-9]+\\\\.[0-9]+:[0-9]+$\")",
-      "Bash(sed 's/:.*//')"
+      "Bash(sed 's/:.*//')",
+      "Bash(cat)",
+      "Bash(base64 -w0 /tmp/diag.sh)",
+      "Read(//tmp/**)"
     ]
   }
 }

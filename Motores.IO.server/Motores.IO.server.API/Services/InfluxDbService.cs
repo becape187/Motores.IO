@@ -29,9 +29,11 @@ public class InfluxDbService : IDisposable
 
     public async Task WriteHistoricoAsync(HistoricoMotor historico)
     {
+        // Tag `status` removida: status é derivado na UI a partir de `corrente >= 5 A`.
+        // Pontos antigos têm a tag preservada — queries que filtram por status seguem
+        // funcionando em retroativo, mas novos pontos não a carregam.
         var point = PointData.Measurement(Measurement)
             .Tag("motorId", historico.MotorId.ToString())
-            .Tag("status", historico.Status ?? "")
             .Field("corrente", (double)historico.Corrente)
             .Field("tensao", (double)historico.Tensao)
             .Field("temperatura", (double)historico.Temperatura)
@@ -55,7 +57,6 @@ public class InfluxDbService : IDisposable
         {
             var point = PointData.Measurement(Measurement)
                 .Tag("motorId", h.MotorId.ToString())
-                .Tag("status", h.Status ?? "")
                 .Field("corrente", (double)h.Corrente)
                 .Field("tensao", (double)h.Tensao)
                 .Field("temperatura", (double)h.Temperatura)

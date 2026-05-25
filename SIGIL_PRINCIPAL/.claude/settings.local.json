@@ -6,7 +6,10 @@
       "Bash(grep -c \"sdcard:motores.db\" BCP-IHM-SIGIL_V2.0.pi2 BCP-IHM-SIGIL_V2.0.wmt3)",
       "WebFetch(domain:docs.we-con.com.cn)",
       "Bash(curl *)",
-      "Bash([ -f \"$f\" ])"
+      "Bash([ -f \"$f\" ])",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git -c commit.gpgsign=false commit -m 'IHM: correntes em tempo real + IHM dumb \\(status/horimetro são backend\\) *)"
     ]
   }
 }

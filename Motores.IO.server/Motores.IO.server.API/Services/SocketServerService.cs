@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -23,6 +24,14 @@ public class SocketServerService : BackgroundService, ISocketServerService
     private readonly Dictionary<string, TaskCompletionSource<FileCommandResponseDto>> _pendingCommands = new(); // Mapeia requestId -> TaskCompletionSource
     private readonly object _clientsLock = new();
     private readonly object _commandsLock = new();
+    // Última atividade útil por cliente. O idle scanner usa isso para fechar zumbis
+    // que escapam do TCP keepalive e do timeout do ReadAsync.
+    private readonly ConcurrentDictionary<TcpClient, DateTime> _lastActivityUtc = new();
+    private static readonly TimeSpan IdleLimit = TimeSpan.FromSeconds(120);
+    private static readonly TimeSpan IdleScanInterval = TimeSpan.FromSeconds(30);
+    // Timeout por leitura individual no ReadAsync. ReceiveTimeout do TcpClient é
+    // ignorado pelo ReadAsync no .NET 8 — precisa ser via CancellationToken.
+    private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(60);
     private int _port;
 
     public SocketServerService(
@@ -52,32 +61,29 @@ public class SocketServerService : BackgroundService, ISocketServerService
             _logger.LogInformation("Endereço: {Address} (aceita conexões de qualquer interface)", IPAddress.Any);
             _logger.LogInformation("Aguardando conexões TCP na porta {Port}...", _port);
 
+            // Idle scanner (E): roda em paralelo varrendo _lastActivityUtc e fechando zumbis.
+            _ = Task.Run(() => IdleScannerAsync(cancellationToken), cancellationToken);
+
             // Aceitar conexões em loop
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
                     var tcpClient = await _tcpListener.AcceptTcpClientAsync();
-                    _logger.LogInformation("Nova conexão estabelecida de {RemoteEndPoint}", 
+                    _logger.LogInformation("Nova conexão estabelecida de {RemoteEndPoint}",
                         tcpClient.Client.RemoteEndPoint);
 
-                    // Adicionar cliente à lista
+                    // (A) Habilita TCP keepalive nativo no socket recém-aceito.
+                    // Garante detecção de IHM desaparecida (sem RST) em ~90s, mesmo com
+                    // os defaults péssimos do kernel (tcp_keepalive_time=7200s).
+                    TryEnableTcpKeepAlive(tcpClient);
+
+                    // Adicionar cliente à lista e marcar atividade inicial.
                     lock (_clientsLock)
                     {
                         _connectedClients.Add(tcpClient);
                     }
-                    
-                    // Aguardar mensagem de identificação da planta (timeout de 5 segundos)
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await Task.Delay(5000, cancellationToken); // Aguardar 5 segundos
-                            // Se não recebeu identificação, remover da lista após timeout
-                            // (será tratado no HandleClientAsync quando desconectar)
-                        }
-                        catch { }
-                    }, cancellationToken);
+                    _lastActivityUtc[tcpClient] = DateTime.UtcNow;
 
                     // Processar cliente em thread separada
                     _ = Task.Run(() => HandleClientAsync(tcpClient, cancellationToken), cancellationToken);
@@ -108,21 +114,38 @@ public class SocketServerService : BackgroundService, ISocketServerService
 
         try
         {
-            // Configurar timeout
-            client.ReceiveTimeout = 30000; // 30 segundos
+            // SendTimeout do TcpClient ainda vale para o WriteAsync síncrono interno.
             client.SendTimeout = 5000; // 5 segundos
 
             while (!cancellationToken.IsCancellationRequested && client.Connected)
             {
                 try
                 {
-                    var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-                    
+                    // (D) ReceiveTimeout não funciona com ReadAsync no .NET 8.
+                    // Usar CancellationTokenSource linkado e CancelAfter por leitura.
+                    int bytesRead;
+                    using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                    {
+                        readCts.CancelAfter(ReadTimeout);
+                        try
+                        {
+                            bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), readCts.Token);
+                        }
+                        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                        {
+                            _logger.LogWarning("Cliente {RemoteEndPoint} sem dados há {Timeout}s — fechando",
+                                remoteEndPoint, (int)ReadTimeout.TotalSeconds);
+                            break;
+                        }
+                    }
+
                     if (bytesRead == 0)
                     {
                         // Cliente desconectou
                         break;
                     }
+
+                    _lastActivityUtc[client] = DateTime.UtcNow;
 
                     // Adicionar dados recebidos ao builder
                     messageBuilder.Append(Encoding.UTF8.GetString(buffer, 0, bytesRead));
@@ -188,18 +211,20 @@ public class SocketServerService : BackgroundService, ISocketServerService
             lock (_clientsLock)
             {
                 _connectedClients.Remove(client);
-                
+
                 // Remover cliente do mapeamento de plantas
                 var plantasParaRemover = _plantaClients
                     .Where(kvp => kvp.Value == client)
                     .Select(kvp => kvp.Key)
                     .ToList();
-                
+
                 foreach (var plantaId in plantasParaRemover)
                 {
                     _plantaClients.Remove(plantaId);
                 }
             }
+
+            _lastActivityUtc.TryRemove(client, out _);
             
             // Cancelar comandos pendentes deste cliente
             lock (_commandsLock)
@@ -273,18 +298,43 @@ public class SocketServerService : BackgroundService, ISocketServerService
                     PropertyNameCaseInsensitive = true
                 });
                 
-                if (identMessage != null && identMessage.ContainsKey("tipo") && 
+                if (identMessage != null && identMessage.ContainsKey("tipo") &&
                     identMessage["tipo"].GetString() == "identificacao" &&
                     identMessage.ContainsKey("plantaId"))
                 {
                     var plantaId = identMessage["plantaId"].GetString();
                     if (!string.IsNullOrEmpty(plantaId))
                     {
+                        // (B) Quando a IHM reabre a conexão sem fechar a anterior, o
+                        // _plantaClients era sobrescrito mas o TcpClient antigo continuava
+                        // vivo (zumbi) consumindo uma task de HandleClientAsync. Agora
+                        // fechamos o anterior antes de substituir.
+                        TcpClient? clienteAnterior = null;
                         lock (_clientsLock)
                         {
+                            if (_plantaClients.TryGetValue(plantaId, out var existente) && !ReferenceEquals(existente, client))
+                            {
+                                clienteAnterior = existente;
+                            }
                             _plantaClients[plantaId] = client;
                             _logger.LogInformation("Cliente identificado como planta: {PlantaId}", plantaId);
                         }
+
+                        if (clienteAnterior != null)
+                        {
+                            try
+                            {
+                                _logger.LogInformation(
+                                    "Fechando conexão anterior da planta {PlantaId}: {EP}",
+                                    plantaId, clienteAnterior.Client.RemoteEndPoint);
+                                clienteAnterior.Close();
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogDebug(ex, "Falha ao fechar conexão anterior da planta {PlantaId}", plantaId);
+                            }
+                        }
+
                         await SendResponseAsync(client, "OK\n");
                         return;
                     }
@@ -373,6 +423,10 @@ public class SocketServerService : BackgroundService, ISocketServerService
             // Processar mensagem de array de correntes (sem logs excessivos)
             else if (socketMessage.Tipo == "correntes")
             {
+                // (C) 'correntes' é fire-and-forget. A IHM não lê resposta neste caminho
+                // (EnviarCorrentesArray → EnviarMensagem, sem ReceberMensagem). Responder
+                // OK só enche o buffer TCP da IHM (que nunca lê), gasta RTT e adia o
+                // próximo ReadAsync no server enquanto o WriteAsync ainda não terminou.
                 try
                 {
                     var correntesDto = JsonSerializer.Deserialize<CorrentesArrayDto>(message, new JsonSerializerOptions
@@ -383,17 +437,11 @@ public class SocketServerService : BackgroundService, ISocketServerService
                     if (correntesDto?.Motores != null && correntesDto.Motores.Count > 0)
                     {
                         await ProcessCorrentesArrayAsync(correntesDto, cancellationToken);
-                        await SendResponseAsync(client, "OK\n");
-                    }
-                    else
-                    {
-                        await SendResponseAsync(client, "ERROR: Array vazio\n");
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Erro ao processar array de correntes");
-                    await SendResponseAsync(client, "ERROR: Erro ao processar\n");
                 }
             }
             // Processar mensagens de console (log, error, warn, info)
@@ -508,21 +556,9 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 return false;
             }
 
-            // Atualizar dados do motor
-            var hasChanges = false;
-
-            if (message.CorrenteAtual.HasValue)
-            {
-                // Aqui você pode processar a corrente atual se necessário
-                // Por exemplo, verificar se está acima do limite e atualizar status
-            }
-
-            if (!string.IsNullOrEmpty(message.Status))
-            {
-                motor.Status = message.Status;
-                hasChanges = true;
-            }
-
+            // Mensagem `tipo:"motor"` é o caminho legado (1 motor por msg). Apenas
+            // grava ponto histórico no Influx; status e horímetro NÃO vêm da IHM.
+            // (Horímetro inline vive em ProcessHistoricoMotorAsync, que usa correnteMedia.)
             DateTime timestampUtc;
             if (message.Timestamp.HasValue)
             {
@@ -533,17 +569,13 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 timestampUtc = DateTime.UtcNow;
             }
 
-            var corrente = (double)(message.CorrenteAtual ?? 0);
-            AtualizarHorimetroInline(motor, corrente, timestampUtc);
-            await dbContext.SaveChangesAsync(cancellationToken);
-
             var historico = new HistoricoMotor
             {
                 MotorId = motorId,
                 Corrente = message.CorrenteAtual ?? motor.CorrenteNominal,
                 Tensao = motor.Tensao,
                 Temperatura = 0,
-                Status = message.Status ?? motor.Status,
+                Status = string.Empty,
                 Timestamp = timestampUtc,
                 Horimetro = motor.Horimetro
             };
@@ -594,8 +626,12 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 timestampUtc = DateTime.UtcNow;
             }
 
-            var corrente = (double)(message.CorrenteAtual ?? 0);
-            AtualizarHorimetroInline(motor, corrente, timestampUtc);
+            // CORRENTE EM AMPERES — a IHM (ScriptNovo/MotorCurrentReader) já aplica a
+            // aferição local (raw/100) antes de enviar. Threshold de 5.0 abaixo é 5 A.
+            // Para o horímetro inline, usar a MÉDIA da janela (correnteMedia) é mais
+            // representativo do que `correnteAtual` instantânea: cobre o minuto inteiro.
+            var correnteParaHorimetro = (double)(message.CorrenteMedia ?? message.CorrenteAtual ?? 0);
+            AtualizarHorimetroInline(motor, correnteParaHorimetro, timestampUtc);
             await dbContext.SaveChangesAsync(cancellationToken);
 
             var historico = new HistoricoMotor
@@ -607,7 +643,9 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 CorrenteMinima = message.CorrenteMinima,
                 Tensao = motor.Tensao,
                 Temperatura = 0,
-                Status = message.Status ?? motor.Status,
+                // Status é derivado na UI; campo segue no DTO por compatibilidade, mas
+                // o Influx não tagga mais por status (ver InfluxDbService.WriteHistoricoAsync).
+                Status = string.Empty,
                 Timestamp = timestampUtc,
                 Horimetro = motor.Horimetro
             };
@@ -624,12 +662,15 @@ public class SocketServerService : BackgroundService, ISocketServerService
         }
     }
 
-    private static void AtualizarHorimetroInline(Models.Motor motor, double corrente, DateTime timestampUtc)
+    // Acumula horímetro com a corrente JÁ EM AMPERES. 5.0 abaixo é 5 A — não confundir
+    // com 0,05 A. O `maxGapSegundos = 600` evita somar um buraco de >10 min como se o
+    // motor tivesse rodado nele.
+    private static void AtualizarHorimetroInline(Models.Motor motor, double correnteAmperes, DateTime timestampUtc)
     {
-        const double correnteLimite = 5.0;
+        const double correnteLimiteAmperes = 5.0;
         const double maxGapSegundos = 600.0;
 
-        if (motor.UltimoTimestampIntegrado.HasValue && corrente >= correnteLimite)
+        if (motor.UltimoTimestampIntegrado.HasValue && correnteAmperes >= correnteLimiteAmperes)
         {
             var deltaSegundos = (timestampUtc - motor.UltimoTimestampIntegrado.Value).TotalSeconds;
             if (deltaSegundos > 0 && deltaSegundos < maxGapSegundos)
@@ -791,5 +832,69 @@ public class SocketServerService : BackgroundService, ISocketServerService
         StopAsync(CancellationToken.None).Wait();
         _tcpListener?.Stop();
         base.Dispose();
+    }
+
+    // (A) Habilita TCP keepalive nativo do socket. Detecta IHM desaparecida (sem RST,
+    // sem FIN — ex.: NAT expirado, link cortado bruscamente) em ~90s sem precisar de
+    // tráfego da aplicação. As 3 opções TcpKeepAlive* são cross-platform a partir
+    // do .NET 8 (no Linux mapeiam para TCP_KEEPIDLE/TCP_KEEPINTVL/TCP_KEEPCNT).
+    private void TryEnableTcpKeepAlive(TcpClient tcpClient)
+    {
+        try
+        {
+            var socket = tcpClient.Client;
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, 60);
+            socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, 10);
+            socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, 3);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Não foi possível habilitar TCP keepalive em {EP}",
+                tcpClient.Client.RemoteEndPoint);
+        }
+    }
+
+    // (E) Defesa em profundidade. TCP keepalive (A) e o timeout do ReadAsync (D) já
+    // deveriam fechar zumbis, mas se algum deles falhar por qualquer motivo (ex.: o
+    // socket está com Read pendurado num estado raro do TCP), o scanner pega.
+    private async Task IdleScannerAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(IdleScanInterval, cancellationToken);
+
+                var agora = DateTime.UtcNow;
+                var zumbis = _lastActivityUtc
+                    .Where(kvp => (agora - kvp.Value) > IdleLimit)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var cliente in zumbis)
+                {
+                    try
+                    {
+                        var ep = cliente.Client?.RemoteEndPoint?.ToString() ?? "?";
+                        _logger.LogWarning("[IdleScanner] Fechando conexão zumbi {EP} (idle > {Limit}s)",
+                            ep, (int)IdleLimit.TotalSeconds);
+                        cliente.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "[IdleScanner] Erro ao fechar zumbi");
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[IdleScanner] Erro no loop");
+            }
+        }
     }
 }

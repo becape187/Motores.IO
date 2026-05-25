@@ -5,6 +5,7 @@ import { useMotorsCache } from '../contexts/MotorsCacheContext';
 import { api } from '../services/api';
 import { Motor } from '../types';
 import { useWebSocketCorrentes } from '../hooks/useWebSocketCorrentes';
+import { derivarStatus } from '../utils/motorStatus';
 import './Dashboard.css';
 
 function Dashboard() {
@@ -83,13 +84,18 @@ function Dashboard() {
     };
   }, [plantaSelecionada, isEditMode]);
 
-  const stats = {
-    total: motors.length,
-    online: motors.filter(m => m.status === 'ligado').length,
-    alerta: motors.filter(m => m.status === 'alerta' || m.status === 'alarme').length,
-    offline: motors.filter(m => m.status === 'desligado').length,
-    consumoTotal: motors.reduce((acc, m) => acc + (m.status === 'ligado' ? m.correnteAtual : 0), 0),
-  };
+  // Status agora é DERIVADO da corrente atual em tempo real — bate exatamente
+  // com o que está sendo mostrado no círculo do mapa e nas listas.
+  const stats = useMemo(() => {
+    const ligados = motors.filter(m => derivarStatus(m.correnteAtual) === 'ligado');
+    return {
+      total: motors.length,
+      online: ligados.length,
+      alerta: 0, // sem alerta/alarme persistido no momento — placeholder
+      offline: motors.length - ligados.length,
+      consumoTotal: ligados.reduce((acc, m) => acc + (m.correnteAtual || 0), 0),
+    };
+  }, [motors]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -175,19 +181,19 @@ function Dashboard() {
     loadMotors();
   }, [plantaSelecionada, getMotors]);
 
-  // WebSocket para atualização em tempo real das correntes
+  // WebSocket para atualização em tempo real das correntes. NÃO atualiza `status`:
+  // status é derivado de `correnteAtual` na hora de renderizar.
   const handleCorrentesUpdate = useCallback((correntesMap: Map<string, import('../hooks/useWebSocketCorrentes').MotorCorrenteData>) => {
-    setMotors(prevMotors => 
+    setMotors(prevMotors =>
       prevMotors.map(motor => {
         const dadosCorrente = correntesMap.get(motor.id);
         if (dadosCorrente !== undefined) {
-          return { 
-            ...motor, 
+          return {
+            ...motor,
             correnteAtual: dadosCorrente.correnteAtual,
             correnteMedia: dadosCorrente.correnteMedia,
             correnteMaxima: dadosCorrente.correnteMaxima,
             correnteMinima: dadosCorrente.correnteMinima,
-            status: dadosCorrente.status as Motor['status'] || motor.status,
           };
         }
         return motor;
@@ -1066,7 +1072,7 @@ function Dashboard() {
                   cx={motor.posicaoX}
                   cy={motor.posicaoY}
                   r="10"
-                  fill={getStatusColor(motor.status)}
+                  fill={getStatusColor(derivarStatus(motor.correnteAtual))}
                   opacity={savingPosition === motor.id ? 0.5 : 1}
                   stroke={isEditMode ? "#3498db" : "#fff"}
                   strokeWidth={isEditMode ? 2 : 1.5}

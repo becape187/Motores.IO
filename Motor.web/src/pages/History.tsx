@@ -192,8 +192,8 @@ function History() {
       }
       const motor = motors.find(m => m.id === item.motorId);
       if (motor) {
-        // Converter corrente de centésimos para amperes (ex: 2153 -> 21.53)
-        const correnteAmperes = Number(item.corrente) / 100;
+        // Corrente já em Amperes (IHM aplica raw/100 antes de enviar)
+        const correnteAmperes = Number(item.corrente);
         acc[timeKey][`motor_${item.motorId}`] = correnteAmperes;
         if (item.horimetro > 0) {
           acc[timeKey][`horimetro_${item.motorId}`] = Number(item.horimetro);
@@ -327,8 +327,8 @@ function History() {
       ...filteredHistory.map(h => {
         const motor = motors.find(m => m.id === h.motorId);
         const timestamp = new Date(h.timestamp);
-        // Converter corrente de centésimos para amperes
-        const correnteAmperes = Number(h.corrente) / 100;
+        // Corrente já em Amperes
+        const correnteAmperes = Number(h.corrente);
         return [
           format(timestamp, 'dd/MM/yyyy HH:mm:ss'),
           motor?.nome || h.motorId,
@@ -640,8 +640,8 @@ function History() {
                     .map((record, index) => {
                       const motor = motors.find(m => m.id === record.motorId);
                       const timestamp = new Date(record.timestamp);
-                      // Converter corrente de centésimos para amperes
-                      const correnteAmperes = Number(record.corrente) / 100;
+                      // Corrente já em Amperes
+                      const correnteAmperes = Number(record.corrente);
                       return (
                         <tr key={record.id || index}>
                           <td className="timestamp">
