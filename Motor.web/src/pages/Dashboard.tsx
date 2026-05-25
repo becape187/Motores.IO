@@ -1106,7 +1106,7 @@ function Dashboard() {
                   fontSize="10"
                   style={{ pointerEvents: 'none' }}
                 >
-                  {motor.correnteAtual.toFixed(1)}A
+                  {(motor.correnteAtual ?? 0).toFixed(1)}A
                 </text>
               </g>
             ))}

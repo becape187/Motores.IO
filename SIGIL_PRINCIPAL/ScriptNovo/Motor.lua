@@ -82,12 +82,10 @@ function Motor:setStatus(status)
     self.Status = status or false
 end
 
--- Método para atualizar o horímetro (adiciona horas)
-function Motor:adicionarHoras(horas)
-    if horas and horas > 0 then
-        self.Horimetro = self.Horimetro + horas
-    end
-end
-
+-- Horímetro é responsabilidade EXCLUSIVA do backend:
+--   - integração em tempo real: HorimetroService no servidor (a partir das mensagens 'historico')
+--   - zeramento de operação: POST /api/motors/{id}/zerar-horimetro
+--   - cálculo do histórico: POST /api/motors/{id}/calcular-horimetro
+-- A IHM apenas LÊ motor.Horimetro vindo da API e mostra na tela.
 
 return Motor

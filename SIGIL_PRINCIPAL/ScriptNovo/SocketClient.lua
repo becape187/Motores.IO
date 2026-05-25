@@ -288,13 +288,15 @@ function SocketClient:EnviarDadosMotor(motor)
         statusStr = motor.Status
     end
     
+    -- Horímetro NÃO entra no payload: o backend é dono dessa métrica e ignora
+    -- o campo no recebimento. Status também não deveria entrar (backend decide),
+    -- mas o callback que dispara EnviarDadosMotor está desativado em Script_BG.
     local data = {
         tipo = "motor",
         id = motorId,
         nome = motor.Nome,
         correnteAtual = motor.CorrenteAtual,
         status = statusStr,
-        horimetro = motor.Horimetro,
         timestamp = os.time()
     }
     

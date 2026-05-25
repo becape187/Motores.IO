@@ -615,16 +615,18 @@ public class SocketServerService : BackgroundService, ISocketServerService
                 return false;
             }
 
-            // Converter timestamp Unix para DateTime UTC
-            DateTime timestampUtc;
-            if (message.Timestamp.HasValue)
+            // CRÍTICO: histórico DEVE vir com timestamp da medição (não do envio).
+            // A IHM acumula consolidados numa fila local quando a internet cai e os
+            // reenvia depois — se gravarmos com DateTime.UtcNow, o ponto fica no
+            // tempo errado no Influx. Rejeitar pra forçar a IHM a corrigir e log
+            // warning para diagnóstico.
+            if (!message.Timestamp.HasValue)
             {
-                timestampUtc = DateTimeOffset.FromUnixTimeSeconds(message.Timestamp.Value).UtcDateTime;
+                _logger.LogWarning("Histórico sem timestamp — REJEITADO. Motor={Id}", motorId);
+                return false;
             }
-            else
-            {
-                timestampUtc = DateTime.UtcNow;
-            }
+
+            var timestampUtc = DateTimeOffset.FromUnixTimeSeconds(message.Timestamp.Value).UtcDateTime;
 
             // CORRENTE EM AMPERES — a IHM (ScriptNovo/MotorCurrentReader) já aplica a
             // aferição local (raw/100) antes de enviar. Threshold de 5.0 abaixo é 5 A.

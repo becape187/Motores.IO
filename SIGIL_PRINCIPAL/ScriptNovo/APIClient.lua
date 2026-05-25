@@ -415,6 +415,8 @@ end
 function APIClient:AtualizarMotor(motor)
     local endpoint = "/api/plantas/" .. self.PlantaUUID .. "/motores/" .. tostring(motor.ID)
     
+    -- Horímetro NÃO entra no payload: backend é dono dessa métrica e ignora
+    -- o campo. Para zerar, usar APIClient:ZerarHorimetroOperacao.
     local data = {
         id = motor.ID,
         nome = motor.Nome,
@@ -424,10 +426,9 @@ function APIClient:AtualizarMotor(motor)
         correnteNominal = motor.CorrenteNominal,
         percentCorrenteMaximaErro = motor.PercentCorrenteMaximaErro,
         percentHistereseErro = motor.PercentHistereseErro,
-        status = motor.Status,
-        horimetro = motor.Horimetro
+        status = motor.Status
     }
-    
+
     return self:httpRequest("PUT", endpoint, data)
 end
 
@@ -478,6 +479,36 @@ function APIClient:CriarMotorPlanta(plantaUUID, dados)
         return data, nil
     else
         return nil, "Erro ao criar motor: " .. tostring(data)
+    end
+end
+
+-- Zerar o Horímetro de Operação de um motor (delega para o backend, que também
+-- grava DataZeramentoHorimetro). NÃO toca em HorimetroCalculado. Resposta:
+-- {horimetro, dataZeramentoHorimetro}.
+function APIClient:ZerarHorimetroOperacao(motorGuid)
+    local endpoint = "/api/motors/" .. tostring(motorGuid) .. "/zerar-horimetro"
+    -- POST sem body. Passar tabela vazia pra o httpRequest formar JSON "{}" válido.
+    local success, data, status = self:httpRequest("POST", endpoint, {})
+
+    if success and status == 200 then
+        return data, nil
+    else
+        return nil, "Erro ao zerar horímetro: HTTP " .. tostring(status) .. " - " .. tostring(data)
+    end
+end
+
+-- Recalcular o Horímetro a partir do histórico integral do Influx (botão
+-- "Calcular do Histórico"). Grava em HorimetroCalculado + DataCalculoHorimetro
+-- no backend; NÃO toca no horímetro de operação. Resposta:
+-- {horimetroCalculado, dataCalculoHorimetro}.
+function APIClient:CalcularHorimetroDoHistorico(motorGuid)
+    local endpoint = "/api/motors/" .. tostring(motorGuid) .. "/calcular-horimetro"
+    local success, data, status = self:httpRequest("POST", endpoint, {})
+
+    if success and status == 200 then
+        return data, nil
+    else
+        return nil, "Erro ao calcular horímetro: HTTP " .. tostring(status) .. " - " .. tostring(data)
     end
 end
 

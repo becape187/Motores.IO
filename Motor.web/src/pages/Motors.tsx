@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Save, X, Filter, Cog, Loader, Wifi, WifiOff, ArrowLeft, GripVertical, RotateCcw, Calculator } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -8,10 +9,13 @@ import { api } from '../services/api';
 import { Motor } from '../types';
 import { horimetroHHmm } from '../utils/horimetroDisplay';
 import { useWebSocketCorrentes } from '../hooks/useWebSocketCorrentes';
+import { useMotorSparklines } from '../hooks/useMotorSparklines';
+import { MotorSparkline } from '../components/MotorSparkline';
 import { derivarStatus } from '../utils/motorStatus';
 import './Motors.css';
 
 function Motors() {
+  const location = useLocation();
   const { plantaSelecionada, user } = useAuth();
   const { getMotors, invalidateCache } = useMotorsCache();
   const [motors, setMotors] = useState<Motor[]>([]);
@@ -124,6 +128,18 @@ function Motors() {
     plantaSelecionada?.id,
     handleCorrentesUpdate
   );
+
+  // Sparklines de 1h por motor (cache em localStorage, refresh a cada 1 min).
+  const sparklinesData = useMotorSparklines(motors.map(m => m.id));
+
+  // Clicar em "Motores" no menu lateral (mesmo já estando em /motors) deve
+  // voltar para a lista. React Router gera um location.key novo a cada Link.
+  useEffect(() => {
+    setShowDetails(false);
+    setSelectedMotor(null);
+    setIsEditing(false);
+    setIsAdding(false);
+  }, [location.key]);
 
   // Buscar motores usando cache
   useEffect(() => {
@@ -480,7 +496,35 @@ function Motors() {
                   const statusAtual = derivarStatus(motor.correnteAtual);
                   const config = statusConfig[statusAtual as keyof typeof statusConfig] || statusConfig.desligado;
                   const realIndex = motors.indexOf(motor);
-                  
+
+                  const correnteAtual = motor.correnteAtual ?? 0;
+                  const pctNominal = motor.correnteNominal > 0
+                    ? (correnteAtual / motor.correnteNominal) * 100
+                    : null;
+
+                  // Manutenção: horas restantes até a próxima e % do ciclo consumido.
+                  const horasRestantesManut = motor.horimetroProximaManutencao != null
+                    ? motor.horimetroProximaManutencao - motor.horimetro
+                    : null;
+                  const manutVencida = horasRestantesManut != null && horasRestantesManut <= 0;
+                  let progressoManut: number | null = null;
+                  if (motor.cicloManutencao != null && motor.horimetroProximaManutencao != null && motor.cicloManutencao > 0) {
+                    const base = motor.horimetroProximaManutencao - motor.cicloManutencao;
+                    const usado = motor.horimetro - base;
+                    progressoManut = Math.min(100, Math.max(0, (usado / motor.cicloManutencao) * 100));
+                  }
+                  const corProgresso = manutVencida
+                    ? '#e74c3c'
+                    : (progressoManut != null && progressoManut > 80)
+                      ? '#f39c12'
+                      : '#27ae60';
+
+                  const temStats = typeof motor.correnteMedia === 'number'
+                    || typeof motor.correnteMaxima === 'number'
+                    || typeof motor.correnteMinima === 'number';
+
+                  const sparkPoints = sparklinesData.get(motor.id) ?? [];
+
                   return (
                     <div
                       key={motor.id}
@@ -493,6 +537,7 @@ function Motors() {
                       onDrop={isAdmin ? (e) => handleDrop(e, realIndex) : undefined}
                       onDragEnd={isAdmin ? handleDragEnd : undefined}
                     >
+                      <MotorSparkline points={sparkPoints} color={config.color} />
                       {isAdmin && filterStatus === 'all' && (
                         <div className="motor-card-drag-handle" onClick={(e) => e.stopPropagation()}>
                           <GripVertical size={18} />
@@ -510,21 +555,61 @@ function Motors() {
                             {config.label}
                           </span>
                         </div>
-                        <div className="motor-card-details">
-                          <div className="detail-item">
-                            <span className="detail-label">Horímetro:</span>
-                            <span className="detail-value">{horimetroHHmm(motor.horimetro)}</span>
+                        <div className="motor-card-body">
+                          <div className="motor-current-block">
+                            <div className="motor-current-value" style={{ color: config.color }}>
+                              <span className="motor-current-number">{correnteAtual.toFixed(1)}</span>
+                              <span className="motor-current-unit">A</span>
+                            </div>
+                            {pctNominal !== null && (
+                              <div className="motor-current-pct">{pctNominal.toFixed(0)}% nominal</div>
+                            )}
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Corrente:</span>
-                            <span className="detail-value" style={{ fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
-                              Inst: {motor.correnteAtual.toFixed(1)}A
-                              {motor.correnteMedia !== undefined && ` média: ${motor.correnteMedia.toFixed(1)}A`}
-                              {motor.correnteMaxima !== undefined && ` max: ${motor.correnteMaxima.toFixed(1)}A`}
-                              {motor.correnteMinima !== undefined && ` min: ${motor.correnteMinima.toFixed(1)}A`}
-                            </span>
+
+                          <div className="motor-info-block">
+                            <div className="motor-info-row">
+                              <span className="motor-info-label">Horímetro</span>
+                              <span className="motor-info-value">{horimetroHHmm(motor.horimetro)}</span>
+                            </div>
+                            {motor.cicloManutencao != null && motor.cicloManutencao > 0 && (
+                              <>
+                                <div className="motor-info-row">
+                                  <span className="motor-info-label">Manutenção</span>
+                                  <span className={`motor-info-value ${manutVencida ? 'motor-info-value--danger' : ''}`}>
+                                    {horasRestantesManut == null
+                                      ? '—'
+                                      : manutVencida
+                                        ? 'Vencida'
+                                        : `em ${horimetroHHmm(horasRestantesManut)}`}
+                                  </span>
+                                </div>
+                                {progressoManut != null && (
+                                  <div className="motor-maintenance-progress" title={`${progressoManut.toFixed(0)}% do ciclo consumido`}>
+                                    <div
+                                      className="motor-maintenance-progress-fill"
+                                      style={{ width: `${progressoManut}%`, background: corProgresso }}
+                                    />
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
+
+                        {temStats && (
+                          <div className="motor-card-stats">
+                            {typeof motor.correnteMedia === 'number' && (
+                              <span className="motor-stat"><span className="motor-stat-label">méd</span> {motor.correnteMedia.toFixed(1)}</span>
+                            )}
+                            {typeof motor.correnteMaxima === 'number' && (
+                              <span className="motor-stat"><span className="motor-stat-label">máx</span> {motor.correnteMaxima.toFixed(1)}</span>
+                            )}
+                            {typeof motor.correnteMinima === 'number' && (
+                              <span className="motor-stat"><span className="motor-stat-label">mín</span> {motor.correnteMinima.toFixed(1)}</span>
+                            )}
+                            <span className="motor-stat-unit">A</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

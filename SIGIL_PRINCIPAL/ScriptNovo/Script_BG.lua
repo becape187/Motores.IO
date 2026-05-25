@@ -20,23 +20,22 @@ function inicializarSistema()
     end
     
     conta = 0
-    
-    -- Inicializar banco de dados local
+
+    -- Inicializar cache de motores em RAM (sem SD/USB/SQLite — só tabela Lua).
+    -- O nome SQLiteDB ficou por inércia da migração; ver SQLiteDB.lua.
     print("[Init] === INICIANDO SISTEMA ===")
-    print("[Init] Inicializando banco de dados local...")
-    
-    -- Usar "udisk:" para disco USB ou caminho relativo conforme documentação
-    sqliteDB = SQLiteDB:new("udisk:motores.db")
-    we_bas_setint("@W_HDW300",11)
-    local dbConnected, dbErr = sqliteDB:Conectar()
-    we_bas_setint("@W_HDW300",12)
-    if not dbConnected then
-        print("[Init] ✗ Erro ao conectar ao banco local: " .. tostring(dbErr))
-        print("[Init] Detalhes do erro: " .. tostring(dbErr))
+    print("[Init] Inicializando cache de motores em RAM...")
+
+    sqliteDB = SQLiteDB:new()
+    we_bas_setint("@W_HDW300", 11)
+    local cacheOk, cacheErr = sqliteDB:Conectar()
+    we_bas_setint("@W_HDW300", 12)
+    if not cacheOk then
+        print("[Init] ✗ Erro ao inicializar cache: " .. tostring(cacheErr))
         sistemaInicializado = false
-        return false -- Não continua se não conseguir conectar ao banco
+        return false
     else
-        print("[Init] ✓ Banco de dados local conectado")
+        print("[Init] ✓ Cache em RAM pronto")
     end
     
     -- Inicializar API Client
@@ -92,69 +91,75 @@ function sistemaEstaInicializado()
 end
 
 -- ============================================================
--- Botões da TELA DE EDIÇÃO DE MOTORES
+-- Botões da TELA DE EDIÇÃO DE MOTORES (horímetro)
 -- ------------------------------------------------------------
--- AjustarHorimetro(motorGuid, novoValorHoras)
---   Define o horímetro do motor (em horas) e propaga via PUT pra API.
--- ZerarHorimetro(motorGuid)
---   Atalho para AjustarHorimetro(motorGuid, 0).
+-- IHM NÃO trata horímetro — só delega ao backend, fonte da verdade.
+-- Cálculo, zeramento e persistência são 100% do servidor.
 --
--- Wire-up no PIStudio (cada botão "Execute Lua"):
---   Botão "Zerar Horímetro"  -> ZerarHorimetro(<reg_string_com_guid>)
---   Botão "Ajustar Horímetro"-> AjustarHorimetro(<reg_string_com_guid>, <reg_word_com_novo_valor>)
--- Onde <reg_string_com_guid> é o registrador string que a tela usa pra
--- identificar o motor selecionado e <reg_word_com_novo_valor> é o input
--- numérico da nova quantidade de horas.
+-- ZerarHorimetro(motorGuid)
+--   POST /api/motors/{id}/zerar-horimetro
+--   Zera o Horímetro DE OPERAÇÃO + grava DataZeramentoHorimetro.
+--   NÃO toca em HorimetroCalculado.
+--
+-- CalcularHorimetro(motorGuid)
+--   POST /api/motors/{id}/calcular-horimetro
+--   Recalcula o Horímetro CALCULADO integrando TODO o histórico do Influx.
+--   Grava em HorimetroCalculado + DataCalculoHorimetro. NÃO toca no de operação.
+--
+-- Wire-up no PIStudio (botão "Execute Lua"):
+--   Botão "Zerar Horímetro"          -> ZerarHorimetro(<reg_string_com_guid>)
+--   Botão "Calcular do Histórico"    -> CalcularHorimetro(<reg_string_com_guid>)
+--
+-- ATENÇÃO: o botão antigo "Ajustar Horímetro" (definir para valor arbitrário)
+-- foi removido — o backend não tem mais esse endpoint. Se o botão ainda
+-- existir na tela do PIStudio, remova-o ou redirecione para Zerar/Calcular.
 -- ============================================================
 
--- Espelha o formato que MotorSync:AtualizarMotorAPI já manda (campo "horimetro" substituído)
-local function _payloadComHorimetro(motor, novoHorimetro)
-    return {
-        id              = motor.GUID,
-        nome            = motor.Nome,
-        status          = motor.Status and "ligado" or "desligado",
-        horimetro       = novoHorimetro,
-        correnteAtual   = motor.CorrenteAtual or 0,
-        registroModBus  = tostring(motor.RegistroModBus or ""),
-        registroLocal   = tostring(motor.RegistroLocal or ""),
-        correnteNominal = motor.CorrenteNominal or 0
-    }
-end
-
-function AjustarHorimetro(motorGuid, novoValorHoras)
+function ZerarHorimetro(motorGuid)
     if not motorGuid or motorGuid == "" then
         print("[Horímetro] ✗ GUID vazio — botão não pode chamar sem identificar o motor")
         return false
     end
-    novoValorHoras = tonumber(novoValorHoras)
-    if not novoValorHoras or novoValorHoras < 0 then novoValorHoras = 0 end
-
-    if not motorSync or not apiClient then
+    if not apiClient then
         print("[Horímetro] ✗ Sistema ainda não inicializado")
         return false
     end
 
-    local motor = motorSync:ObterMotor(motorGuid)
-    if not motor then
-        print("[Horímetro] ✗ Motor não encontrado em memória: " .. tostring(motorGuid))
-        return false
-    end
-
-    local dados = _payloadComHorimetro(motor, novoValorHoras)
-    local resp, err = apiClient:AtualizarMotorPlanta(motorSync.PlantaUUID, motorGuid, dados)
+    local resp, err = apiClient:ZerarHorimetroOperacao(motorGuid)
     if resp ~= nil then
-        motor.Horimetro = novoValorHoras  -- reflete na cópia em memória
-        print(string.format("[Horímetro] ✓ %s: ajustado para %s h",
-            tostring(motor.Nome), tostring(novoValorHoras)))
+        -- Atualizar cópia em memória pra UI refletir imediatamente. O próximo
+        -- MotorSync vai trazer o valor canônico do backend de qualquer forma.
+        local motor = motorSync and motorSync:ObterMotor(motorGuid) or nil
+        if motor then
+            motor.Horimetro = tonumber(resp.horimetro) or 0
+        end
+        print("[Horímetro] ✓ Zerado pelo backend: motor=" .. tostring(motorGuid))
         return true
     else
-        print("[Horímetro] ✗ Falha na API: " .. tostring(err))
+        print("[Horímetro] ✗ Falha ao zerar: " .. tostring(err))
         return false
     end
 end
 
-function ZerarHorimetro(motorGuid)
-    return AjustarHorimetro(motorGuid, 0)
+function CalcularHorimetro(motorGuid)
+    if not motorGuid or motorGuid == "" then
+        print("[Horímetro] ✗ GUID vazio — botão não pode chamar sem identificar o motor")
+        return false
+    end
+    if not apiClient then
+        print("[Horímetro] ✗ Sistema ainda não inicializado")
+        return false
+    end
+
+    local resp, err = apiClient:CalcularHorimetroDoHistorico(motorGuid)
+    if resp ~= nil then
+        print(string.format("[Horímetro] ✓ Calculado do histórico: motor=%s, valor=%s h",
+            tostring(motorGuid), tostring(resp.horimetroCalculado)))
+        return true
+    else
+        print("[Horímetro] ✗ Falha ao calcular: " .. tostring(err))
+        return false
+    end
 end
 
 -- Função chamada automaticamente pelo sistema (pode ficar vazia ou fazer inicialização mínima)

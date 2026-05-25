@@ -242,13 +242,14 @@ function MotorSync:AtualizarMotorLocal(motorLocal, motorAPI, timestampAPI)
     self.SQLiteDB:InserirOuAtualizarMotor(motorLocal, timestampAPI)
 end
 
--- Função para atualizar motor na API
+-- Função para atualizar motor na API.
+-- Horímetro NÃO entra no payload: backend é dono e ignora o campo. Para zerar,
+-- usar APIClient:ZerarHorimetroOperacao (botão na tela).
 function MotorSync:AtualizarMotorAPI(motorLocal, guidAPI)
     local dados = {
         id = guidAPI,
         nome = motorLocal.Nome,
         status = motorLocal.Status and "ligado" or "desligado",
-        horimetro = motorLocal.Horimetro,
         correnteAtual = motorLocal.CorrenteAtual,
         registroModBus = tostring(motorLocal.RegistroModBus),
         registroLocal = tostring(motorLocal.RegistroLocal),

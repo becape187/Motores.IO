@@ -1,24 +1,43 @@
--- MotorCurrentReader: dois caminhos distintos sobre o mesmo socket :5055
---   1) TEMPO REAL: `tipo:"correntes"` (array de TODOS os motores), rápido
---      (default 2s). Drives a tela via WebSocket "console" do backend.
---   2) HISTÓRICO:  `tipo:"historico"` (1 motor por mensagem), periódico
---      (default 60s), escalonado (1 motor por poll, gap >= HistStaggerMs)
---      pra não colar 22 JSONs num read TCP — o SocketServerService NÃO
---      faz framing por '\n' e dropa quando 2+ msgs colidem num read.
+-- MotorCurrentReader: três fluxos no mesmo socket :5055
+--   1) ACUMULAÇÃO (todo poll): lê o registrador Modbus local, converte raw→A
+--      e atualiza Acc[guid] (soma/n/max/min/ultima) da janela atual.
+--   2) LIVE (1Hz): envia 'tipo:"correntes"' com {id, correnteAtual=ultima}
+--      de TODOS os motores. Drives o gráfico em tempo real do front.
+--   3) HISTÓRICO consolidado (1×/min) com FILA persistente em RAM:
+--      Ao fechar a janela de 60s, captura UM os.time() (timestamp DA medição)
+--      e empurra todos os motores acumulados na Fila com esse timestamp.
+--      A Fila drena 1 item por poll (gap DrainStaggerMs). Item só sai da
+--      fila depois que o backend ACK 'OK'. Em falha de TCP ou sem ACK,
+--      MANTÉM o item na fila e tenta no próximo tick.
 --
--- ARQUITETURA (2026-05-25): a IHM NÃO decide nada — só lê a corrente do
--- registrador, aplica a aferição local (raw/100, em centésimos de Ampere) e
--- manda já em AMPERES. O backend recebe valores em A e usa o limiar de 5 A
--- pra integrar horímetro. Status (ligado/desligado) é derivado na UI a partir
--- da corrente — não é enviado pela IHM nem persistido como regra de negócio.
+-- TIMESTAMP: CRÍTICO — o timestamp gravado no Influx tem que ser DA MEDIÇÃO,
+-- não da chegada no backend nem do reenvio. Por isso `os.time()` é capturado
+-- UMA VEZ por janela (em FecharJanelaParaFila) e fica preso ao item.
+--
+-- FILA EM RAM (sem disco): limite FilaMax=50000 itens (~38h a 22 motores/min).
+-- Ao atingir o limite, descarta o mais antigo (FIFO). Tamanho atual da fila é
+-- exposto no registro Word @W_HDW301 (visível na tela da IHM). Sentinela de
+-- memória via collectgarbage("count") logado a cada minuto.
+--
+-- REGISTROS EXPOSTOS NA IHM:
+--   @W_HDW301 = tamanho atual da fila pendente (0..65535)
+--   @W_HDW302 = % de envios bem-sucedidos no último minuto (0..100). Conta
+--               TODOS os envios pelo socket (live + drain). Live sucesso =
+--               TCP send aceitou; histórico sucesso = backend respondeu "OK".
+--               Sem amostra no minuto = 100 (canal saudável).
+--
+-- ARQUITETURA (2026-05-25): IHM lê corrente do registrador, aplica aferição
+-- local (raw/100 = centésimos de Ampere → A) e manda já em AMPERES. Backend
+-- usa limiar de 5 A pra integrar horímetro. Status (ligado/desligado) é
+-- derivado na UI a partir da corrente.
 --
 -- Payload atual:
 --   correntes: {"tipo":"correntes","timestamp":<unix_s>,"plantaId":"<uuid>",
 --               "motores":[{"id","correnteAtual"}]}
 --   historico: {"tipo":"historico","timestamp":<unix_s>,"plantaId":"<uuid>",
 --               "id","correnteAtual","correnteMedia","correnteMaxima","correnteMinima"}
--- Valores em AMPERES (float). Aferição (escala raw→A) vive aqui, no reader;
--- ajustar este fator se o registrador do PLC mudar de escala.
+-- Valores em AMPERES (float). Aferição vive aqui; ajustar `FatorEscala` se o
+-- registrador do PLC mudar de escala.
 
 local json = require("json")
 
@@ -34,26 +53,42 @@ function MotorCurrentReader:new(motorSync, socketClient)
     obj.Enabled      = true
 
     -- ====== TUNÁVEIS ======
-    -- "correntes" sai TODO ciclo de poll ("tão rápido quanto a tela da IHM").
-    -- Payload agora é minúsculo (só id+correnteAtual por motor) e cabe num
-    -- read TCP — improbabilidade de colidir com a próxima.
-    obj.LiveIntervalMs = 0        -- 0 = envia em todo poll do we_bg_poll
-    obj.HistIntervalMs = 60000    -- "historico" (resumo persistido) a cada 60s
-    obj.HistStaggerMs  = 150      -- gap mínimo entre msgs de historico no drain
+    obj.LiveIntervalMs    = 1000     -- envio 'correntes' a 1Hz (Acc continua sendo lido em todo poll)
+    obj.HistIntervalMs    = 60000    -- fecha janela de média a cada 60s
+    obj.DrainStaggerMs    = 150      -- gap entre envios de itens da fila (~6.6/s)
+    obj.RamLogIntervalMs  = 60000    -- log periódico de RAM/fila
+    obj.PctIntervalMs     = 60000    -- janela do percentual de acertos do socket
+    obj.FilaMax           = 50000    -- limite da fila em RAM (~38h)
+    obj.RegistroFilaPend  = "@W_HDW301"  -- Word: tamanho da fila pendente (visível na IHM)
+    obj.RegistroPctAcerto = "@W_HDW302"  -- Word: % de envios bem-sucedidos no último minuto (0-100)
+    obj.AckTimeoutSec     = 0.5      -- timeout pra ler 'OK' do backend após enviar histórico
+
     -- Aferição: o registrador do PLC reporta corrente em centésimos de Ampere
     -- (raw 247 = 2,47 A). Se o eletricista ajustar a escala no CT, mudar aqui.
-    obj.FatorEscala    = 1 / 100  -- raw → Amperes
+    obj.FatorEscala       = 1 / 100  -- raw → Amperes
     -- ======================
     -- (sem LimiarLigado: IHM não decide status; backend decide.)
 
     local agora = we_bas_gettickcount()
-    obj.LastLiveTime     = agora
-    obj.LastHistTime     = agora
-    obj.LastHistItemTime = agora
+    obj.LastLiveTime    = agora
+    obj.LastHistTime    = agora      -- início da janela atual
+    obj.LastDrainTime   = agora
+    obj.LastRamLogTime  = agora
+    obj.LastPctTime     = agora      -- início da janela de % acertos
 
-    -- Acumulador por GUID (janela longa: reseta SÓ ao enviar historico)
-    obj.Acc = {}        -- guid -> {soma,n,max,min,ultima}
-    obj.HistFila = {}   -- guids pendentes de envio no ciclo de historico atual
+    -- Acumulador da janela ATUAL (zera ao fechar a janela)
+    obj.Acc = {}                     -- guid -> {soma,n,max,min,ultima} em AMPERES
+    -- Fila persistente de itens prontos para envio
+    obj.Fila = {}                    -- array FIFO: {id, ts, atual, media, max, min}
+
+    -- Contadores da janela do % de acertos (resetados após gravar em @W_HDW302).
+    -- Conta TODOS os envios pelo socket: live (correntes) + drain de historico.
+    obj.EnviosTentados = 0
+    obj.EnviosOK       = 0
+
+    -- Garantir que os registros começam em valores neutros
+    pcall(function() we_bas_setint(obj.RegistroFilaPend, 0) end)
+    pcall(function() we_bas_setint(obj.RegistroPctAcerto, 100) end)  -- sem amostra = 100% saudável
 
     return obj
 end
@@ -62,8 +97,23 @@ local function novoAcc()
     return { soma = 0, n = 0, max = nil, min = nil, ultima = 0 }
 end
 
--- Lê todos os motores TODO ciclo de poll.
--- máx/mín/última = o mais rápido possível; soma/n acumula pra média da janela.
+-- Atualiza @W_HDW301 com o tamanho atual da fila (clampado a 65535 = Word máx).
+function MotorCurrentReader:AtualizarRegistroFila()
+    local n = #self.Fila
+    if n > 65535 then n = 65535 end
+    pcall(function() we_bas_setint(self.RegistroFilaPend, n) end)
+end
+
+-- Insere item no fim da fila. Se atingir FilaMax, descarta os mais antigos.
+function MotorCurrentReader:PushFila(item)
+    while #self.Fila >= self.FilaMax do
+        table.remove(self.Fila, 1)  -- FIFO: descarta mais antigo
+    end
+    table.insert(self.Fila, item)
+end
+
+-- Lê todos os motores em TODO ciclo de poll.
+-- Converte raw → Amperes e acumula soma/n/max/min/ultima para a janela.
 function MotorCurrentReader:Ler()
     if not self.MotorSync or not self.MotorSync.Inicializado then return end
     local mm = self.MotorSync.MotoresMemoria
@@ -72,18 +122,15 @@ function MotorCurrentReader:Ler()
     for guid, motorData in pairs(mm) do
         local motor = motorData.motor
         if motor and motor.RegistroLocal and motor.RegistroLocal ~= "" then
-            -- 16-bit: lê SÓ o registro do próprio motor (ver fix do word alto)
+            -- 16-bit: lê SÓ o registro do próprio motor (fix do word alto)
             local raw = we_bas_getword(motor.RegistroLocal)
             if raw ~= nil then
                 raw = tonumber(raw) or 0
                 if raw < 0 then raw = 0 end
-                -- Sanidade: 0xFFFF (65535) é o padrão de "registrador
-                -- não inicializado / falha de sensor". Trata como zero
-                -- pra não fazer o backend integrar hora em motor parado.
+                -- 0xFFFF = registrador não inicializado / falha de sensor → trata como 0
                 if raw >= 65535 then raw = 0 end
 
-                -- Aferição: converte raw → Amperes ANTES de acumular.
-                -- Daqui pra frente, o acc/payload/JSON tudo está em A.
+                -- Aferição: raw → Amperes. Daqui pra frente tudo está em A.
                 local amperes = raw * self.FatorEscala
 
                 local acc = self.Acc[guid]
@@ -101,8 +148,8 @@ function MotorCurrentReader:Ler()
     end
 end
 
--- 1) TEMPO REAL: envia array `tipo:"correntes"` com todos os motores.
---    Versão enxuta: id + status + correnteAtual (não reseta o acumulador).
+-- LIVE (1Hz): array 'correntes' com {id, correnteAtual=ultima} de todos motores.
+-- Não toca a janela de Acc (que continua acumulando para o consolidado).
 function MotorCurrentReader:EnviarLive()
     if not self.SocketClient then return end
     local mm = self.MotorSync and self.MotorSync.MotoresMemoria
@@ -113,8 +160,6 @@ function MotorCurrentReader:EnviarLive()
         local motor = motorData.motor
         local acc = self.Acc[guid]
         if motor and motor.GUID and acc then
-            -- IHM só reporta a corrente bruta. Sem `status` e sem `horimetro`:
-            -- backend é quem decide ligado/desligado e quem mantém o horímetro.
             table.insert(arr, {
                 id            = motor.GUID,
                 correnteAtual = acc.ultima
@@ -123,103 +168,184 @@ function MotorCurrentReader:EnviarLive()
     end
     if #arr > 0 then
         local plantaId = self.MotorSync and self.MotorSync.PlantaUUID or nil
-        -- EnviarCorrentesArray embrulha em
-        -- {tipo="correntes",plantaId,motores=arr,timestamp=os.time()} + "\n"
-        self.SocketClient:EnviarCorrentesArray(arr, plantaId)
+        -- EnviarCorrentesArray serializa {tipo='correntes',plantaId,motores=arr,
+        -- timestamp=os.time()}+'\n'. Backend agora não responde OK (fire-and-forget),
+        -- então não há acúmulo de OKs no buffer da IHM.
+        -- Conta para o % de acertos do socket: live só tem garantia TCP (kernel
+        -- aceitou o send); falha aqui = conexão morta ou kernel cheio.
+        local ok, _ = self.SocketClient:EnviarCorrentesArray(arr, plantaId)
+        self.EnviosTentados = self.EnviosTentados + 1
+        if ok then self.EnviosOK = self.EnviosOK + 1 end
     end
 end
 
--- 2) HISTÓRICO: monta a fila com TODOS os GUIDs; será drenado 1-por-poll
---    no Loop, respeitando HistStaggerMs entre mensagens.
-function MotorCurrentReader:IniciarDrenoHistorico()
-    self.HistFila = {}
-    if not self.MotorSync or not self.MotorSync.MotoresMemoria then return end
-    for guid, _ in pairs(self.MotorSync.MotoresMemoria) do
-        table.insert(self.HistFila, guid)
+-- Fecha a janela atual: captura tsJanela uma vez, empurra todos os motores
+-- com acumulador não-vazio para a Fila com esse timestamp, e zera o Acc.
+function MotorCurrentReader:FecharJanelaParaFila()
+    local tsJanela = os.time()  -- ⚠ timestamp DA medição — fica preso ao item
+    local mm = self.MotorSync and self.MotorSync.MotoresMemoria
+    if not mm then return end
+
+    local enfileirados = 0
+    for guid, motorData in pairs(mm) do
+        local motor = motorData.motor
+        local acc = self.Acc[guid]
+        if motor and motor.GUID and acc and acc.n > 0 then
+            local media = acc.soma / acc.n
+            self:PushFila({
+                id    = motor.GUID,
+                ts    = tsJanela,
+                atual = acc.ultima,
+                media = media,
+                max   = acc.max or acc.ultima,
+                min   = acc.min or acc.ultima
+            })
+            enfileirados = enfileirados + 1
+        end
+        -- zera o acc do motor independente de ter sido enfileirado
+        self.Acc[guid] = novoAcc()
+    end
+
+    if enfileirados > 0 then
+        self:AtualizarRegistroFila()
+        print(string.format("[CurrentReader] janela ts=%d enfileirou %d (fila=%d)",
+            tsJanela, enfileirados, #self.Fila))
     end
 end
 
--- Envia 1 mensagem `tipo:"historico"` do próximo motor da fila e reseta o acc.
-function MotorCurrentReader:EnviarProximoHistorico()
-    local guid = table.remove(self.HistFila, 1)
-    if not guid then return end
+-- Envia 1 item da Fila e tenta ler o ACK do backend.
+-- Remove o item APENAS se receber 'OK'. Em timeout/falha TCP, mantém para
+-- tentar de novo no próximo tick.
+function MotorCurrentReader:DrenarUmDaFila()
+    local item = self.Fila[1]
+    if not item then return end
     if not self.SocketClient then return end
 
-    local mm = self.MotorSync and self.MotorSync.MotoresMemoria
-    local motorData = mm and mm[guid]
-    local motor = motorData and motorData.motor
-    local acc = self.Acc[guid]
-    if not (motor and motor.GUID and acc) then
-        -- nada a enviar; só reseta acc se existir
-        if acc then self.Acc[guid] = novoAcc() end
+    local msg = {
+        tipo           = "historico",
+        timestamp      = item.ts,                                       -- ⚠ timestamp DA medição
+        plantaId       = self.MotorSync and self.MotorSync.PlantaUUID or nil,
+        id             = item.id,
+        correnteAtual  = item.atual,
+        correnteMedia  = item.media,
+        correnteMaxima = item.max,
+        correnteMinima = item.min
+    }
+
+    -- Cada drain conta como 1 envio tentado (sucesso = ACK "OK" recebido).
+    self.EnviosTentados = self.EnviosTentados + 1
+
+    local sent, err = self.SocketClient:EnviarMensagem(json.encode(msg))
+    if not sent then
+        -- TCP morto. Item fica no início da fila pra próxima tentativa.
+        -- (SocketClient já loga o erro de envio.)
         return
     end
 
-    local media = (acc.n > 0) and (acc.soma / acc.n) or acc.ultima
-
-    -- Sem `status`: backend decide. Manda sempre max/min — backend filtra/usa.
-    local item = {
-        tipo           = "historico",
-        timestamp      = os.time(),
-        plantaId       = self.MotorSync.PlantaUUID,
-        id             = motor.GUID,
-        correnteAtual  = acc.ultima,
-        correnteMedia  = media,
-        correnteMaxima = acc.max or acc.ultima,
-        correnteMinima = acc.min or acc.ultima
-    }
-
-    -- 1 mensagem só, EnviarMensagem já anexa "\n"
-    self.SocketClient:EnviarMensagem(json.encode(item))
-
-    -- reseta a janela desse motor (a média/máx/mín é por janela de HistIntervalMs)
-    self.Acc[guid] = novoAcc()
+    -- Tenta ler ACK com timeout curto pra não congelar a UI
+    local resp, errR = self.SocketClient:ReceberMensagem(self.AckTimeoutSec)
+    if resp then
+        resp = string.gsub(resp, "\n", "")
+        if resp == "OK" or string.find(resp, "OK", 1, true) then
+            -- Backend confirmou — remove da fila
+            self.EnviosOK = self.EnviosOK + 1
+            table.remove(self.Fila, 1)
+            self:AtualizarRegistroFila()
+        else
+            -- Backend rejeitou (ex: timestamp inválido, motor inexistente).
+            -- Não adianta reenviar — DESCARTA pra não loopar infinitamente.
+            print("[CurrentReader] ✗ Server rejeitou histórico ts=" .. tostring(item.ts)
+                  .. " id=" .. tostring(item.id) .. " resp=" .. tostring(resp))
+            table.remove(self.Fila, 1)
+            self:AtualizarRegistroFila()
+        end
+    else
+        -- Sem ACK (timeout). Conservador: MANTÉM na fila.
+        -- Risco: se backend gravou mas o ACK não chegou, vamos duplicar.
+        -- Aceitável (Influx pode dedup por ts+motorId nas queries).
+    end
 end
 
--- Chamado no we_bg_poll.
--- Garante NO MÁXIMO 1 envio por tick (live OU historico) — reduz o risco
--- de o backend juntar mensagens no mesmo read TCP.
+-- Calcula o percentual de envios bem-sucedidos na janela do último minuto
+-- e grava em @W_HDW302 (Word, 0..100). Se nenhum envio na janela, assume
+-- 100 (sem amostra = nada a reclamar). Reseta os contadores no fim.
+function MotorCurrentReader:GravarPctAcertos()
+    local pct
+    if self.EnviosTentados <= 0 then
+        pct = 100
+    else
+        pct = math.floor((self.EnviosOK * 100) / self.EnviosTentados + 0.5)
+        if pct < 0 then pct = 0 end
+        if pct > 100 then pct = 100 end
+    end
+    pcall(function() we_bas_setint(self.RegistroPctAcerto, pct) end)
+    print(string.format("[CurrentReader] socket %d%% (%d/%d envios OK no último minuto)",
+        pct, self.EnviosOK, self.EnviosTentados))
+    -- Reseta a janela
+    self.EnviosTentados = 0
+    self.EnviosOK = 0
+end
+
+-- Sentinela de memória: loga uso do Lua VM e tamanho da fila.
+function MotorCurrentReader:LogRam()
+    local kb = collectgarbage("count")  -- KB usados pelo Lua VM (incluindo Fila)
+    print(string.format("[CurrentReader] RAM lua=%.1fKB fila=%d/%d (%.1f%%)",
+        kb, #self.Fila, self.FilaMax, (#self.Fila / self.FilaMax) * 100))
+end
+
+-- Chamado no we_bg_poll. Política por tick:
+--   1) Sempre lê e acumula (rápido)
+--   2) Se passou 60s desde início da janela → fecha janela → enfileira → sync REST
+--   3) Se há item na fila E passou DrainStaggerMs → drena 1 item (retorna, não envia live no mesmo tick)
+--   4) Se passou LiveIntervalMs → envia live
+--   5) Periódico: log de RAM
 function MotorCurrentReader:Loop()
     if not self.Enabled then return end
 
     local agora = we_bas_gettickcount()
-    if agora < self.LastLiveTime     then self.LastLiveTime     = agora end
-    if agora < self.LastHistTime     then self.LastHistTime     = agora end
-    if agora < self.LastHistItemTime then self.LastHistItemTime = agora end
+    -- Sanidade: tickcount voltou (overflow / reboot)
+    if agora < self.LastLiveTime    then self.LastLiveTime    = agora end
+    if agora < self.LastHistTime    then self.LastHistTime    = agora end
+    if agora < self.LastDrainTime   then self.LastDrainTime   = agora end
+    if agora < self.LastRamLogTime  then self.LastRamLogTime  = agora end
+    if agora < self.LastPctTime     then self.LastPctTime     = agora end
 
-    -- lê e acumula TODO ciclo (máx/mín o mais rápido possível)
+    -- (1) leitura/acumulação em todo poll
     self:Ler()
 
-    -- (A) drenando histórico? prioriza, respeitando o stagger
-    if #self.HistFila > 0 then
-        if (agora - self.LastHistItemTime) >= self.HistStaggerMs then
-            self:EnviarProximoHistorico()
-            self.LastHistItemTime = agora
-            if #self.HistFila == 0 then
-                self.LastHistTime = agora  -- ciclo de historico concluído
-                -- O backend acabou de receber o histórico e recalculou os
-                -- horímetros de TODOS os motores. Faz uma sync REST agora
-                -- pra trazer o valor "sincronizado" pra `motor.Horimetro`
-                -- em memória da IHM. A tela pode ler dali (ainda a wirear).
-                if self.MotorSync and self.MotorSync.Sincronizar then
-                    self.MotorSync:Sincronizar()
-                end
-            end
+    -- (2) fim de janela: empurra Acc → Fila e dispara sync REST
+    if (agora - self.LastHistTime) >= self.HistIntervalMs then
+        self.LastHistTime = agora
+        self:FecharJanelaParaFila()
+        if self.MotorSync and self.MotorSync.Sincronizar then
+            -- Sync REST traz horímetro consolidado do backend (independe da fila TCP)
+            self.MotorSync:Sincronizar()
         end
+    end
+
+    -- (3) drain contínuo da fila — prioridade sobre o live
+    if #self.Fila > 0 and (agora - self.LastDrainTime) >= self.DrainStaggerMs then
+        self.LastDrainTime = agora
+        self:DrenarUmDaFila()
         return  -- não envia live no mesmo tick
     end
 
-    -- (B) é hora de iniciar um novo ciclo de historico?
-    if (agora - self.LastHistTime) >= self.HistIntervalMs then
-        self:IniciarDrenoHistorico()
-        self.LastHistItemTime = 0  -- libera 1º envio no próximo tick
-        return
-    end
-
-    -- (C) caso contrário, envio de tempo real (correntes) na cadência LiveIntervalMs
+    -- (4) live a 1Hz
     if (agora - self.LastLiveTime) >= self.LiveIntervalMs then
         self.LastLiveTime = agora
         self:EnviarLive()
+    end
+
+    -- (5) sentinela de RAM
+    if (agora - self.LastRamLogTime) >= self.RamLogIntervalMs then
+        self.LastRamLogTime = agora
+        self:LogRam()
+    end
+
+    -- (6) percentual de acertos do socket no último minuto → @W_HDW302
+    if (agora - self.LastPctTime) >= self.PctIntervalMs then
+        self.LastPctTime = agora
+        self:GravarPctAcertos()
     end
 end
 

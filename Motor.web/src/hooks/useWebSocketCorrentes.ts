@@ -145,13 +145,19 @@ export function useWebSocketCorrentes(
             if (message.tipo === 'correntes' && message.motores) {
               // Valores já em AMPERES (IHM aplica raw/100). Status sai do payload —
               // é derivado da corrente na UI (utils/motorStatus.ts).
+              // Sanitiza: a IHM pode ocasionalmente mandar null (motor ainda sem leitura);
+              // sem isso o render quebra com `null.toFixed`.
+              const toNumberOrZero = (v: unknown): number =>
+                typeof v === 'number' && Number.isFinite(v) ? v : 0;
+              const toNumberOrUndef = (v: unknown): number | undefined =>
+                typeof v === 'number' && Number.isFinite(v) ? v : undefined;
               const correntesMap = new Map<string, MotorCorrenteData>();
               message.motores.forEach((motor) => {
                 const dados: MotorCorrenteData = {
-                  correnteAtual: motor.correnteAtual,
-                  correnteMedia: motor.correnteMedia,
-                  correnteMaxima: motor.correnteMaxima,
-                  correnteMinima: motor.correnteMinima,
+                  correnteAtual: toNumberOrZero(motor.correnteAtual),
+                  correnteMedia: toNumberOrUndef(motor.correnteMedia),
+                  correnteMaxima: toNumberOrUndef(motor.correnteMaxima),
+                  correnteMinima: toNumberOrUndef(motor.correnteMinima),
                 };
                 correntesMap.set(motor.id, dados);
               });
